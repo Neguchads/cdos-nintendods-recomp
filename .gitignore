@@ -46,6 +46,10 @@ screenshots/
 *.tmp
 play.sh
 
+# Assets visuais oficiais do repositorio e RecompLauncher (precisam vir depois de *.png/*.zip)
+!assets/
+!assets/**
+
 # Cache e build local Android Gradle/NDK
 android/.gradle/
 android/build/

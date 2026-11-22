@@ -1,66 +1,47 @@
 {
-  "$schema": "https://raw.githubusercontent.com/elripalda/RecompLauncher-SDK/main/schema/recomplauncher.json",
+  "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
   "format": 1,
-  "name": "Castlevania: Dawn of Sorrow (ACVE Static Recomp)",
+  "name": "Castlevania: Dawn of Sorrow: Recompiled",
   "repo": "Neguchads/cdos-nintendods-recomp",
-  "game": {
-    "kind": "rom",
-    "label": "Castlevania: Dawn of Sorrow (USA, Rev 0 / ACVE). Supply your legally dumped 64 MiB .nds ROM (SHA-1: 47530ff87e608f88105a314fdf36dc385f8dec94). Optional PT-BR patch applied in memory.",
-    "check": {
-      "sha1": "47530ff87e608f88105a314fdf36dc385f8dec94"
+  "inputs": [
+    {
+      "id": "game",
+      "label": "Your copy of Castlevania: Dawn of Sorrow (USA, ACVE) for Nintendo DS: the 64 MiB .nds file (SHA-1 47530ff87e608f88105a314fdf36dc385f8dec94). The optional PT-BR translation is applied in memory.",
+      "role": "game",
+      "formats": [
+        {
+          "type": "file",
+          "extensions": [
+            "nds"
+          ]
+        }
+      ],
+      "check": {
+        "ids": [
+          "ACVE"
+        ]
+      },
+      "dumps": [
+        {
+          "name": "USA (ACVE)",
+          "size": 67108864,
+          "crc32": "135737f6"
+        }
+      ]
     }
-  },
-  "prepare": {
-    "program": [
-      "runtime/nds_runner.exe",
-      "runtime/nds_runner"
-    ],
-    "args": [
-      "run/bios",
-      "--interactive",
-      "--rom",
-      "{game}",
-      "--ptbr-patch",
-      "mods/ptbr/dos-ptbr.dospatch",
-      "--config",
-      "game.toml",
-      "--freebios",
-      "--generated-firmware",
-      "--boot",
-      "direct",
-      "--startup-mode",
-      "automatic",
-      "--diagnostics",
-      "off",
-      "--no-coverage-manifest",
-      "--runtime-settings-path",
-      "{data}/saves/dos-settings.ini",
-      "--savestate-dir",
-      "{data}/run/savestates",
-      "--save-path",
-      "{data}/saves/dos.sav",
-      "--firmware-state-path",
-      "{data}/run/firmware_state.bin"
-    ],
-    "label": "Verify ROM & initialize runtime folders / Verificar ROM e preparar pastas",
-    "timeout": 120,
-    "version": "1.0.0",
-    "done": [
-      "runtime/nds_runner.exe",
-      "mods/ptbr/dos-ptbr.dospatch",
-      "game.toml"
-    ]
-  },
+  ],
   "start": {
     "program": [
       "runtime/nds_runner.exe",
-      "runtime/nds_runner"
+      "runtime/nds_runner",
+      "nds_runner.exe",
+      "nds_runner"
     ],
     "args": [
       "run/bios",
       "--interactive",
       "--rom",
-      "{game}",
+      "{input:game}",
       "--ptbr-patch",
       "mods/ptbr/dos-ptbr.dospatch",
       "--config",
@@ -90,6 +71,11 @@
     "{data}/run/savestates"
   ],
   "folders": {
+    "saves": [
+      {
+        "path": "{data}/saves"
+      }
+    ],
     "logs": [
       {
         "path": "{data}/run/logs"
@@ -109,7 +95,40 @@
         {
           "path": "{data}/saves/dos-settings.ini"
         }
-      ]
+      ],
+      "new": {
+        "dos_ui_language": "ptbr",
+        "dos_game_language": "ptbr",
+        "dos_skip_launcher": "true",
+        "dos_fullscreen": "borderless",
+        "dos_layout": "pip",
+        "dos_pip_main": "bottom",
+        "dos_pip_corner": "top-right",
+        "dos_pip_size": "37",
+        "dos_pip_opacity": "90",
+        "dos_aspect_mode": "stretch",
+        "dos_render_driver": "direct3d12",
+        "dos_vsync": "false",
+        "dos_hd_filter": "xbr2x",
+        "dos_color_mode": "vivid",
+        "dos_sharpen": "subtle",
+        "dos_post_fx": "off",
+        "dos_brightness": "100",
+        "dos_contrast": "100",
+        "dos_saturation": "100",
+        "dos_vignette": "0",
+        "dos_hud_mode": "fps",
+        "dos_dev_hud": "true",
+        "dos_pause_on_menu": "false",
+        "dos_pause_unfocused": "false",
+        "dos_audio_enabled": "true",
+        "dos_audio_mode": "warm-stereo",
+        "dos_audio_volume": "100",
+        "dos_audio_fx": "100",
+        "dos_mute_unfocused": "false",
+        "dos_button_prompts": "auto",
+        "dos_stick_deadzone": "20"
+      }
     }
   ],
   "settings": [
@@ -866,12 +885,39 @@
       }
     }
   ],
+  "actions": [
+    {
+      "id": "saves",
+      "label": "Saves & Settings",
+      "help": "Your EEPROM cartridge save (.sav), savestates and INI settings.",
+      "open": "saves"
+    },
+    {
+      "id": "screenshots",
+      "label": "Screenshots",
+      "help": "F12 screenshots taken during gameplay.",
+      "open": "screenshots"
+    },
+    {
+      "id": "logs",
+      "label": "Logs",
+      "help": "Runtime diagnostics and crash logs.",
+      "open": "logs"
+    }
+  ],
+  "looks": {
+    "graphics_key": "dos_render_driver",
+    "in": "main",
+    "lines": 192
+  },
   "system": {
     "windows": {
       "version": "10",
       "graphics": {
-        "d3d12": "12",
-        "vulkan": "1.1"
+        "d3d12": "12.0",
+        "vulkan": "1.1",
+        "d3d11": "11.0",
+        "opengl": "4.3"
       }
     },
     "linux": {
@@ -882,6 +928,7 @@
     }
   },
   "exit_codes": {
+    "0": "ok",
     "1": "Missing or invalid USA Castlevania: Dawn of Sorrow ROM or runtime initialization error.",
     "2": "Invalid CLI argument or game.toml / dos-settings.ini parse failure."
   }
