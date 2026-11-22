@@ -33,7 +33,7 @@ Saves, settings, savestates and screenshots live in RecompLauncher's `{data}` fo
 
 ### Media kit (RecompLauncher artwork)
 
-Every image RecompLauncher asks for is in [`assets/recomplauncher/`](assets/recomplauncher). All art is original, drawn procedurally by [`tools/prepare_media_assets.py`](tools/prepare_media_assets.py).
+Every image RecompLauncher asks for is in [`assets/recomplauncher/`](assets/recomplauncher), validated by [`tools/prepare_media_assets.py`](tools/prepare_media_assets.py).
 
 | Slot | File | Size | Preview |
 |---|---|---|---|
@@ -143,7 +143,7 @@ Saves, configurações, savestates e capturas ficam na pasta `{data}` do RecompL
 
 ### Kit de mídia (artes do RecompLauncher)
 
-Todas as imagens que o RecompLauncher pede estão em [`assets/recomplauncher/`](assets/recomplauncher). A arte é original, desenhada de forma procedural por [`tools/prepare_media_assets.py`](tools/prepare_media_assets.py).
+Todas as imagens que o RecompLauncher pede estão em [`assets/recomplauncher/`](assets/recomplauncher), validadas por [`tools/prepare_media_assets.py`](tools/prepare_media_assets.py).
 
 | Slot | Arquivo | Tamanho | Prévia |
 |---|---|---|---|

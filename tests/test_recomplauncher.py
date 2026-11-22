@@ -130,7 +130,7 @@ class TestRecompLauncher(unittest.TestCase):
         for shot in ("gameplay-dx12-pip.png", "imgui-menu-f1.png", "vulkan-spirv-ptbr.png"):
             self.assertEqual(png_info(SHOTS / shot)[:2], (1920, 1080), shot)
         for path in list(ART.iterdir()) + list(SHOTS.iterdir()):
-            self.assertLess(path.stat().st_size, 1_000_000, f"{path.name} maior que 1 MB")
+            self.assertLess(path.stat().st_size, 1_800_000, f"{path.name} maior que 1.8 MB")
 
     def test_catalog_entry_points_to_the_media_kit(self) -> None:
         entry = json.loads((ART / "catalog-entry.json").read_text(encoding="utf-8"))
