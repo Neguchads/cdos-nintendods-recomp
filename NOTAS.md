@@ -1,20 +1,65 @@
-# Notas do Projeto — Castlevania: Dawn of Sorrow Recomp
+# Project Notes / Notas do Projeto — Castlevania: Dawn of Sorrow: Recompiled
 
-## Metadados das ROMs verificados
-- **ROM Base (USA):** `..\Roms\Castlevania - Dawn of Sorrow (USA).nds` — `67,108,864` bytes, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`, intacta.
-- **ROM PT-BR de origem do patch:** `..\Roms\Castlevania - Dawn of Sorrow (BR-USA) (DE) (T1.0) (www.romsportugues.com).nds` — `67,108,864` bytes, SHA-1 `c9a1552bcdcd8fdf3c052d975e6838da7ead08d1`.
+**[English](#english) | [Português (BR)](#português-br)**
+
+---
+
+<a id="english"></a>
+
+## English
+
+### Verified ROM Metadata
+- **Base ROM (USA):** `..\Roms\Castlevania - Dawn of Sorrow (USA).nds` — `67,108,864` bytes, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`, unmodified.
+- **PT-BR Reference ROM (patch source):** `..\Roms\Castlevania - Dawn of Sorrow (BR-USA) (DE) (T1.0) (www.romsportugues.com).nds` — `67,108,864` bytes, SHA-1 `c9a1552bcdcd8fdf3c052d975e6838da7ead08d1`.
+- **Measured structural differences between USA and PT-BR (`364,911` bytes total):** `7 B` header, `0 B` ARM7, `120 B` in ARM9 (`0x02008578..0x020c02f4`, accent glyph hooks), `3` overlays (`ov000`, `ov004`, `ov005`), and `88` NitroFS files (fonts/strings).
+- **Generated delta patch:** `mods/ptbr/dos-ptbr.dospatch` (`469,280` bytes, `4,806` chunks) verified via SHA-1 + CRC32 in RAM without modifying the original `.nds` files.
+
+### 3-Screens Bug Fix & Dear ImGui Overlay Reconstruction
+- **Previous root cause:** `present_screens` rendered the 2 DS screens (`SideBySide` / `Stacked`) and then drew `menu_texture` (`512x384` containing an opaque copy of `raw_sources[hud_screen]`) centered over the canvas, producing a visible 3rd copy of the screen.
+- **Applied solution:** `DosImGuiMenu` (Dear ImGui v1.92.9b) renders directly over the 2 real DS screens by temporarily suspending `SDL_SetRenderLogicalPresentation` for native 1080p+ sharpness and bypassing `menu_texture` / `g_runtime_menu_surface`.
+
+### RecompLauncher 1.0 SDK & Media Kit (`assets/recomplauncher/`)
+- **`recomplauncher.json`:** upgraded to the RecompLauncher 1.0 SDK format (`inputs[game]` with `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` & size `67108864`, `config[0].new` defaults, `looks`, `actions`, `system`, `exit_codes`, and no window-opening `prepare` step).
+- **Media kit (`tools/prepare_media_assets.py`):** `icon.png` (`256x256`) + `icon.ico` (`256, 64, 48, 32, 16`), `cover.png`/`cover.jpg` (`600x900`), `hero.png`/`hero.jpg` (`1920x620`), transparent `logo.png` (`1000x500` RGBA), `wallpaper.png` (`1920x1080`), `artwork.png` (`1024x1024`), `catalog-entry.json` (`media_design.kind = "ds"`), plus 3 in-engine captures (`1920x1080`) in `assets/screenshots/`.
+
+### Latest Verifications
+- `ctest`: **3/3 passed** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
+- `unittest`: **19/19 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `prepare_media_assets.py --check-only`: **OK** (`8` images + `icon.ico` + `catalog-entry.json` + `3` screenshots).
+- `package_recomplauncher.py --validate-only`: **OK** (`30` INI keys + `inputs[game]` + media kit).
+- `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
+- **DX12 GPU PT-BR (`420` clean frames):** **`59.86 FPS`** (`emu=3.72 ms`, `pres=0.78 ms`, `rb=0.000 ms`, `underruns=0`).
+- **Vulkan GPU SPIR-V PT-BR (`1920x1080`):** active in hardware (`vulkan-gpu`, `SPIR-V Vulkan`), `60.0 FPS`, `PRES:0.3MS`.
+
+[Back to top / Voltar ao topo](#project-notes--notas-do-projeto--castlevania-dawn-of-sorrow-recompiled)
+
+---
+
+<a id="português-br"></a>
+
+## Português (BR)
+
+### Metadados das ROMs Verificados
+- **ROM Base (USA):** `..\Roms\Castlevania - Dawn of Sorrow (USA).nds` — `67.108.864` bytes, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`, intacta.
+- **ROM PT-BR de origem do patch:** `..\Roms\Castlevania - Dawn of Sorrow (BR-USA) (DE) (T1.0) (www.romsportugues.com).nds` — `67.108.864` bytes, SHA-1 `c9a1552bcdcd8fdf3c052d975e6838da7ead08d1`.
 - **Diferenças estruturais medidas entre USA e PT-BR (`364.911` bytes no total):** `7 B` cabeçalho, `0 B` ARM7, `120 B` em ARM9 (`0x02008578..0x020c02f4`, hooks de acentuação), `3` overlays (`ov000`, `ov004`, `ov005`), e `88` arquivos NitroFS (fontes/textos).
-- **Patch delta gerado:** `mods/ptbr/dos-ptbr.dospatch` (`469.280` bytes, `4.806` blocos) validado via SHA-1 + CRC32 sem modificar os arquivos `.nds` originais.
+- **Patch delta gerado:** `mods/ptbr/dos-ptbr.dospatch` (`469.280` bytes, `4.806` blocos) validado via SHA-1 + CRC32 em RAM sem modificar os arquivos `.nds` originais.
 
-## Bug das 3 telas e reconstrução com Dear ImGui
+### Bug das 3 Telas e Reconstrução com Dear ImGui
 - **Causa raiz anterior:** `present_screens` renderizava as 2 telas DS (`SideBySide` / `Stacked`) e depois desenhava `menu_texture` (`512x384` contendo cópia opaca de `raw_sources[hud_screen]`) por cima do centro do canvas, fazendo aparecer uma 3ª cópia da tela.
 - **Solução aplicada:** `DosImGuiMenu` (Dear ImGui v1.92.9b) desenha diretamente sobre as 2 telas reais suspendendo temporariamente `SDL_SetRenderLogicalPresentation` para manter nitidez nativa (1080p+) e ignorando `menu_texture` / `g_runtime_menu_surface`.
 
-## Verificações mais recentes (após última edição de código)
+### SDK 1.0 do RecompLauncher & Kit de Mídia (`assets/recomplauncher/`)
+- **`recomplauncher.json`:** atualizado para o formato do SDK 1.0 do RecompLauncher (`inputs[game]` com `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` e tamanho `67108864`, padrões em `config[0].new`, `looks`, `actions`, `system`, `exit_codes` e sem etapa `prepare` com janela).
+- **Kit de mídia (`tools/prepare_media_assets.py`):** `icon.png` (`256x256`) + `icon.ico` (`256, 64, 48, 32, 16`), `cover.png`/`cover.jpg` (`600x900`), `hero.png`/`hero.jpg` (`1920x620`), `logo.png` transparente (`1000x500` RGBA), `wallpaper.png` (`1920x1080`), `artwork.png` (`1024x1024`), `catalog-entry.json` (`media_design.kind = "ds"`), mais 3 capturas reais do motor (`1920x1080`) em `assets/screenshots/`.
+
+### Verificações Mais Recentes
 - `ctest`: **3/3 passaram** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **14/14 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `unittest`: **19/19 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `prepare_media_assets.py --check-only`: **OK** (`8` imagens + `icon.ico` + `catalog-entry.json` + `3` capturas).
+- `package_recomplauncher.py --validate-only`: **OK** (`30` chaves INI + `inputs[game]` + kit de mídia).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
-- **DX12 GPU PT-BR (`420` frames limpo):** **`59,86 FPS`** (`emu=3,72 ms`, `pres=0,78 ms`, `rb=0,000 ms`, `underruns=0`).
-- **Vulkan GPU SPIR-V PT-BR (`frame-240.png`):** ativo em hardware (`vulkan-gpu`, `SPIR-V Vulkan`), HUD completo sem cortes e imagem PT-BR validada visualmente.
-- **Pacote RecompLauncher:** `dist/castlevania-dos-recomp-win64.zip` (`71.990.144` B) validado com `0` ROMs incluídas.
-- **Publicação GitHub (`Neguchads/cdos-nintendods-recomp`):** `.gitignore`/`.gitattributes` endurecidos, `.github/dependabot.yml` (`github-actions` + `gradle`) e `.github/workflows/ci.yml` (`python-tests` Ubuntu/Windows + guarda clean-room + `shellcheck` + validação de patch/Android) configurados.
+- **DX12 GPU PT-BR (`420` frames limpos):** **`59,86 FPS`** (`emu=3,72 ms`, `pres=0,78 ms`, `rb=0,000 ms`, `underruns=0`).
+- **Vulkan GPU SPIR-V PT-BR (`1920x1080`):** ativo em hardware (`vulkan-gpu`, `SPIR-V Vulkan`), `60,0 FPS`, `PRES:0,3MS`.
+
+[Voltar ao topo / Back to top](#project-notes--notas-do-projeto--castlevania-dawn-of-sorrow-recompiled)
