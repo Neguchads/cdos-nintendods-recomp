@@ -1,0 +1,39 @@
+{
+  "id": "cdos-nintendods-recomp",
+  "name": "Castlevania: Dawn of Sorrow: Recompiled",
+  "game": "Castlevania: Dawn of Sorrow",
+  "origin": "ds",
+  "repo": "Neguchads/cdos-nintendods-recomp",
+  "blurb": "Dawn of Sorrow as a native PC game: static ARM9/ARM7 recompilation, Direct3D 12 and Vulkan GPU shaders, an in-game F1 menu and an optional in-memory PT-BR translation.",
+  "author": "Neguchads",
+  "icon": "https://raw.githubusercontent.com/Neguchads/cdos-nintendods-recomp/main/assets/recomplauncher/icon.png",
+  "cover": "https://raw.githubusercontent.com/Neguchads/cdos-nintendods-recomp/main/assets/recomplauncher/cover.jpg",
+  "hero": "https://raw.githubusercontent.com/Neguchads/cdos-nintendods-recomp/main/assets/recomplauncher/hero.jpg",
+  "logo": "https://raw.githubusercontent.com/Neguchads/cdos-nintendods-recomp/main/assets/recomplauncher/logo.png",
+  "systems": [
+    "windows"
+  ],
+  "tags": [
+    "Widescreen",
+    "High FPS",
+    "Upscaling",
+    "HD Filters",
+    "PT-BR"
+  ],
+  "genre": "action",
+  "media_design": {
+    "kind": "ds",
+    "art": "cover",
+    "style": "image",
+    "crop": {
+      "x": 0.5,
+      "y": 0.2,
+      "z": 1,
+      "w": 600,
+      "h": 900
+    },
+    "logo": {
+      "on": false
+    }
+  }
+}

@@ -49,9 +49,29 @@ REQUIRED_INI_KEYS = {
 
 FORBIDDEN_EXTENSIONS = {".nds", ".gba", ".cia", ".3ds"}
 
+SCHEMA_URL = "https://recomplauncher.com/schema/recomplauncher.json"
+REPO = "Neguchads/cdos-nintendods-recomp"
+ROM_CRC32 = "135737f6"
+ROM_SIZE = 67108864
+MEDIA_FILES = [
+    "assets/recomplauncher/icon.png",
+    "assets/recomplauncher/icon.ico",
+    "assets/recomplauncher/cover.png",
+    "assets/recomplauncher/cover.jpg",
+    "assets/recomplauncher/hero.png",
+    "assets/recomplauncher/hero.jpg",
+    "assets/recomplauncher/logo.png",
+    "assets/recomplauncher/wallpaper.png",
+    "assets/recomplauncher/artwork.png",
+    "assets/recomplauncher/catalog-entry.json",
+    "assets/screenshots/gameplay-dx12-pip.png",
+    "assets/screenshots/imgui-menu-f1.png",
+    "assets/screenshots/vulkan-spirv-ptbr.png",
+]
+
 
 def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
-    """Valida campos obrigatorios, schema v1 e paridade de chaves INI."""
+    """Valida o manifesto no formato atual do SDK do RecompLauncher (inputs, config.new, looks...)."""
     errors: list[str] = []
     if not manifest_path.is_file():
         return [f"Manifesto ausente: {manifest_path}"]
@@ -63,28 +83,50 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
 
     if data.get("format") != 1:
         errors.append(f"Campo 'format' deve ser 1 (obtido {data.get('format')!r})")
-    if not str(data.get("$schema", "")).startswith("https://"):
-        errors.append("Campo '$schema' ausente ou invalido")
+    if data.get("$schema") != SCHEMA_URL:
+        errors.append(f"Campo '$schema' deve ser {SCHEMA_URL}")
     if not data.get("name"):
         errors.append("Campo 'name' vazio")
+    if data.get("repo") != REPO:
+        errors.append(f"Campo 'repo' deve ser {REPO}")
+    if "game" in data:
+        errors.append("Use 'inputs' no lugar de 'game' (o RecompLauncher 1.0 para de ler 'game')")
+    if "prepare" in data:
+        errors.append("Nao use 'prepare': o runtime nao tem etapa de preparo sem janela")
 
-    game = data.get("game", {})
-    check = game.get("check", {})
-    if game.get("kind") != "rom" or check.get("sha1") != "47530ff87e608f88105a314fdf36dc385f8dec94":
-        errors.append("Bloco 'game.check.sha1' nao confere com ACVE USA (47530ff8...)")
+    inputs = data.get("inputs", [])
+    game_input = next((i for i in inputs if i.get("id") == "game"), None)
+    if game_input is None:
+        errors.append("Falta o input 'game'")
+    else:
+        exts = [e for f in game_input.get("formats", []) for e in f.get("extensions", [])]
+        if exts != ["nds"]:
+            errors.append(f"inputs[game].formats deve aceitar so .nds (obtido {exts})")
+        if game_input.get("check", {}).get("ids") != ["ACVE"]:
+            errors.append("inputs[game].check.ids deve ser ['ACVE']")
+        dumps = game_input.get("dumps", [])
+        if not dumps or dumps[0].get("crc32") != ROM_CRC32 or dumps[0].get("size") != ROM_SIZE:
+            errors.append(f"inputs[game].dumps[0] deve ter crc32 {ROM_CRC32} e size {ROM_SIZE}")
 
-    for sec in ("prepare", "start", "saves", "folders", "config", "settings"):
+    for sec in ("start", "saves", "folders", "config", "settings", "actions", "looks", "system", "exit_codes"):
         if sec not in data:
             errors.append(f"Secao obrigatoria ausente: '{sec}'")
 
     start_args = data.get("start", {}).get("args", [])
-    if "--ptbr-patch" not in start_args:
-        errors.append("start.args deve repassar --ptbr-patch mods/ptbr/dos-ptbr.dospatch")
+    for needed in ("--ptbr-patch", "--rom", "{input:game}"):
+        if needed not in start_args:
+            errors.append(f"start.args deve conter {needed}")
+    if any("{game}" in a for a in start_args):
+        errors.append("start.args nao pode usar {game}; use {input:game}")
 
     cfg_list = data.get("config", [])
     cfg_paths = [f.get("path", "") for c in cfg_list for f in c.get("file", [])]
     if "{data}/saves/dos-settings.ini" not in cfg_paths:
         errors.append("config[].file deve apontar para {data}/saves/dos-settings.ini")
+    new_keys = set(cfg_list[0].get("new", {})) if cfg_list else set()
+    missing_new = sorted(REQUIRED_INI_KEYS - new_keys)
+    if missing_new:
+        errors.append(f"config[0].new sem as chaves: {', '.join(missing_new)}")
 
     seen_keys: set[str] = set()
     for entry in data.get("settings", []):
@@ -101,8 +143,8 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
             else:
                 seen_keys.add(sl["key"])
         elif "choices" in entry:
-            if not entry["choices"]:
-                errors.append(f"Choices vazio em '{eid}'")
+            if len(entry["choices"]) < 2:
+                errors.append(f"'{eid}' precisa de pelo menos 2 choices")
             for ch in entry["choices"]:
                 seen_keys.update(ch.get("set", {}).keys())
         else:
@@ -112,6 +154,21 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
     if missing:
         errors.append(f"Chaves INI ausentes em 'settings': {', '.join(missing)}")
 
+    folder_names = set(data.get("folders", {}))
+    for act in data.get("actions", []):
+        if act.get("open") and act["open"] not in folder_names:
+            errors.append(f"actions[{act.get('id')}].open aponta para pasta inexistente: {act['open']}")
+
+    errors.extend(validate_media())
+    return errors
+
+
+def validate_media(root: Path = ROOT) -> list[str]:
+    """Confere que o kit de midia do RecompLauncher existe (dimensoes: ver tools/prepare_media_assets.py)."""
+    errors: list[str] = []
+    for rel in MEDIA_FILES:
+        if not (root / rel).is_file():
+            errors.append(f"Arquivo de midia ausente: {rel}")
     return errors
 
 
@@ -153,6 +210,7 @@ def stage_release_tree(
         ("mods/ptbr/dos-ptbr.dospatch", False),
         ("docs/RECOMPLAUNCHER.md", False),
         ("docs/MULTIPLATFORM.md", True),
+        ("assets/recomplauncher", False),
         ("runtime", False),
     ]
     for rel, optional in copy_items:
@@ -172,9 +230,9 @@ def stage_release_tree(
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
 
+    # Pasta de BIOS (vazia): o runner a recebe como argumento. Saves e savestates vao para {data}
+    # (recompdata/), que o RecompLauncher cria; nunca envie 'recompdata' na release.
     (target_dir / "run" / "bios").mkdir(parents=True, exist_ok=True)
-    (target_dir / "run" / "savestates").mkdir(parents=True, exist_ok=True)
-    (target_dir / "saves").mkdir(parents=True, exist_ok=True)
 
     # Garante zero ROM proprietaria ou save pessoal no pacote gerado.
     for p in target_dir.rglob("*"):
