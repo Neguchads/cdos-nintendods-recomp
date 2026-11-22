@@ -1,28 +1,79 @@
-# Roadmap — Castlevania: Dawn of Sorrow Recomp (ACVE)
+# Roadmap — Castlevania: Dawn of Sorrow: Recompiled (ACVE)
 
-## Feito (Fatia Vertical 1 — Bring-Up)
-- Inspeção e validação da ROM original (`Castlevania - Dawn of Sorrow (USA).nds`, 64 MiB, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`).
+**[English](#english) | [Português (BR)](#português-br)**
+
+---
+
+<a id="english"></a>
+
+## English
+
+### Done (Vertical Slice 1 — Bring-Up)
+- Inspection and verification of the original USA ROM (`Castlevania - Dawn of Sorrow (USA).nds`, 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`).
+- Project pipeline structured with `game.toml`, `tools/setup_toolchains.py`, `tools/prepare_rom.py`, `tools/build.py`, and `play.bat`.
+- `RetroPortingToolKit/ndsrecomp` and `recomp-ui` isolated in sibling directories (`..\ndsrecomp` and `..\recomp-ui`).
+
+### Done (Phase 2 — Native Execution of 49k+ Functions, DX12 & Modern Controls)
+- Static promotion of `34` banks (`49,059` functions) into `generated/banks-promoted/`.
+- Simultaneous keyboard mapping (`WASD + Arrows + Space = Jump (B)`), mouse input on the bottom touch screen for magic seals, and Xbox/PlayStation controller support.
+
+### Done (Phase 3 — 60 FPS in Visible DX12 GPU Window + DXIL `ps_6_0`)
+- Pre-compiled GPU fragment shaders in `dos_postprocess.frag.hlsl` -> `dos_gpu_shader_dxil.h`, automatic `SoftRenderer` outside `gl_top` (`0.00 ms` readback), and calibrated audio prebuffer (`kAudioStartFrames = 3072`).
+
+### Done (Phase 4 — Dear ImGui `F1` Menu, 3-Screens Fix, In-Memory PT-BR, RecompLauncher & Multiplatform)
+- **Dear ImGui v1.92.9b overlay menu (`F1`):** 6 tabs (*Home*, *Screen & Layout*, *HD Graphics*, *Audio*, *Controls*, *Performance & Dev*), full EN / PT-BR localization (`dos_i18n.{h,cpp}`), Latin Extended TrueType fonts (`0x0020..0x024F`), live GPU calibration (*Brightness*, *Contrast*, *Saturation*, *Vignette*), PiP size (`20..50%`), `VSync`, analog deadzone, pause/mute when unfocused, save states `1–5`, `.sav` backup, FPS Sparkline, and `F12` screenshot capture.
+- **Permanent 3-screens bug fix:** suspend `SDL_SetRenderLogicalPresentation` while drawing ImGui and disable legacy `g_runtime_menu_surface` / `menu_texture`, leaving only the 2 real DS screens behind the overlay.
+- **In-memory PT-BR translation (`--ptbr-patch`):** delta patch `mods/ptbr/dos-ptbr.dospatch` (`469,280 B`, `4,806` chunks, *romsportugues.com* T1.0) applied in RAM with live `EN <-> PT-BR` switching, paired with `dos_arm9`/`dos_arm7` banks generated with `--validate-live-bytes` (`59.86 FPS` in DX12 benchmark).
+- **Dual DXIL + SPIR-V GPU Shaders & Multiplatform Configs:** `dos_gpu_shader_spirv.h` verified live on `vulkan-gpu` (`60.0 FPS`); `CMakePresets.json`, `tools/build_linux.sh`, and `android/` (Gradle/NDK/SDL3) structured and documented in [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md).
+
+### Done (Phase 5 — Public GitHub Release, RecompLauncher 1.0 SDK, Media Kit & Bilingual Docs)
+- **Public GitHub repository (`Neguchads/cdos-nintendods-recomp`):** clean-room `.gitignore`/`.gitattributes`, **Dependabot** (`.github/dependabot.yml` for `github-actions` and `gradle` + security alerts/updates), and **GitHub Actions** (`.github/workflows/ci.yml` on Ubuntu + Windows + clean-room/shellcheck guards).
+- **Full RecompLauncher 1.0 SDK & Official Media Kit:** upgraded [`recomplauncher.json`](recomplauncher.json) to named `inputs[game]` with verified USA dump (`CRC32: 135737f6`, `67,108,864` bytes), `config[0].new` (31 default INI keys), `looks`, `actions`, `system`, and `exit_codes`; generated complete artwork kit in [`assets/recomplauncher/`](assets/recomplauncher/) (`icon.png`/`icon.ico` `256x256`, `cover.png`/`cover.jpg` `600x900`, `hero.png`/`hero.jpg` `1920x620`, transparent `logo.png` `1000x500`, `wallpaper.png` `1920x1080`, `artwork.png` `1024x1024`, `catalog-entry.json`) and in-engine captures in [`assets/screenshots/`](assets/screenshots/).
+- **Bilingual Documentation (`EN` -> `PT-BR`):** all project documentation (`README.md`, `docs/RECOMPLAUNCHER.md`, `docs/MULTIPLATFORM.md`, `docs/DECISIONS.md`, `docs/rom-analysis.md`, `ROADMAP.md`, `HANDOFF.md`, `NOTAS.md`) written in English first and Brazilian Portuguese second.
+
+### In Progress
+- No open structural blockers on the base port.
+
+### Planned (Optional / Future)
+- Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
+- Optional promotion of additional dynamic blocks if late-game castle areas record new coverage addresses via `play-profile.bat`.
+
+[Back to top / Voltar ao topo](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)
+
+---
+
+<a id="português-br"></a>
+
+## Português (BR)
+
+### Feito (Fatia Vertical 1 — Bring-Up)
+- Inspeção e validação da ROM USA original (`Castlevania - Dawn of Sorrow (USA).nds`, 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`).
 - Projeto estruturado com `game.toml`, `tools/setup_toolchains.py`, `tools/prepare_rom.py`, `tools/build.py` e `play.bat`.
 - `RetroPortingToolKit/ndsrecomp` + `recomp-ui` separados em `..\ndsrecomp` e `..\recomp-ui`.
 
-## Feito (Fase 2 — Execução Nativa 49k+ Funções, DX12 & Controles Modernos)
+### Feito (Fase 2 — Execução Nativa 49k+ Funções, DX12 & Controles Modernos)
 - Promoção estática de `34` bancos (`49.059` funções) em `generated/banks-promoted/`.
 - Mapeamento simultâneo `WASD + Setas + Espaço = Pulo (B)`, mouse na tela inferior para selos mágicos e controle Xbox/PlayStation.
 
-## Feito (Fase 3 — 60 FPS em Janela Visível DX12 GPU + DXIL `ps_6_0`)
+### Feito (Fase 3 — 60 FPS em Janela Visível DX12 GPU + DXIL `ps_6_0`)
 - Shaders GPU pré-compilados em `dos_postprocess.frag.hlsl` -> `dos_gpu_shader_dxil.h`, `SoftRenderer` automático fora de `gl_top` (`0,00 ms` readback) e prebuffer de áudio calibrado (`kAudioStartFrames = 3072`).
 
-## Feito (Fase 4 — Menu Dear ImGui, Correção 3 Telas, PT-BR, RecompLauncher & Multiplataforma)
-- **Menu gráfico Dear ImGui v1.92.9b (`F1`):** 6 abas inspiradas em launcher moderno (*Início*, *Tela & Layout*, *Gráficos HD*, *Áudio*, *Controles*, *Desempenho & Dev*), tradução completa PT-BR/EN (`dos_i18n.{h,cpp}`), fontes TrueType Latin Extended (`0x0020..0x024F`), calibração GPU ao vivo (`Brilho`, `Contraste`, `Saturação`, `Vinheta`), tamanho PiP (`20..50%`), `VSync`, zona morta do analógico, pausa/mudo em segundo plano, save states `1–5`, backup `.sav`, Sparkline FPS e screenshot `F12`.
+### Feito (Fase 4 — Menu Dear ImGui `F1`, Correção 3 Telas, PT-BR, RecompLauncher & Multiplataforma)
+- **Menu gráfico Dear ImGui v1.92.9b (`F1`):** 6 abas (*Início*, *Tela & Layout*, *Gráficos HD*, *Áudio*, *Controles*, *Desempenho & Dev*), tradução completa EN / PT-BR (`dos_i18n.{h,cpp}`), fontes TrueType Latin Extended (`0x0020..0x024F`), calibração GPU ao vivo (*Brilho*, *Contraste*, *Saturação*, *Vinheta*), tamanho PiP (`20..50%`), `VSync`, zona morta do analógico, pausa/mudo em segundo plano, save states `1–5`, backup `.sav`, Sparkline FPS e screenshot `F12`.
 - **Correção definitiva das 3 telas:** suspensão de `SDL_SetRenderLogicalPresentation` ao desenhar ImGui e desativação do caminho legado `g_runtime_menu_surface` / `menu_texture`, mantendo apenas as 2 telas reais atrás do overlay.
-- **Tradução PT-BR em memória (`--ptbr-patch`):** patch delta `mods/ptbr/dos-ptbr.dospatch` (`469.280 B`, `4.806` blocos, `romsportugues.com` T1.0) aplicado em RAM com alternância ao vivo `EN <-> PT-BR`, aliado a bancos `dos_arm9`/`dos_arm7` gerados com `--validate-live-bytes` (`59,86 FPS` no benchmark DX12).
-- **Integração oficial RecompLauncher:** `recomplauncher.json` (`format: 1`, 30 chaves INI, `repo` oficial), `tools/package_recomplauncher.py` (`dist/castlevania-dos-recomp-win64.zip` sem ROMs) e `docs/RECOMPLAUNCHER.md`.
-- **Multiplataforma & Shader Dual DXIL + SPIR-V:** `dos_gpu_shader_spirv.h` testado ao vivo em `vulkan-gpu` no Windows; `CMakePresets.json`, `tools/build_linux.sh`, `android/` (Gradle/NDK/SDL3) e `docs/MULTIPLATFORM.md`.
-- **Repositório Público GitHub (`Neguchads/cdos-nintendods-recomp`):** `.gitignore`/`.gitattributes` clean-room, **Dependabot** (`.github/dependabot.yml` para `github-actions` e `gradle`) e **GitHub Actions** (`.github/workflows/ci.yml` multi-OS + guarda clean-room + `shellcheck`).
+- **Tradução PT-BR em memória (`--ptbr-patch`):** patch delta `mods/ptbr/dos-ptbr.dospatch` (`469.280 B`, `4.806` blocos, *romsportugues.com* T1.0) aplicado em RAM com alternância ao vivo `EN <-> PT-BR`, aliado a bancos `dos_arm9`/`dos_arm7` gerados com `--validate-live-bytes` (`59,86 FPS` no benchmark DX12).
+- **Multiplataforma & Shader Dual DXIL + SPIR-V:** `dos_gpu_shader_spirv.h` testado ao vivo em `vulkan-gpu` (`60,0 FPS`); `CMakePresets.json`, `tools/build_linux.sh` e `android/` (Gradle/NDK/SDL3) estruturados e documentados em [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md).
 
-## Em andamento
+### Feito (Fase 5 — Publicação GitHub, SDK 1.0 do RecompLauncher, Kit de Mídia & Docs Bilíngues)
+- **Repositório Público GitHub (`Neguchads/cdos-nintendods-recomp`):** `.gitignore`/`.gitattributes` clean-room, **Dependabot** (`.github/dependabot.yml` para `github-actions` e `gradle` + alertas de segurança) e **GitHub Actions** (`.github/workflows/ci.yml` em Ubuntu + Windows + guarda clean-room e `shellcheck`).
+- **SDK 1.0 do RecompLauncher & Kit de Mídia Oficial:** [`recomplauncher.json`](recomplauncher.json) atualizado para `inputs[game]` com dump USA verificado (`CRC32: 135737f6`, `67.108.864` bytes), `config[0].new` (31 chaves INI padrão), `looks`, `actions`, `system` e `exit_codes`; kit completo de artes gerado em [`assets/recomplauncher/`](assets/recomplauncher/) (`icon.png`/`icon.ico` `256x256`, `cover.png`/`cover.jpg` `600x900`, `hero.png`/`hero.jpg` `1920x620`, `logo.png` transparente `1000x500`, `wallpaper.png` `1920x1080`, `artwork.png` `1024x1024`, `catalog-entry.json`) e capturas reais em [`assets/screenshots/`](assets/screenshots/).
+- **Documentação Bilíngue (`EN` -> `PT-BR`):** toda a documentação do projeto (`README.md`, `docs/RECOMPLAUNCHER.md`, `docs/MULTIPLATFORM.md`, `docs/DECISIONS.md`, `docs/rom-analysis.md`, `ROADMAP.md`, `HANDOFF.md`, `NOTAS.md`) organizada primeiro em Inglês e depois em Português (BR).
+
+### Em andamento
 - Nenhuma pendência estrutural aberta no port base.
 
-## Planejado (Opcional / Futuro)
-- Compilação nativa em runner Linux/Steam Deck e Android NDK no GitHub Actions ou máquina com SDK/NDK Android instalado.
+### Planejado (Opcional / Futuro)
+- Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.
 - Promoção opcional de futuros blocos caso sessões em áreas muito avançadas do castelo registrem novos endereços nos manifestos de cobertura (`play-profile.bat`).
+
+[Voltar ao topo / Back to top](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)
