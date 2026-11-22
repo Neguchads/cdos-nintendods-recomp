@@ -1,0 +1,888 @@
+{
+  "$schema": "https://raw.githubusercontent.com/elripalda/RecompLauncher-SDK/main/schema/recomplauncher.json",
+  "format": 1,
+  "name": "Castlevania: Dawn of Sorrow (ACVE Static Recomp)",
+  "repo": "Neguchads/cdos-nintendods-recomp",
+  "game": {
+    "kind": "rom",
+    "label": "Castlevania: Dawn of Sorrow (USA, Rev 0 / ACVE). Supply your legally dumped 64 MiB .nds ROM (SHA-1: 47530ff87e608f88105a314fdf36dc385f8dec94). Optional PT-BR patch applied in memory.",
+    "check": {
+      "sha1": "47530ff87e608f88105a314fdf36dc385f8dec94"
+    }
+  },
+  "prepare": {
+    "program": [
+      "runtime/nds_runner.exe",
+      "runtime/nds_runner"
+    ],
+    "args": [
+      "run/bios",
+      "--interactive",
+      "--rom",
+      "{game}",
+      "--ptbr-patch",
+      "mods/ptbr/dos-ptbr.dospatch",
+      "--config",
+      "game.toml",
+      "--freebios",
+      "--generated-firmware",
+      "--boot",
+      "direct",
+      "--startup-mode",
+      "automatic",
+      "--diagnostics",
+      "off",
+      "--no-coverage-manifest",
+      "--runtime-settings-path",
+      "{data}/saves/dos-settings.ini",
+      "--savestate-dir",
+      "{data}/run/savestates",
+      "--save-path",
+      "{data}/saves/dos.sav",
+      "--firmware-state-path",
+      "{data}/run/firmware_state.bin"
+    ],
+    "label": "Verify ROM & initialize runtime folders / Verificar ROM e preparar pastas",
+    "timeout": 120,
+    "version": "1.0.0",
+    "done": [
+      "runtime/nds_runner.exe",
+      "mods/ptbr/dos-ptbr.dospatch",
+      "game.toml"
+    ]
+  },
+  "start": {
+    "program": [
+      "runtime/nds_runner.exe",
+      "runtime/nds_runner"
+    ],
+    "args": [
+      "run/bios",
+      "--interactive",
+      "--rom",
+      "{game}",
+      "--ptbr-patch",
+      "mods/ptbr/dos-ptbr.dospatch",
+      "--config",
+      "game.toml",
+      "--freebios",
+      "--generated-firmware",
+      "--boot",
+      "direct",
+      "--startup-mode",
+      "automatic",
+      "--diagnostics",
+      "off",
+      "--no-coverage-manifest",
+      "--runtime-settings-path",
+      "{data}/saves/dos-settings.ini",
+      "--savestate-dir",
+      "{data}/run/savestates",
+      "--save-path",
+      "{data}/saves/dos.sav",
+      "--firmware-state-path",
+      "{data}/run/firmware_state.bin"
+    ]
+  },
+  "saves": [
+    "{data}/saves/dos.sav",
+    "{data}/saves/dos-settings.ini",
+    "{data}/run/savestates"
+  ],
+  "folders": {
+    "logs": [
+      {
+        "path": "{data}/run/logs"
+      }
+    ],
+    "screenshots": [
+      {
+        "path": "{data}/screenshots"
+      }
+    ]
+  },
+  "config": [
+    {
+      "id": "main",
+      "format": "ini",
+      "file": [
+        {
+          "path": "{data}/saves/dos-settings.ini"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "id": "ui_language",
+      "label": "Menu Language / Idioma do Menu",
+      "group": "Language",
+      "choices": [
+        {
+          "label": "Portugues (BR)",
+          "set": {
+            "dos_ui_language": "ptbr"
+          }
+        },
+        {
+          "label": "English",
+          "set": {
+            "dos_ui_language": "en"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_ui_language": "ptbr"
+      }
+    },
+    {
+      "id": "game_language",
+      "label": "Game Language (ROM) / Idioma do Jogo",
+      "group": "Language",
+      "help": "Uses dos-ptbr.dospatch in memory without modifying your original USA .nds file.",
+      "choices": [
+        {
+          "label": "Portugues (BR) — romsportugues.com T1.0",
+          "set": {
+            "dos_game_language": "ptbr"
+          }
+        },
+        {
+          "label": "English (USA Original)",
+          "set": {
+            "dos_game_language": "en"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_game_language": "ptbr"
+      }
+    },
+    {
+      "id": "skip_launcher",
+      "label": "Boot Directly (F1 Menu)",
+      "group": "General",
+      "choices": [
+        {
+          "label": "Yes (Skip Launcher)",
+          "set": {
+            "dos_skip_launcher": "true"
+          }
+        },
+        {
+          "label": "No",
+          "set": {
+            "dos_skip_launcher": "false"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_skip_launcher": "true"
+      }
+    },
+    {
+      "id": "fullscreen",
+      "label": "Window Mode",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Borderless Fullscreen",
+          "set": {
+            "dos_fullscreen": "borderless"
+          }
+        },
+        {
+          "label": "Windowed",
+          "set": {
+            "dos_fullscreen": "off"
+          }
+        },
+        {
+          "label": "Exclusive Fullscreen",
+          "set": {
+            "dos_fullscreen": "exclusive"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_fullscreen": "borderless"
+      }
+    },
+    {
+      "id": "layout",
+      "label": "Dual-Screen Layout",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Picture-in-Picture (PiP)",
+          "set": {
+            "dos_layout": "pip"
+          }
+        },
+        {
+          "label": "Side-by-Side (Equal)",
+          "set": {
+            "dos_layout": "side-by-side"
+          }
+        },
+        {
+          "label": "Side-by-Side (Focus + Map)",
+          "set": {
+            "dos_layout": "side-by-side-big"
+          }
+        },
+        {
+          "label": "Stacked (Vertical)",
+          "set": {
+            "dos_layout": "stacked"
+          }
+        },
+        {
+          "label": "Bottom Only",
+          "set": {
+            "dos_layout": "bottom-only"
+          }
+        },
+        {
+          "label": "Top Only",
+          "set": {
+            "dos_layout": "top-only"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_layout": "pip"
+      }
+    },
+    {
+      "id": "pip_main",
+      "label": "Primary Focus Screen",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Bottom (Action)",
+          "set": {
+            "dos_pip_main": "bottom"
+          }
+        },
+        {
+          "label": "Top (Map / Status)",
+          "set": {
+            "dos_pip_main": "top"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_pip_main": "bottom"
+      }
+    },
+    {
+      "id": "pip_corner",
+      "label": "PiP Inset Corner",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Top-Right",
+          "set": {
+            "dos_pip_corner": "top-right"
+          }
+        },
+        {
+          "label": "Top-Left",
+          "set": {
+            "dos_pip_corner": "top-left"
+          }
+        },
+        {
+          "label": "Bottom-Right",
+          "set": {
+            "dos_pip_corner": "bottom-right"
+          }
+        },
+        {
+          "label": "Bottom-Left",
+          "set": {
+            "dos_pip_corner": "bottom-left"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_pip_corner": "top-right"
+      }
+    },
+    {
+      "id": "pip_size",
+      "label": "PiP Inset Size (%)",
+      "group": "Display",
+      "slider": {
+        "key": "dos_pip_size",
+        "min": 20,
+        "max": 50,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_pip_size": "37"
+      }
+    },
+    {
+      "id": "pip_opacity",
+      "label": "PiP Opacity (%)",
+      "group": "Display",
+      "slider": {
+        "key": "dos_pip_opacity",
+        "min": 25,
+        "max": 100,
+        "step": 5,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_pip_opacity": "90"
+      }
+    },
+    {
+      "id": "aspect_mode",
+      "label": "Aspect Ratio / Scaling",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Stretch Fill (Full Screen)",
+          "set": {
+            "dos_aspect_mode": "stretch"
+          }
+        },
+        {
+          "label": "Letterbox (Keep Ratio)",
+          "set": {
+            "dos_aspect_mode": "letterbox"
+          }
+        },
+        {
+          "label": "Integer Scale",
+          "set": {
+            "dos_aspect_mode": "integer"
+          }
+        },
+        {
+          "label": "Auto",
+          "set": {
+            "dos_aspect_mode": "auto"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_aspect_mode": "stretch"
+      }
+    },
+    {
+      "id": "render_driver",
+      "label": "GPU Render Backend",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "Direct3D 12 (DXIL ps_6_0)",
+          "set": {
+            "dos_render_driver": "direct3d12"
+          }
+        },
+        {
+          "label": "Vulkan (SPIR-V GPU)",
+          "set": {
+            "dos_render_driver": "vulkan"
+          }
+        },
+        {
+          "label": "Direct3D 11",
+          "set": {
+            "dos_render_driver": "direct3d11"
+          }
+        },
+        {
+          "label": "OpenGL",
+          "set": {
+            "dos_render_driver": "opengl"
+          }
+        },
+        {
+          "label": "Auto",
+          "set": {
+            "dos_render_driver": "auto"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_render_driver": "direct3d12"
+      }
+    },
+    {
+      "id": "vsync",
+      "label": "VSync",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "Off",
+          "set": {
+            "dos_vsync": "false"
+          }
+        },
+        {
+          "label": "On",
+          "set": {
+            "dos_vsync": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_vsync": "false"
+      }
+    },
+    {
+      "id": "hd_filter",
+      "label": "HD Pixel Filter",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "xBR 2x",
+          "set": {
+            "dos_hd_filter": "xbr2x"
+          }
+        },
+        {
+          "label": "Scale2x EPX",
+          "set": {
+            "dos_hd_filter": "scale2x"
+          }
+        },
+        {
+          "label": "Sharp Bilinear",
+          "set": {
+            "dos_hd_filter": "sharp-bilinear"
+          }
+        },
+        {
+          "label": "Bilinear",
+          "set": {
+            "dos_hd_filter": "bilinear"
+          }
+        },
+        {
+          "label": "Nearest (Raw Pixel)",
+          "set": {
+            "dos_hd_filter": "nearest"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_hd_filter": "xbr2x"
+      }
+    },
+    {
+      "id": "color_mode",
+      "label": "Color Profile",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "Vivid HD",
+          "set": {
+            "dos_color_mode": "vivid"
+          }
+        },
+        {
+          "label": "Native",
+          "set": {
+            "dos_color_mode": "native"
+          }
+        },
+        {
+          "label": "DS Authentic LCD",
+          "set": {
+            "dos_color_mode": "ds-authentic"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_color_mode": "vivid"
+      }
+    },
+    {
+      "id": "sharpen",
+      "label": "Adaptive Sharpening",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "Subtle",
+          "set": {
+            "dos_sharpen": "subtle"
+          }
+        },
+        {
+          "label": "Strong",
+          "set": {
+            "dos_sharpen": "strong"
+          }
+        },
+        {
+          "label": "Off",
+          "set": {
+            "dos_sharpen": "off"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_sharpen": "subtle"
+      }
+    },
+    {
+      "id": "post_fx",
+      "label": "Display Effect Mask",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "Off",
+          "set": {
+            "dos_post_fx": "off"
+          }
+        },
+        {
+          "label": "Scanlines Light",
+          "set": {
+            "dos_post_fx": "scanlines-light"
+          }
+        },
+        {
+          "label": "CRT Aperture",
+          "set": {
+            "dos_post_fx": "crt"
+          }
+        },
+        {
+          "label": "DS LCD Grid",
+          "set": {
+            "dos_post_fx": "lcd-grid"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_post_fx": "off"
+      }
+    },
+    {
+      "id": "brightness",
+      "label": "Brightness (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_brightness",
+        "min": 80,
+        "max": 130,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_brightness": "100"
+      }
+    },
+    {
+      "id": "contrast",
+      "label": "Contrast (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_contrast",
+        "min": 80,
+        "max": 130,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_contrast": "100"
+      }
+    },
+    {
+      "id": "saturation",
+      "label": "Saturation (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_saturation",
+        "min": 70,
+        "max": 140,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_saturation": "100"
+      }
+    },
+    {
+      "id": "vignette",
+      "label": "Vignette (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_vignette",
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_vignette": "0"
+      }
+    },
+    {
+      "id": "hud_mode",
+      "label": "Performance HUD",
+      "group": "Performance",
+      "choices": [
+        {
+          "label": "FPS Counter Only",
+          "set": {
+            "dos_hud_mode": "fps",
+            "dos_dev_hud": "true"
+          }
+        },
+        {
+          "label": "Full Telemetry Bar",
+          "set": {
+            "dos_hud_mode": "full",
+            "dos_dev_hud": "true"
+          }
+        },
+        {
+          "label": "Off",
+          "set": {
+            "dos_hud_mode": "off",
+            "dos_dev_hud": "false"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_hud_mode": "fps",
+        "dos_dev_hud": "true"
+      }
+    },
+    {
+      "id": "pause_on_menu",
+      "label": "Pause While F1 Menu Open",
+      "group": "Performance",
+      "choices": [
+        {
+          "label": "Off",
+          "set": {
+            "dos_pause_on_menu": "false"
+          }
+        },
+        {
+          "label": "On",
+          "set": {
+            "dos_pause_on_menu": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_pause_on_menu": "false"
+      }
+    },
+    {
+      "id": "pause_unfocused",
+      "label": "Pause When Unfocused",
+      "group": "Performance",
+      "choices": [
+        {
+          "label": "Off",
+          "set": {
+            "dos_pause_unfocused": "false"
+          }
+        },
+        {
+          "label": "On",
+          "set": {
+            "dos_pause_unfocused": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_pause_unfocused": "false"
+      }
+    },
+    {
+      "id": "audio_enabled",
+      "label": "Audio Output",
+      "group": "Audio",
+      "choices": [
+        {
+          "label": "On",
+          "set": {
+            "dos_audio_enabled": "true"
+          }
+        },
+        {
+          "label": "Muted",
+          "set": {
+            "dos_audio_enabled": "false"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_audio_enabled": "true"
+      }
+    },
+    {
+      "id": "audio_mode",
+      "label": "Acoustic Profile",
+      "group": "Audio",
+      "choices": [
+        {
+          "label": "Warm Stereo HD",
+          "set": {
+            "dos_audio_mode": "warm-stereo"
+          }
+        },
+        {
+          "label": "Native DS Mixer",
+          "set": {
+            "dos_audio_mode": "native"
+          }
+        },
+        {
+          "label": "Low-Pass Clean",
+          "set": {
+            "dos_audio_mode": "low-pass"
+          }
+        },
+        {
+          "label": "Gothic Reverb",
+          "set": {
+            "dos_audio_mode": "gothic-reverb"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_audio_mode": "warm-stereo"
+      }
+    },
+    {
+      "id": "audio_volume",
+      "label": "Master Volume (%)",
+      "group": "Audio",
+      "slider": {
+        "key": "dos_audio_volume",
+        "min": 0,
+        "max": 150,
+        "step": 5,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_audio_volume": "100"
+      }
+    },
+    {
+      "id": "audio_fx",
+      "label": "DSP Effect Intensity (%)",
+      "group": "Audio",
+      "slider": {
+        "key": "dos_audio_fx",
+        "min": 0,
+        "max": 150,
+        "step": 5,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_audio_fx": "100"
+      }
+    },
+    {
+      "id": "mute_unfocused",
+      "label": "Mute When Unfocused",
+      "group": "Audio",
+      "choices": [
+        {
+          "label": "Off",
+          "set": {
+            "dos_mute_unfocused": "false"
+          }
+        },
+        {
+          "label": "On",
+          "set": {
+            "dos_mute_unfocused": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_mute_unfocused": "false"
+      }
+    },
+    {
+      "id": "button_prompts",
+      "label": "Controller Prompts",
+      "group": "Controls",
+      "choices": [
+        {
+          "label": "Auto Detect",
+          "set": {
+            "dos_button_prompts": "auto"
+          }
+        },
+        {
+          "label": "Xbox",
+          "set": {
+            "dos_button_prompts": "xbox"
+          }
+        },
+        {
+          "label": "PlayStation",
+          "set": {
+            "dos_button_prompts": "playstation"
+          }
+        },
+        {
+          "label": "Nintendo",
+          "set": {
+            "dos_button_prompts": "nintendo"
+          }
+        },
+        {
+          "label": "Keyboard / Mouse",
+          "set": {
+            "dos_button_prompts": "keyboard"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_button_prompts": "auto"
+      }
+    },
+    {
+      "id": "stick_deadzone",
+      "label": "Left Stick Deadzone (%)",
+      "group": "Controls",
+      "slider": {
+        "key": "dos_stick_deadzone",
+        "min": 5,
+        "max": 45,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_stick_deadzone": "20"
+      }
+    }
+  ],
+  "system": {
+    "windows": {
+      "version": "10",
+      "graphics": {
+        "d3d12": "12",
+        "vulkan": "1.1"
+      }
+    },
+    "linux": {
+      "graphics": {
+        "vulkan": "1.1",
+        "opengl": "4.3"
+      }
+    }
+  },
+  "exit_codes": {
+    "1": "Missing or invalid USA Castlevania: Dawn of Sorrow ROM or runtime initialization error.",
+    "2": "Invalid CLI argument or game.toml / dos-settings.ini parse failure."
+  }
+}

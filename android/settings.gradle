@@ -1,0 +1,2 @@
+rootProject.name = "CastlevaniaDosRecomp"
+include(":app")

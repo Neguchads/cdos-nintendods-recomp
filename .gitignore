@@ -1,0 +1,54 @@
+# ROMs, BIOS, saves e artefatos binários ou gerados a partir da ROM
+*.nds
+*.rom
+*.bin
+*.sav
+*.state
+*.exe
+*.dll
+*.o
+*.a
+*.obj
+*.lib
+*.log
+*.png
+*.ppm
+
+# Pastas de build, toolchains, framework local (legado se fora da raiz) e geração local
+generated/
+toolchains/
+framework/
+runtime/
+run/
+saves/
+build/
+analysis/
+__pycache__/
+.venv/
+*.pyc
+
+# Segredos e variaveis de ambiente locais
+.env
+.env.*
+!.env.example
+
+# Pacotes de distribuicao, capturas e binarios temporarios
+dist/
+screenshots/
+*.bmp
+*.zip
+*.7z
+*.tar.gz
+*.apk
+*.aab
+*.so
+*.dylib
+*.tmp
+play.sh
+
+# Cache e build local Android Gradle/NDK
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/local.properties

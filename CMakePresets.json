@@ -1,0 +1,70 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base-common",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/generated/build-${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "NDS_SDL_BACKEND": "SDL3",
+        "NDS_3D_GEOMETRY": "NATIVE",
+        "NDS_ENABLE_COMPUTE_RENDERER": "ON",
+        "NDS_BOOTSTRAP_FIRMWARE": "ON",
+        "NDS_LEAN_DIAGNOSTICS": "ON",
+        "NDS_GX_COMMAND_CACHE": "ON",
+        "NDS_CAPTURE_VIEW_REUSE": "ON",
+        "NDS_TITLE_ROM_SHA1S": "47530ff87e608f88105a314fdf36dc385f8dec94;47530ff87e608f88105a314fdf36dc385f8dec94"
+      }
+    },
+    {
+      "name": "windows-mingw-dx12",
+      "displayName": "Windows 11 (LLVM-MinGW + SDL3 DX12 DXIL)",
+      "inherits": "base-common",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "${sourceDir}/toolchains/llvm-mingw/bin/x86_64-w64-mingw32-clang.exe",
+        "CMAKE_CXX_COMPILER": "${sourceDir}/toolchains/llvm-mingw/bin/x86_64-w64-mingw32-clang++.exe",
+        "CMAKE_RC_COMPILER": "${sourceDir}/toolchains/llvm-mingw/bin/llvm-rc.exe",
+        "SDL3_DIR": "${sourceDir}/toolchains/sdl3/x86_64-w64-mingw32/lib/cmake/SDL3",
+        "CMAKE_PREFIX_PATH": "${sourceDir}/toolchains/sdl3/x86_64-w64-mingw32",
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -march=native",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native"
+      }
+    },
+    {
+      "name": "linux-vulkan-release",
+      "displayName": "Linux x86_64 (Clang/GCC + SDL3 Vulkan SPIR-V)",
+      "inherits": "base-common",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -march=x86-64-v3",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=x86-64-v3"
+      }
+    },
+    {
+      "name": "steamdeck-vulkan",
+      "displayName": "Steam Deck / SteamOS (Zen2 + SDL3 Vulkan SPIR-V)",
+      "inherits": "linux-vulkan-release",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -march=znver2",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=znver2"
+      }
+    },
+    {
+      "name": "android-arm64-vulkan",
+      "displayName": "Android ARM64-v8a (NDK + SDL3 Vulkan SPIR-V)",
+      "inherits": "base-common",
+      "cacheVariables": {
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-26",
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+      }
+    }
+  ]
+}

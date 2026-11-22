@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-tests:
+    name: Python & Manifest (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile-check Python tools and tests
+        run: python -m compileall -q tools tests
+      - name: Run unittest suite
+        run: python -m unittest discover -s tests -v
+      - name: Validate RecompLauncher manifest
+        run: python tools/package_recomplauncher.py --validate-only
+
+  repo-hygiene-and-scripts:
+    name: Clean-Room Guard, Shell & Patch Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clean-room guard (no ROMs, saves, binaries, secrets or oversized files)
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r -d '' f; do
+            if [[ "$f" =~ \.(nds|rom|gba|cia|3ds|sav|state|exe|dll|zip|7z|apk|aab)$ ]]; then
+              echo "::error file=$f::Forbidden binary or ROM asset tracked in git"
+              fail=1
+            fi
+            base="$(basename "$f")"
+            if [[ "$base" == ".env" || ( "$base" == .env.* && "$base" != ".env.example" ) ]]; then
+              echo "::error file=$f::Environment secret file tracked in git"
+              fail=1
+            fi
+            size="$(stat -c%s "$f")"
+            if (( size > 2097152 )); then
+              echo "::error file=$f::Tracked file exceeds 2 MiB limit ($size bytes)"
+              fail=1
+            fi
+          done < <(git ls-files -z)
+          exit "$fail"
+      - name: Validate Linux build script syntax and lint
+        run: |
+          bash -n tools/build_linux.sh
+          shellcheck -S warning tools/build_linux.sh
+      - name: Validate unified patch against ndsrecomp
+        run: |
+          test -s patches/ndsrecomp-local.patch
+          git apply --stat patches/ndsrecomp-local.patch
+      - name: Verify Android Gradle & NDK skeleton files
+        run: |
+          for f in \
+            android/settings.gradle \
+            android/build.gradle \
+            android/app/build.gradle \
+            android/app/src/main/AndroidManifest.xml \
+            android/app/src/main/cpp/CMakeLists.txt \
+            android/app/src/main/java/com/castlevaniados/recomp/DosRecompActivity.java; do
+            test -s "$f" || { echo "Missing or empty: $f" >&2; exit 1; }
+          done

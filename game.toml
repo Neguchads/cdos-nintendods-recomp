@@ -1,0 +1,77 @@
+# Castlevania: Dawn of Sorrow (USA, rev 0, ACVE)
+# Configuracao de runtime e identidade para ndsrecomp.
+
+[game]
+name = "Castlevania: Dawn of Sorrow"
+id = "ACVE"
+region = "USA"
+revision = 0
+status = "phase-2: 49k native promoted banks + DX12 fullscreen stretch + 2D/3D HD + modern controls + dev menu"
+rom = "../Roms/Castlevania - Dawn of Sorrow (USA).nds"
+rom_size = 0x04000000
+sha1 = "47530ff87e608f88105a314fdf36dc385f8dec94"
+sha256 = "3ddc8b0eac841b6005ff4c38a184b517fa8225ac905aad951b0572850358d8b0"
+
+[display]
+fullscreen = "borderless"
+screen_layout = "pip"
+pip_main_screen = "bottom"
+pip_corner = "top-right"
+pip_allow_swap = true
+pip_opacity = 90
+pip_size = 37
+aspect_mode = "stretch"
+render_driver = "direct3d12"
+hd_filter = "xbr2x"
+color_mode = "vivid"
+sharpen = "subtle"
+post_fx = "off"
+# 2D HD upscaling/filters run on the DX12 GPU shader; 1x avoids offscreen 3D compute readback stalls.
+internal_resolution = 1
+texture_upscale = 1
+supersampling = 1
+antialiasing = 0
+dev_hud = true
+hud_mode = "fps"
+vsync = false
+pause_on_menu = false
+pause_unfocused = false
+skip_launcher = true
+ui_language = "ptbr"
+game_language = "ptbr"
+
+[audio]
+enabled = true
+mode = "warm-stereo"
+volume = 100
+fx_intensity = 100
+mute_unfocused = false
+
+[controls]
+preset = "modern-wasd"
+keyboard = "26,22,4,7,8,44,20,13,225,14,40,43"
+secondary_keyboard = "82,81,80,79,25,44,9,29,27,6,40,42"
+gamepad = "12,13,14,15,2,1,4,3,10,11,7,5"
+button_prompts = "auto"
+stick_deadzone = 20
+
+[system]
+startup_mode = "automatic"
+boot = "direct"
+generated_firmware = true
+
+[cartridge]
+save_type = "eeprom"
+save_size = 8192
+
+[arm9]
+rom_offset = 0x00004000
+entry_pc = 0x02000800
+load_address = 0x02000000
+size = 0x000C6B98
+
+[arm7]
+rom_offset = 0x003B3E00
+entry_pc = 0x02380000
+load_address = 0x02380000
+size = 0x00026654
