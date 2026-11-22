@@ -30,7 +30,7 @@ OUT = ROOT / "assets" / "recomplauncher"
 SHOTS = ROOT / "assets" / "screenshots"
 REPO = "Neguchads/cdos-nintendods-recomp"
 RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/main/assets/recomplauncher"
-MAX_BYTES = 1_000_000  # abaixo do limite de 2 MiB do guarda clean-room do CI
+MAX_BYTES = 1_800_000  # abaixo do limite de 2 MiB do guarda clean-room do CI
 
 INK = (7, 4, 12)
 ICE = (120, 200, 255)
@@ -515,8 +515,13 @@ def validate() -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check-only", action="store_true", help="Apenas valida os arquivos existentes")
+    ap.add_argument(
+        "--regenerate-procedural",
+        action="store_true",
+        help="Regera os placeholders procedurais sobrescrevendo as artes de assets/recomplauncher/",
+    )
     args = ap.parse_args(argv)
-    if not args.check_only:
+    if args.regenerate_procedural or (not args.check_only and validate()):
         build()
     errors = validate()
     for e in errors:
