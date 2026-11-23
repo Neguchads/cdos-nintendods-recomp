@@ -14,7 +14,7 @@ This project follows the **RecompLauncher SDK, format 1** ([guide](https://githu
 |---|---|
 | `$schema`, `format`, `name`, `repo` | official schema URL, `1`, *Castlevania: Dawn of Sorrow: Recompiled*, `Neguchads/cdos-nintendods-recomp` |
 | `inputs[game]` | one file, `.nds` only; `check.ids = ["ACVE"]`; `dumps`: USA (ACVE), 67,108,864 bytes, CRC32 `135737f6` (verified badge) |
-| `start` | `runtime/nds_runner.exe`; the ROM arrives as `--rom {input:game}`; PT-BR patch `mods/ptbr/dos-ptbr.dospatch`; settings, saves and savestates under `{data}` |
+| `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, PT-BR patch `{install}/mods/ptbr/dos-ptbr.dospatch`; BIOS identity, settings, saves and savestates under `{data}` |
 | `config` | INI at `{data}/saves/dos-settings.ini`; `new` writes all defaults the first time |
 | `settings` | 30 options in groups Language, General, Display, Graphics, Performance, Audio, Controls (choices and sliders) |
 | `saves`, `folders`, `actions` | EEPROM `.sav`, INI and savestates; buttons to open Saves, Screenshots and Logs |
@@ -27,6 +27,7 @@ Notes:
 - The game is **never shipped**. The player picks their own USA `.nds`; the launcher checks the game code and the CRC32 and shows "Matches the verified USA (ACVE) disc".
 - There is **no `prepare` step**: the runner has no windowless setup mode, and the PT-BR translation is applied in memory at start, so nothing needs to be built from the ROM.
 - The release has no `recompdata/` folder. The launcher creates `{data}` (`recompdata/`) and passes it as `RECOMPLAUNCHER_DATA`.
+- RecompLauncher starts `runtime/nds_runner.exe` with working directory `{install}/runtime`. Because of that, every path in `start.args` uses `{install}/...` (for `game.toml` and `mods/ptbr/dos-ptbr.dospatch`) or `{data}/...` (for `run/bios`, saves, savestates, and `firmware_state.bin`) instead of bare relative paths.
 - `looks` can read the API from `dos_render_driver` only when its value contains `vulkan`, `d3d12`, `d3d11` or `opengl`. The default `direct3d12` does not contain `d3d12`, so for it the launcher falls back to detecting the API from the executable.
 - Only Windows is built and tested; `system.linux` documents the Vulkan / OpenGL need of the (unverified) Linux build.
 
@@ -83,7 +84,7 @@ Este projeto segue o **SDK do RecompLauncher, formato 1** ([guia](https://github
 |---|---|
 | `$schema`, `format`, `name`, `repo` | URL oficial do schema, `1`, *Castlevania: Dawn of Sorrow: Recompiled*, `Neguchads/cdos-nintendods-recomp` |
 | `inputs[game]` | um arquivo, só `.nds`; `check.ids = ["ACVE"]`; `dumps`: USA (ACVE), 67.108.864 bytes, CRC32 `135737f6` (selo de verificado) |
-| `start` | `runtime/nds_runner.exe`; a ROM chega como `--rom {input:game}`; patch PT-BR `mods/ptbr/dos-ptbr.dospatch`; configurações, saves e savestates em `{data}` |
+| `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, patch PT-BR `{install}/mods/ptbr/dos-ptbr.dospatch`; identidade de BIOS, configurações, saves e savestates em `{data}` |
 | `config` | INI em `{data}/saves/dos-settings.ini`; `new` grava todos os padrões na primeira vez |
 | `settings` | 30 opções nos grupos Language, General, Display, Graphics, Performance, Audio, Controls (escolhas e sliders) |
 | `saves`, `folders`, `actions` | `.sav` EEPROM, INI e savestates; botões para abrir Saves, Screenshots e Logs |
@@ -96,6 +97,7 @@ Notas:
 - O jogo **nunca é distribuído**. O jogador escolhe o próprio `.nds` USA; o launcher confere o código do jogo e o CRC32 e mostra "Matches the verified USA (ACVE) disc".
 - **Não há etapa `prepare`**: o runner não tem modo de preparo sem janela, e a tradução PT-BR é aplicada em memória ao iniciar, então nada precisa ser gerado a partir da ROM.
 - A release não tem pasta `recompdata/`. O launcher cria `{data}` (`recompdata/`) e a repassa como `RECOMPLAUNCHER_DATA`.
+- O RecompLauncher executa `runtime/nds_runner.exe` com o diretório de trabalho em `{install}/runtime`. Por isso, todo caminho em `start.args` usa `{install}/...` (para `game.toml` e `mods/ptbr/dos-ptbr.dospatch`) ou `{data}/...` (para `run/bios`, saves, savestates e `firmware_state.bin`), nunca caminhos relativos puros.
 - O `looks` só lê a API de `dos_render_driver` quando o valor contém `vulkan`, `d3d12`, `d3d11` ou `opengl`. O padrão `direct3d12` não contém `d3d12`, então nesse caso o launcher detecta a API pelo executável.
 - Só o Windows é compilado e testado; `system.linux` documenta a necessidade de Vulkan / OpenGL do build Linux (não verificado).
 

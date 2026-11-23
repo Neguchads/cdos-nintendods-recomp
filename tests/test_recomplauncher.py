@@ -141,6 +141,69 @@ class TestRecompLauncher(unittest.TestCase):
             self.assertTrue(entry[slot].endswith(f"/assets/recomplauncher/{name}"), slot)
             self.assertTrue((ART / name).is_file(), name)
 
+    def test_start_args_resolve_install_and_data_paths_independent_of_cwd(self) -> None:
+        """RecompLauncher spawns runtime/nds_runner.exe with cwd={install}/runtime; args cannot rely on cwd={install}."""
+        data = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
+        args = data["start"]["args"]
+
+        self.assertEqual(args[0], "{data}/run/bios")
+        self.assertEqual(args[args.index("--config") + 1], "{install}/game.toml")
+        self.assertEqual(args[args.index("--ptbr-patch") + 1], "{install}/mods/ptbr/dos-ptbr.dospatch")
+
+        for arg in args:
+            if arg.startswith("{install}/"):
+                rel = arg.removeprefix("{install}/")
+                self.assertTrue((ROOT / rel).is_file(), f"Arquivo ausente para placeholder {arg}: {rel}")
+
+    def test_validate_manifest_rejects_bare_relative_start_args(self) -> None:
+        base = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
+        cases = [
+            ("bios_rel", lambda a: a.__setitem__(0, "run/bios")),
+            ("config_rel", lambda a: a.__setitem__(a.index("--config") + 1, "game.toml")),
+            ("patch_rel", lambda a: a.__setitem__(a.index("--ptbr-patch") + 1, "mods/ptbr/dos-ptbr.dospatch")),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, mutate in cases:
+                with self.subTest(case=name):
+                    mutated = json.loads(json.dumps(base))
+                    mutate(mutated["start"]["args"])
+                    path = Path(tmp) / f"{name}.json"
+                    path.write_text(json.dumps(mutated), encoding="utf-8")
+                    errors = pr.validate_manifest(path)
+                    self.assertNotEqual(errors, [], f"validate_manifest aceitou caminho relativo em {name}")
+
+    def test_stage_release_excludes_runtime_profiling_and_capture_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_root = Path(tmp) / "repo"
+            for rel in (
+                "recomplauncher.json",
+                "game.toml",
+                "play.bat",
+                "README.md",
+                "mods/ptbr/dos-ptbr.dospatch",
+                "docs/RECOMPLAUNCHER.md",
+            ):
+                dst = fake_root / rel
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.write_bytes((ROOT / rel).read_bytes())
+            (fake_root / "assets" / "recomplauncher").mkdir(parents=True, exist_ok=True)
+            for item in (ROOT / "assets" / "recomplauncher").iterdir():
+                if item.is_file():
+                    (fake_root / "assets" / "recomplauncher" / item.name).write_bytes(item.read_bytes())
+
+            runtime = fake_root / "runtime"
+            runtime.mkdir(parents=True, exist_ok=True)
+            (runtime / "nds_runner.exe").write_bytes(b"MZ-stub")
+            (runtime / "SDL3.dll").write_bytes(b"MZ-sdl3")
+            for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log"):
+                (runtime / junk).write_bytes(b"junk")
+
+            stage = Path(tmp) / "stage"
+            pr.stage_release_tree(fake_root, out_dir=stage, make_zip=False)
+            staged_runtime = {p.name for p in (stage / "runtime").iterdir()}
+            self.assertEqual(staged_runtime, {"nds_runner.exe", "SDL3.dll"})
+            self.assertTrue((stage / "assets" / "recomplauncher" / "icon.png").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
