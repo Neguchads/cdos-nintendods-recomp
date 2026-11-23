@@ -147,10 +147,10 @@ index addb5d1..510a0f6 100644
    add_test(NAME screen_layout_test COMMAND screen_layout_test)
 diff --git a/runner/src/dos_custom_music.cpp b/runner/src/dos_custom_music.cpp
 new file mode 100644
-index 0000000..db868d9
+index 0000000..faa2214
 --- /dev/null
 +++ b/runner/src/dos_custom_music.cpp
-@@ -0,0 +1,859 @@
+@@ -0,0 +1,887 @@
 +#include "dos_custom_music.h"
 +
 +#include <algorithm>
@@ -303,6 +303,12 @@ index 0000000..db868d9
 +    return clamp_s16(static_cast<int32_t>(std::lrintf(clamped * 32767.0f)));
 +}
 +
++constexpr uint32_t kMinAudioSampleRate = 4000u;
++constexpr uint32_t kMaxAudioSampleRate = 384000u;
++constexpr uint32_t kMaxAudioChannels = 8u;
++// Limite defensivo: ~30 min em 32768 Hz estereo (~235 MB no pior caso), evitando OOM em arquivos malformados.
++constexpr size_t kMaxDecodedFrames32k = static_cast<size_t>(kDosSpuSampleRate) * 60u * 30u;
++
 +void resample_to_32768_stereo(const float* src,
 +                              size_t src_frames,
 +                              uint32_t src_channels,
@@ -313,11 +319,20 @@ index 0000000..db868d9
 +    out->pcm_stereo_32768.clear();
 +    out->loop_start_frame = 0;
 +    out->loop_end_frame = 0;
-+    if (!src || src_frames == 0 || src_channels == 0 || src_rate == 0) return;
++    if (!src || src_frames == 0 ||
++        src_channels == 0 || src_channels > kMaxAudioChannels ||
++        src_rate < kMinAudioSampleRate || src_rate > kMaxAudioSampleRate) {
++        return;
++    }
 +
 +    const double ratio = static_cast<double>(src_rate) / static_cast<double>(kDosSpuSampleRate);
++    const double dst_frames_d = static_cast<double>(src_frames) / ratio;
++    if (!std::isfinite(dst_frames_d) || dst_frames_d <= 0.0 ||
++        dst_frames_d > static_cast<double>(kMaxDecodedFrames32k)) {
++        return;
++    }
 +    const size_t dst_frames = std::max<size_t>(
-+        1u, static_cast<size_t>(std::llround(static_cast<double>(src_frames) / ratio)));
++        1u, static_cast<size_t>(std::llround(dst_frames_d)));
 +    out->pcm_stereo_32768.resize(dst_frames * 2u);
 +
 +    auto sample_lr = [&](size_t f, float* l, float* r) {
@@ -397,11 +412,16 @@ index 0000000..db868d9
 +                smpl_loop_end = rd_u32(raw.data() + body + 48);
 +            }
 +        }
-+        pos = body + csize + (csize & 1u);
++        if (csize > raw.size() - body) break;
++        const size_t pad = csize & 1u;
++        if (pad > raw.size() - body - csize) break;
++        pos = body + csize + pad;
 +    }
 +
-+    if (!have_fmt || !data_ptr || data_size == 0 || channels == 0 || sample_rate == 0) {
-+        if (err) *err = "WAV missing fmt/data chunk.";
++    if (!have_fmt || !data_ptr || data_size == 0 ||
++        channels == 0 || channels > kMaxAudioChannels ||
++        sample_rate < kMinAudioSampleRate || sample_rate > kMaxAudioSampleRate) {
++        if (err) *err = "WAV missing valid fmt/data chunk or unsupported rate/channels.";
 +        return false;
 +    }
 +    if (!((audio_fmt == 1u && (bits_per_sample == 8u || bits_per_sample == 16u ||
@@ -812,14 +832,22 @@ index 0000000..db868d9
 +        std::fprintf(stderr, "[custom-music] scanned %s -> %zu custom BGM track(s) ready\n",
 +                     g_music.music_dir.c_str(), g_music.bindings.size());
 +    }
++    if (g_music.enabled && g_music.active_bgm_id >= 0) {
++        activate_track_locked(g_music.active_bgm_id, true);
++    } else if (g_music.active_bgm_id >= 0) {
++        g_music.active_playing = false;
++    }
 +    return g_music.bindings.size();
 +}
 +
 +void dos_custom_music_set_enabled(bool enabled) {
 +    std::lock_guard<std::mutex> lock(g_music.mu);
++    const bool was_enabled = g_music.enabled;
 +    g_music.enabled = enabled;
 +    if (!enabled) {
 +        g_music.active_playing = false;
++    } else if (!was_enabled && g_music.active_bgm_id >= 0) {
++        activate_track_locked(g_music.active_bgm_id, true);
 +    }
 +}
 +
@@ -967,7 +995,7 @@ index 0000000..db868d9
 +
 +    const float gain =
 +        (static_cast<float>(std::min<uint8_t>(custom_volume_pct, 150u)) / 100.0f) *
-+        (static_cast<float>(std::min<uint8_t>(master_volume_pct, 100u)) / 100.0f) *
++        (static_cast<float>(std::min<uint8_t>(master_volume_pct, 150u)) / 100.0f) *
 +        g_music.game_fade_gain * g_music.current_binding.gain_linear;
 +    if (gain <= 0.0001f) return;
 +
@@ -9663,7 +9691,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..71165ca 100644
+index 7ff4316..6a6cdaa 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,6 +14,7 @@
@@ -12493,7 +12521,7 @@ index 7ff4316..71165ca 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5570,241 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5570,242 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -12707,6 +12735,7 @@ index 7ff4316..71165ca 100644
 +                &options.dos.secondary_keyboard_bindings,
 +                &options.gamepad_bindings,
 +                &options.custom_gamepad_bindings);
++            dos_custom_music_set_enabled(options.dos.custom_music_enabled);
 +            sync_live_display();
 +            save_all_runtime_settings(runtime_menu_state);
 +            imgui_settings_dirty = false;
@@ -12735,7 +12764,7 @@ index 7ff4316..71165ca 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +5816,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +5817,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -12817,7 +12846,7 @@ index 7ff4316..71165ca 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +5867,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +5868,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -12826,7 +12855,7 @@ index 7ff4316..71165ca 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6103,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6104,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -12836,7 +12865,7 @@ index 7ff4316..71165ca 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6115,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6116,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -12845,7 +12874,7 @@ index 7ff4316..71165ca 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6129,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6130,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -12856,7 +12885,7 @@ index 7ff4316..71165ca 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4218,11 +6155,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4218,11 +6156,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                              screen, &widths[screen]);
                  }
              }
@@ -12878,7 +12907,7 @@ index 7ff4316..71165ca 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4417,12 +6362,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6363,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -12899,7 +12928,7 @@ index 7ff4316..71165ca 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6391,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6392,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -12934,7 +12963,7 @@ index 7ff4316..71165ca 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,7 +6497,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,7 +6498,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -12943,7 +12972,7 @@ index 7ff4316..71165ca 100644
          if (audio_pace_floor > kAudioQueueFrames + kGlideStepFrames)
              audio_pace_floor -= kGlideStepFrames;
          else
-@@ -4542,12 +6507,22 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4542,12 +6508,22 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (turbo_active) {
              if (!cpu_handoff) discard_spu_output();
          } else {
@@ -12968,7 +12997,7 @@ index 7ff4316..71165ca 100644
                  );
          }
          const uint64_t frame_drain_ticks =
-@@ -4620,17 +6595,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +6596,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -13026,7 +13055,7 @@ index 7ff4316..71165ca 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,6 +6702,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,6 +6703,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -13037,7 +13066,7 @@ index 7ff4316..71165ca 100644
      if (controller) SDL_GameControllerClose(controller);
      if (runtime_ui) {
          g_runtime_menu_ui = nullptr;
-@@ -5053,3 +7069,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7070,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -13137,7 +13166,7 @@ index 41b6110..4de30c9 100644
 +                                  NdsModApplyFn apply_fn);
 +void nds_frontend_set_soft_reset_fn(std::function<void()> fn);
 diff --git a/runner/src/frontend_config.cpp b/runner/src/frontend_config.cpp
-index 1762e25..92c82a8 100644
+index 1762e25..97512ea 100644
 --- a/runner/src/frontend_config.cpp
 +++ b/runner/src/frontend_config.cpp
 @@ -89,6 +89,31 @@ bool nds_parse_screen_layout(const std::string& value,
@@ -13201,6 +13230,15 @@ index 1762e25..92c82a8 100644
          if (const auto value = (*game)["sha1"].value<std::string>()) {
              const bool invalid_length = value->size() != 40u;
              const bool invalid_character = std::any_of(
+@@ -637,7 +673,7 @@ bool nds_load_frontend_config(const std::string& path,
+                                          &options->screen_layout)) {
+                 if (error) {
+                     *error =
+-                        "display.screen_layout must be stacked, separate, or pip";
++                        "display.screen_layout must be stacked, separate, pip, or widescreen-theatre";
+                 }
+                 return false;
+             }
 @@ -867,6 +903,157 @@ bool nds_load_frontend_config(const std::string& path,
                  return false;
              }
@@ -14072,10 +14110,10 @@ index e411b57..7e17859 100644
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..8be5fce
+index 0000000..69ceb8e
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,880 @@
+@@ -0,0 +1,920 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -14930,6 +14968,46 @@ index 0000000..8be5fce
 +    dos_custom_music_mix(paused_buf.data(), 32, true, 100, true, 100);
 +    assert(paused_buf[0] == 0 && paused_buf[1] == 0);
 +    dos_custom_music_set_host_paused(false);
++
++    // Disable -> Re-enable resumes active track without needing a new START_SEQ
++    dos_custom_music_set_enabled(false);
++    assert(!dos_custom_music_status().playing_custom);
++    dos_custom_music_set_enabled(true);
++    assert(dos_custom_music_status().playing_custom);
++
++    // Rescan while track is active keeps it playing cleanly
++    assert(dos_custom_music_rescan() == 1u);
++    assert(dos_custom_music_status().playing_custom);
++
++    // Malformed WAV with sample_rate=1 must be rejected cleanly (no OOM / bad_alloc)
++    {
++        const std::filesystem::path bad_wav = tmp_dir / "music" / "bad_rate.wav";
++        std::vector<uint8_t> wav(48, 0);
++        std::memcpy(wav.data(), "RIFF", 4);
++        const uint32_t riff_sz = 40;
++        std::memcpy(wav.data() + 4, &riff_sz, 4);
++        std::memcpy(wav.data() + 8, "WAVEfmt ", 8);
++        const uint32_t fmt_sz = 16;
++        const uint16_t pcm_fmt = 1, ch = 2, align = 4, bps = 16;
++        const uint32_t bad_sr = 1;
++        const uint32_t byte_rate = 4;
++        const uint32_t data_bytes = 4;
++        std::memcpy(wav.data() + 16, &fmt_sz, 4);
++        std::memcpy(wav.data() + 20, &pcm_fmt, 2);
++        std::memcpy(wav.data() + 22, &ch, 2);
++        std::memcpy(wav.data() + 24, &bad_sr, 4);
++        std::memcpy(wav.data() + 28, &byte_rate, 4);
++        std::memcpy(wav.data() + 32, &align, 2);
++        std::memcpy(wav.data() + 34, &bps, 2);
++        std::memcpy(wav.data() + 36, "data", 4);
++        std::memcpy(wav.data() + 40, &data_bytes, 4);
++        std::ofstream bf(bad_wav, std::ios::binary);
++        bf.write(reinterpret_cast<const char*>(wav.data()), static_cast<std::streamsize>(wav.size()));
++        DosDecodedAudio dec{};
++        std::string err;
++        assert(!dos_custom_music_decode_file(bad_wav.string(), &dec, &err));
++        assert(!err.empty());
++    }
 +
 +    // STOP_SEQ(2) stops playback
 +    wr32(0x2060, 0u); wr32(0x2064, 1u); wr32(0x2068, 2u);

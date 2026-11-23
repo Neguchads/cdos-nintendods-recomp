@@ -40,13 +40,22 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
             self.assertEqual(rep["matched"], {7: "07.wav", 2: "SDL_BGM_BOSS1_.mp3", 11: "11_pitch_black_intrusion.ogg"})
             self.assertEqual(rep["unmatched"], ["unmatched_song.mp3"])
 
-            # Manifest with path traversal must report an error
+            # Manifest with path traversal or rooted/drive paths must report errors
             (mdir / "music.json").write_text(
-                json.dumps({"tracks": {"13": {"file": "../escape.mp3"}}}),
+                json.dumps(
+                    {
+                        "tracks": {
+                            "13": {"file": "../escape.mp3"},
+                            "14": {"file": "/root_escape.mp3"},
+                            "15": {"file": "C:/drive_escape.wav"},
+                        }
+                    }
+                ),
                 encoding="utf-8",
             )
             rep_bad = lbt.scan_music_dir(mdir)
-            self.assertTrue(any("invalid file" in e for e in rep_bad["errors"]))  # type: ignore[arg-type]
+            self.assertEqual(len(rep_bad["errors"]), 3)
+            self.assertTrue(all("invalid file" in e for e in rep_bad["errors"]))  # type: ignore[arg-type]
 
     def test_recomplauncher_manifest_exposes_widescreen_and_custom_music_options(self) -> None:
         manifest = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))

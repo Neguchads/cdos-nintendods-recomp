@@ -93,7 +93,14 @@ def scan_music_dir(music_dir: Path) -> dict[str, object]:
                         errors.append(f"music.json: unknown track key '{k}'")
                         continue
                     rel = str(v.get("file", "")) if isinstance(v, dict) else ""
-                    if not rel or ".." in rel or Path(rel).is_absolute() or Path(rel).suffix.lower() not in SUPPORTED_EXTS:
+                    if (
+                        not rel
+                        or ".." in rel
+                        or rel.startswith(("/", "\\"))
+                        or ":" in rel
+                        or Path(rel).is_absolute()
+                        or Path(rel).suffix.lower() not in SUPPORTED_EXTS
+                    ):
                         errors.append(f"music.json: invalid file '{rel}' for track '{k}'")
                         continue
                     if not (music_dir / rel).is_file():
