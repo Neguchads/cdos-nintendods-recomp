@@ -30,7 +30,7 @@ Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) over
 ### Verifications Executed
 - `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passed** (`0.21s`).
 - `python tools/prepare_media_assets.py --check-only`: **OK** (`8` RecompLauncher images + `icon.ico` + `catalog-entry.json` + `3` in-engine screenshots validated).
-- `python -m unittest discover -s tests -v`: **26/26 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, and `launcher` including PE `.rsrc` `RT_ICON`/`RT_GROUP_ICON` checks on both Windows executables).
+- `python -m unittest discover -s tests -v`: **27/27 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, and `launcher` including PE `.rsrc` `RT_ICON`/`RT_GROUP_ICON` checks, `ACVE`/CRC32 setup validation, local `game/` install, and COM `.lnk` shortcut creation).
 - `python tools/package_recomplauncher.py --validate-only`: **OK** (all 30 INI keys + `inputs[game]` + verified dump `CRC32: 135737f6` + `{install}`/`{data}` `start.args` + media kit validated).
 - **End-to-end RecompLauncher simulation (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** boots cleanly from staged zip, loads `{install}/game.toml` and `{install}/mods/ptbr/dos-ptbr.dospatch`, activates `dx12-gpu` + `DXIL ps_6_0`, writes BIOS/firmware/save only inside `{data}`, zero files created inside `{install}/runtime`.
 - `python tools/build.py smoke`: **PASS** (`724` vblanks in `run/smoke/report.json`).
@@ -75,7 +75,7 @@ Port nativo de recompilação estática AOT atualizado com **menu gráfico Dear 
 ### Verificações Executadas
 - `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passaram** (`0.21s`).
 - `python tools/prepare_media_assets.py --check-only`: **OK** (`8` imagens RecompLauncher + `icon.ico` + `catalog-entry.json` + `3` capturas reais validadas).
-- `python -m unittest discover -s tests -v`: **26/26 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` e `launcher` incluindo checagem de recursos PE `RT_ICON`/`RT_GROUP_ICON` em ambos os executáveis Windows).
+- `python -m unittest discover -s tests -v`: **27/27 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` e `launcher` incluindo checagem de recursos PE `RT_ICON`/`RT_GROUP_ICON`, validação `ACVE`/CRC32 no setup, instalação local em `game/` e criação de atalho `.lnk` via COM).
 - `python tools/package_recomplauncher.py --validate-only`: **OK** (todas as 30 chaves INI + `inputs[game]` + dump verificado `CRC32: 135737f6` + caminhos `{install}`/`{data}` + kit de mídia validados).
 - **Simulação ponta a ponta do RecompLauncher (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** inicia sem erro a partir do zip empacotado, carrega `{install}/game.toml` e `{install}/mods/ptbr/dos-ptbr.dospatch`, ativa `dx12-gpu` + `DXIL ps_6_0`, grava BIOS/firmware/save apenas em `{data}` e não cria nenhum arquivo em `{install}/runtime`.
 - `python tools/build.py smoke`: **PASS** (`724` vblanks em `run/smoke/report.json`).

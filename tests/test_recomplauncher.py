@@ -67,8 +67,8 @@ class TestRecompLauncher(unittest.TestCase):
             self.assertIn(needed, setting_ids)
 
     def test_stage_release_excludes_roms(self) -> None:
-        if not (ROOT / "runtime" / "nds_runner.exe").is_file():
-            self.skipTest("runtime/nds_runner.exe nao compilado.")
+        if not (ROOT / "runtime" / "nds_runner.exe").is_file() or not (ROOT / "CastlevaniaDawnOfSorrow.exe").is_file():
+            self.skipTest("runtime/nds_runner.exe ou CastlevaniaDawnOfSorrow.exe nao compilados.")
         with tempfile.TemporaryDirectory() as tmp:
             stage = Path(tmp) / "stage"
             pr.stage_release_tree(ROOT, out_dir=stage, make_zip=False)
