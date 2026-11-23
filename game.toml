@@ -37,8 +37,8 @@ vsync = false
 pause_on_menu = false
 pause_unfocused = false
 skip_launcher = true
-ui_language = "ptbr"
-game_language = "ptbr"
+ui_language = "en"
+game_language = "en"
 
 [audio]
 enabled = true

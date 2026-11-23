@@ -97,8 +97,8 @@
         }
       ],
       "new": {
-        "dos_ui_language": "ptbr",
-        "dos_game_language": "ptbr",
+        "dos_ui_language": "en",
+        "dos_game_language": "en",
         "dos_skip_launcher": "true",
         "dos_fullscreen": "borderless",
         "dos_layout": "pip",
@@ -138,20 +138,20 @@
       "group": "Language",
       "choices": [
         {
-          "label": "Portugues (BR)",
-          "set": {
-            "dos_ui_language": "ptbr"
-          }
-        },
-        {
           "label": "English",
           "set": {
             "dos_ui_language": "en"
           }
+        },
+        {
+          "label": "Portugues (BR)",
+          "set": {
+            "dos_ui_language": "ptbr"
+          }
         }
       ],
       "defaults": {
-        "dos_ui_language": "ptbr"
+        "dos_ui_language": "en"
       }
     },
     {
@@ -161,20 +161,20 @@
       "help": "Uses dos-ptbr.dospatch in memory without modifying your original USA .nds file.",
       "choices": [
         {
-          "label": "Portugues (BR) — romsportugues.com T1.0",
-          "set": {
-            "dos_game_language": "ptbr"
-          }
-        },
-        {
           "label": "English (USA Original)",
           "set": {
             "dos_game_language": "en"
           }
+        },
+        {
+          "label": "Portugues (BR) — romsportugues.com T1.0",
+          "set": {
+            "dos_game_language": "ptbr"
+          }
         }
       ],
       "defaults": {
-        "dos_game_language": "ptbr"
+        "dos_game_language": "en"
       }
     },
     {
