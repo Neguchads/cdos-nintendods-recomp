@@ -226,6 +226,13 @@ class TestRecompLauncher(unittest.TestCase):
         self.assertEqual(game["defaults"], {"dos_game_language": "en"})
         self.assertEqual([c["set"]["dos_game_language"] for c in game["choices"]], ["en", "ptbr"])
 
+    def test_game_toml_uses_mouse_combat_and_qr_default_bindings(self) -> None:
+        game_cfg = tomllib.loads((ROOT / "game.toml").read_text(encoding="utf-8"))
+        # Key 1: W,S,A,D, MouseRight(503=A Special), Space(44=B), F(9=X), MouseLeft(501=Y Attack), Q(20=L Dash), R(21=R Soul), Enter(40), Tab(43)
+        self.assertEqual(game_cfg["controls"]["keyboard"], "26,22,4,7,503,44,9,501,20,21,40,43")
+        # Key 2: Up,Down,Left,Right, E(8), Space(44), C(6), J(13), MouseMiddle(502=L Dash), K(14), Enter(40), Bksp(42)
+        self.assertEqual(game_cfg["controls"]["secondary_keyboard"], "82,81,80,79,8,44,6,13,502,14,40,42")
+
 
 if __name__ == "__main__":
     unittest.main()

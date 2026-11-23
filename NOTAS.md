@@ -24,7 +24,7 @@
 
 ### Latest Verifications
 - `ctest`: **3/3 passed** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **28/28 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, `launcher` + EN-first defaults + PE icon + self-contained setup & `.lnk` shortcut).
+- `unittest`: **29/29 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, `launcher` + mouse combat + `Q`/`R` defaults + EN-first defaults + PE icon + self-contained setup & `.lnk` shortcut).
 - `prepare_media_assets.py --check-only`: **OK** (`8` images + `icon.ico` + `catalog-entry.json` + `3` screenshots).
 - `package_recomplauncher.py --validate-only`: **OK** (`30` INI keys + `inputs[game]` + media kit).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
@@ -55,7 +55,7 @@
 
 ### Verificações Mais Recentes
 - `ctest`: **3/3 passaram** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **28/28 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, `launcher` + padrão EN principal + ícone PE + setup autocontido e atalho `.lnk`).
+- `unittest`: **29/29 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, `launcher` + mouse em combate + `Q`/`R` + padrão EN principal + ícone PE + setup autocontido e atalho `.lnk`).
 - `prepare_media_assets.py --check-only`: **OK** (`8` imagens + `icon.ico` + `catalog-entry.json` + `3` capturas).
 - `package_recomplauncher.py --validate-only`: **OK** (`30` chaves INI + `inputs[game]` + kit de mídia).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
