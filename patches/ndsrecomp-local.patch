@@ -11798,10 +11798,36 @@ index 1762e25..a1ca1b9 100644
                  (*controls)["virtual_stylus"].as_table()) {
              if (const auto value =
 diff --git a/runner/src/io.cpp b/runner/src/io.cpp
-index 7c9f618..e654065 100644
+index 7c9f618..5398159 100644
 --- a/runner/src/io.cpp
 +++ b/runner/src/io.cpp
-@@ -2267,7 +2267,14 @@ void nds_io_configure_cartridge_save(
+@@ -2209,7 +2209,15 @@ bool nds_io_load_cartridge(const uint8_t* rom, uint32_t rom_size,
+         return false;
+     }
+ 
+-    g_card_rom.assign(rom, rom + rom_size);
++    // NDS cartridge hardware masks 0xB7 addresses by (power-of-two size - 1).
++    // Expanded/trimmed mod ROMs (e.g. >64 MiB) must be padded to the next power
++    // of two with 0xFF so masked ROM reads never corrupt high-bit offsets.
++    size_t padded_size = 0x20000u;
++    while (padded_size < rom_size && padded_size < (512u * 1024u * 1024u)) {
++        padded_size <<= 1u;
++    }
++    g_card_rom.assign(padded_size, 0xFFu);
++    std::memcpy(g_card_rom.data(), rom, rom_size);
+     // 'I'-prefixed game codes ship an infrared transceiver in front of the
+     // backup chip (melonDS NDSCart.cpp:1692-1699 -> CartRetailIR).
+     g_cart_has_ir = rom[0x0Cu] == 'I';
+@@ -2223,7 +2231,7 @@ bool nds_io_load_cartridge(const uint8_t* rom, uint32_t rom_size,
+     g_card_response.clear();
+     std::memset(g_card_command, 0, sizeof(g_card_command));
+ 
+-    const uint32_t megabytes = std::max(1u, rom_size >> 20u);
++    const uint32_t megabytes = std::max(1u, static_cast<uint32_t>(g_card_rom.size() >> 20u));
+     g_card_chip_id = 0x000000C2u | ((megabytes - 1u) << 8u);
+ 
+     // Blank backup memory is 0xFF. Interactive play loads an exact-size
+@@ -2267,7 +2275,14 @@ void nds_io_configure_cartridge_save(
  }
  
  void nds_io_set_cartridge_save_path(const char* path) {

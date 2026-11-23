@@ -62,15 +62,15 @@
       "builtin": false,
       "manual_import": false,
       "state": "unverified",
-      "validation_level": "none",
+      "validation_level": "boot_and_perf_probe",
       "profile_file": "eternity-of-sorrow.dospatch",
-      "expected_patch_sha256": "",
+      "expected_patch_sha256": "f1ebfb44ca48796a84e5e13a7600a02e7d93c3be9ec1e463c25a8ad5446b0e72",
       "supports_ptbr": false,
       "definitive_compatible": false,
       "allowed_character_packs": ["default"],
       "source_url": "https://github.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow",
       "author": "WetBandAid",
-      "summary": "Full-game sequel campaign continuing from the bad ending (includes author No Touch build; independent campaign)."
+      "summary": "Full-game sequel campaign continuing from the bad ending (includes author No Touch build; independent campaign; 59.98 FPS measured, full campaign playthrough pending)."
     },
     {
       "id": "alucards-requiem-sotn",
