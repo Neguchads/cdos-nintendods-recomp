@@ -45,6 +45,10 @@
 - **16C (Character Packs & Manual Slots):** Mutually exclusive Julius Mode packs (*Albus Mode*, *Model ZX*, *Model Omega*) with pinned SHA-256 verification and isolated saves, plus honest `Not Installed` manual slots (*Alucard's Requiem SOTN/CV3*, *Dracula's Curse*, *Definitive+*).
 - **16D (Native C++ Seed Mutator & DSVania Randomizer Importer):** Zero-dependency C++17 `dos_seed_mutator.{h,cpp}` (`xoshiro256**/SplitMix64`, `--seed`, `--seed-preset casual|standard|hard`, verified FNV-1a Enemy DNA table gate, non-progression regular enemy stats/drops only, bosses `101..117` and soul IDs untouched, atomic spoiler log) plus `tools/import_dsvrandom.py` and automatic `{data}/mods/profiles/dsvrandom-*.dospatch` discovery.
 
+### Done (Branch `feat/custom-music-widescreen` — Issues #16 Custom Music & #7 Widescreen)
+- **Issue #16 (Custom Music Support `.wav`/`.mp3`/`.ogg`):** Native C++ engine (`runner/src/dos_custom_music.{h,cpp}` + `dr_mp3.h` + `stb_vorbis.c` + built-in RIFF/WAVE decoder), dynamic Nitro SDK 2.x PXI `tag == 7` BGM detection across all 30 tracks (`00..29`), selective `MUTE_TRACK` silencing (`SPU BGM peak 6528 -> 0`) preserving 100% of DS SFX (`peak 6304..7808`) and `STRM` voices, `F1 -> Audio` controls, `{data}/mods/music/README.md`, and `tools/list_bgm_tracks.py`.
+- **Issue #7 (Widescreen Display Modes):** `WidescreenTheatre` (`342×192` exact 16:9 canvas with 4:3 gameplay + docked Map/Status sidebar, left/right selectable), `SmartCrop16x9` (`SDL_LOGICAL_PRESENTATION_OVERSCAN` 1:1 square pixels + `-24..+24 px` vertical crop offset + exact touch mapping), and `Balanced16x10` (`16:10` mild widescreen fill).
+
 ### Planned (Optional / Future)
 - Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
 - Optional promotion of additional dynamic blocks if late-game castle areas record new coverage addresses via `play-profile.bat`.
@@ -93,6 +97,10 @@
 - **16B (Eternity of Sorrow 1.2):** Padding potência-de-2 em `runner/src/io.cpp` (`68,6 MB -> 128 MiB`), fetcher verificado por SHA-256 (`tools/fetch_community_mods.py`) e prova ao vivo de *Eternity of Sorrow 1.2* (`59,98 FPS`, `emu_ms=2,37 ms`, `0` dispatch misses, save isolado, soft reset OK; mantido `unverified` / `boot_and_perf_probe` aguardando validação completa).
 - **16C (Packs de Personagens & Slots Manuais):** Packs mutuamente exclusivos de Julius Mode (*Albus Mode*, *Model ZX*, *Model Omega*) com SHA-256 travado e saves isolados, além de slots manuais honestos (`Não instalado`: *Alucard's Requiem SOTN/CV3*, *Dracula's Curse*, *Definitive+*).
 - **16D (Seed Mutator C++ Nativo & Importador DSVania Randomizer):** `dos_seed_mutator.{h,cpp}` offline em C++17 (`xoshiro256**/SplitMix64`, `--seed`, `--seed-preset casual|standard|hard`, assinatura FNV-1a verificada na tabela Enemy DNA, apenas stats/drops não-progressão de inimigos regulares, chefes `101..117` e `soul_id`s intactos, spoiler log atômico) mais `tools/import_dsvrandom.py` e descoberta automática de `{data}/mods/profiles/dsvrandom-*.dospatch`.
+
+### Feito (Branch `feat/custom-music-widescreen` — Issues #16 Música Customizada & #7 Widescreen)
+- **Issue #16 (Música Customizada `.wav`/`.mp3`/`.ogg`):** Motor C++ nativo (`runner/src/dos_custom_music.{h,cpp}` + `dr_mp3.h` + `stb_vorbis.c` + decodificador RIFF/WAVE embutido), detecção dinâmica PXI `tag == 7` (Nitro SDK 2.x) para todas as 30 faixas BGM (`00..29`), silenciamento seletivo via `MUTE_TRACK` (`pico SPU BGM 6528 -> 0`) mantendo 100% dos SFX (`pico 6304..7808`) e vozes `STRM`, controles ao vivo em `F1 -> Áudio`, `{data}/mods/music/README.md` e `tools/list_bgm_tracks.py`.
+- **Issue #7 (Modos Widescreen):** `WidescreenTheatre` (canvas 16:9 exato `342×192` com gameplay 4:3 + lateral acoplada para Mapa/Status esquerda/direita), `SmartCrop16x9` (`SDL_LOGICAL_PRESENTATION_OVERSCAN` pixels 1:1 + ajuste vertical `-24..+24 px` + toque preciso) e `Balanced16x10` (`16:10` equilibrado).
 
 ### Planejado (Opcional / Futuro)
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.

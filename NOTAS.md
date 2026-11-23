@@ -26,7 +26,14 @@
 - **`recomplauncher.json`:** upgraded to the RecompLauncher 1.0 SDK format (`inputs[game]` with `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` & size `67108864`, `config[0].new` defaults, `looks`, `actions`, `system`, `exit_codes`, and no window-opening `prepare` step). `start.args` uses `{install}/game.toml`, `{install}/mods/ptbr/dos-ptbr.dospatch`, and `{data}/run/bios` because RecompLauncher runs `runtime/nds_runner.exe` with `cwd = {install}/runtime`.
 - **Media kit (`tools/prepare_media_assets.py`):** `icon.png` (`256x256`) + `icon.ico` (`256, 64, 48, 32, 16`), `cover.png`/`cover.jpg` (`600x900`), `hero.png`/`hero.jpg` (`1920x620`), transparent `logo.png` (`1000x500` RGBA), `wallpaper.png` (`1920x1080`), `artwork.png` (`1024x1024`), `catalog-entry.json` (`media_design.kind = "ds"`), plus 3 in-engine captures (`1920x1080`) in `assets/screenshots/`.
 
-### Latest Verifications (PR #16 — `feat/campaigns-randomizer-v1`, 16A–16D)
+### Latest Verifications (`feat/custom-music-widescreen` — Issues #16 & #7)
+- **Custom Music Live Proof (File Select `#07 SDL_BGM_NAME_` on real Dawn of Sorrow USA ROM):**
+  - All 3 formats verified live: `.wav` (built-in RIFF/WAVE), `.mp3` (`dr_mp3`), and `.ogg` (`stb_vorbis`) decoded cleanly to `32,768 Hz` stereo and triggered `[custom-music] playing track #07 Name Entry / File Select (SDL_BGM_NAME_)`.
+  - **Selective Mute Mathematical Proof:** DS SPU BGM peak dropped from **`6528`** (`rms=1959.2`) without custom music to **`0`** (`rms=0.0`) with custom music, while DS menu cursor SFX still peaked at **`6304` / `2656` / `7808`** in the exact same session!
+- **Widescreen Modes Live Proof (`nds_runner.exe` DX12):** `widescreen-theatre`, `smart-crop-16x9` (`crop_y=-8`), and `balanced-16x10` booted cleanly with `0` dispatch misses and exact touch-coordinate tests in `screen_layout_test`.
+- `ctest`: **3/3 passed**; `unittest`: **42/42 passed**; `package_recomplauncher.py --validate-only`: **OK** (`35` INI keys); `patches/ndsrecomp-local.patch < 2 MiB`.
+
+### Previous Verifications (PR #17 — `feat/campaigns-randomizer-v1`, 16A–16D)
 - `ctest`: **3/3 passed** (`0.41s`: `frontend_config_test`, `dos_enhancements_test`, `screen_layout_test` — including `dos_mod_registry`, `dos_seed_mutator` determinism/boss-invariance/signature-rejection, and dynamic `dsvrandom-*` discovery).
 - `unittest`: **39/39 passed** (`5.35s`: `prepare_rom`, `promote_banks`, `ptbr_patch`, `mod_pipeline`, `p3_p4_mods`, `recomplauncher`, `launcher`).
 - `patches/ndsrecomp-local.patch`: `734.8 KiB` (`< 2 MiB`, `31` files), verified with `git apply --stat`.
@@ -66,7 +73,14 @@
 - **`recomplauncher.json`:** atualizado para o formato do SDK 1.0 do RecompLauncher (`inputs[game]` com `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` e tamanho `67108864`, padrões em `config[0].new`, `looks`, `actions`, `system`, `exit_codes` e sem etapa `prepare` com janela). `start.args` usa `{install}/game.toml`, `{install}/mods/ptbr/dos-ptbr.dospatch` e `{data}/run/bios` porque o RecompLauncher executa `runtime/nds_runner.exe` com `cwd = {install}/runtime`.
 - **Kit de mídia (`tools/prepare_media_assets.py`):** `icon.png` (`256x256`) + `icon.ico` (`256, 64, 48, 32, 16`), `cover.png`/`cover.jpg` (`600x900`), `hero.png`/`hero.jpg` (`1920x620`), `logo.png` transparente (`1000x500` RGBA), `wallpaper.png` (`1920x1080`), `artwork.png` (`1024x1024`), `catalog-entry.json` (`media_design.kind = "ds"`), mais 3 capturas reais do motor (`1920x1080`) em `assets/screenshots/`.
 
-### Verificações Mais Recentes (PR #16 — `feat/campaigns-randomizer-v1`, 16A–16D)
+### Verificações Mais Recentes (`feat/custom-music-widescreen` — Issues #16 e #7)
+- **Prova ao Vivo de Música Customizada (File Select `#07 SDL_BGM_NAME_` na ROM USA real):**
+  - Todos os 3 formatos verificados ao vivo: `.wav` (RIFF/WAVE nativo), `.mp3` (`dr_mp3`) e `.ogg` (`stb_vorbis`) decodificados para `32.768 Hz` estéreo disparando `[custom-music] playing track #07 Name Entry / File Select (SDL_BGM_NAME_)`.
+  - **Prova Matemática do Mute Seletivo:** pico SPU de BGM caiu de **`6528`** (`rms=1959,2`) sem música customizada para **`0`** (`rms=0,0`) com música customizada, enquanto SFX do cursor continuou com pico **`6304` / `2656` / `7808`** na mesma sessão!
+- **Prova ao Vivo dos Modos Widescreen (`nds_runner.exe` DX12):** `widescreen-theatre`, `smart-crop-16x9` (`crop_y=-8`) e `balanced-16x10` iniciaram limpos com `0` dispatch misses e geometria/toque verificados em `screen_layout_test`.
+- `ctest`: **3/3 passaram**; `unittest`: **42/42 passaram**; `package_recomplauncher.py --validate-only`: **OK** (`35` chaves INI); `patches/ndsrecomp-local.patch < 2 MiB`.
+
+### Verificações Anteriores (PR #17 — `feat/campaigns-randomizer-v1`, 16A–16D)
 - `ctest`: **3/3 passaram** (`0,41s`: `frontend_config_test`, `dos_enhancements_test`, `screen_layout_test` — incluindo `dos_mod_registry`, determinismo/invariância de chefes/rejeição de assinatura do `dos_seed_mutator` e descoberta dinâmica de `dsvrandom-*`).
 - `unittest`: **39/39 passaram** (`5,35s`: `prepare_rom`, `promote_banks`, `ptbr_patch`, `mod_pipeline`, `p3_p4_mods`, `recomplauncher`, `launcher`).
 - `patches/ndsrecomp-local.patch`: `734,8 KiB` (`< 2 MiB`, `31` arquivos), validado com `git apply --stat`.

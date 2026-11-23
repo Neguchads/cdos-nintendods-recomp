@@ -76,6 +76,7 @@
 - **FreeBIOS** (BSD-2-Clause) — Open-source ARM9/ARM7 BIOS reimplementation enabling BIOS-dump-free execution.
 - **ds-decomp (`dsd`)** — Nintendo DS binary analysis and overlay inspection.
 - **xdelta3 (`jmacd/xdelta-gpl` v3.1.0, Apache-2.0)** by Joshua MacDonald — Optional local VCDIFF secondary-compressor decoder (`toolchains/xdelta3/xdelta3.exe`, gitignored) used by `tools/fetch_community_mods.py` and `tools/import_dsvrandom.py`.
+- **`dr_mp3` (`mackron/dr_libs`, MIT-0 / Public Domain)** by David Reid & **`stb_vorbis` (`nothings/stb`, MIT / Public Domain)** by Sean Barrett — Single-header native `.mp3` and `.ogg` (Vorbis) decoders powering `{data}/mods/music/` Custom Music replacement alongside the built-in RIFF/WAVE decoder.
 - **RecompLauncher** — Standardized PC recompilation launcher manifest format (`recomplauncher.json`).
 
 ---

@@ -8,7 +8,13 @@
 
 ## English
 
-### Current Technical State (Branch `feat/campaigns-randomizer-v1` — PR #16 over `development`)
+### Current Technical State (Branch `feat/custom-music-widescreen` — Issues #16 & #7 over PR #17)
+Branch `feat/custom-music-widescreen` extends `feat/campaigns-randomizer-v1` (PR #17, `eec523d`) with **Issue #16 (Custom Music Support `.wav`/`.mp3`/`.ogg`)** and **Issue #7 (Widescreen Display Modes)**:
+- **Custom Music (`runner/src/dos_custom_music.{h,cpp}`, `third_party/audio/{dr_mp3.h,stb_vorbis.c}`, `io.cpp`, `frontend.cpp`, `mods/music/README.md`, `tools/list_bgm_tracks.py`):** Native zero-DLL `.wav`/`.mp3`/`.ogg` decoding + resampling to 32768 Hz stereo, Nitro SDK 2.x PXI `tag == 7` dynamic-slot BGM detection across all 30 tracks (`00..29`), verified selective `MUTE_TRACK` muting (`DS SPU BGM peak 6528 -> 0` while DS cursor SFX still peaks at `6304..7808`), live `F1 -> Audio` controls (enable, volume `0..150%`, rescan, Now Playing), and optional `music.json` loop points / `gain_db`.
+- **Widescreen (`screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend.cpp`, `dos_imgui_menu.cpp`, `recomplauncher.json`):** `WidescreenTheatre` (`342×192` 16:9 canvas: 4:3 gameplay + docked Map/Status sidebar, left/right), `SmartCrop16x9` (`SDL_LOGICAL_PRESENTATION_OVERSCAN` 1:1 square pixels + `-24..+24 px` vertical crop pan + accurate touch), and `Balanced16x10` (`16:10` mild widescreen).
+- **Issue #19 (Albus Mode bug):** Opened cleanly at `Neguchads/cdos-nintendods-recomp#19` for follow-up investigation.
+
+### Previous State (Branch `feat/campaigns-randomizer-v1` — PR #17 over `development`)
 Branch `feat/campaigns-randomizer-v1` extends `development` (PR #15, `b367ba3`, kept intact and green) with **PR #16 Stages 16A–16D**:
 - **16A (Foundation):** Declarative [`mods/registry.json`](mods/registry.json), 3-state `ConflictEngine` (`verified` / `unverified` / `incompatible`), XDELTA1 vs VCDIFF/IPS magic detection, hardened ZIP limits + path-traversal rejection + atomic writes, `{install}` read-only vs `{data}` writable separation, isolated saves/savestates by `profile_id + version + modset_hash`, and the 7th `F1` ImGui tab (`Mods & Campaigns`) keeping **Definitive Edition** as integrated default and **Original USA** as advanced compatibility mode.
 - **16B (Eternity of Sorrow 1.2):** Fixed expanded non-power-of-two cartridge masking in `runner/src/io.cpp` (`68.6 MB -> 128 MiB` `0xFF` padding + dynamic `g_card_chip_id`), added SHA-256 verified community mod fetcher (`tools/fetch_community_mods.py`), and verified *Eternity of Sorrow 1.2* live at **`59.98 FPS`**, `emu_ms=2.37 ms`, `0` dispatch misses, isolated `profiles/eternity-of-sorrow-v1.2-59644e04/dos.sav`, and soft reset OK (kept honestly as `state: "unverified"`, `validation_level: "boot_and_perf_probe"`).
@@ -85,7 +91,13 @@ Branch `development` extends `v1.0.1` (`main` `332b293`) with **P0 (Mod Bundle I
 
 ## Português (BR)
 
-### Estado Técnico Atual (Branch `feat/campaigns-randomizer-v1` — PR #16 sobre `development`)
+### Estado Técnico Atual (Branch `feat/custom-music-widescreen` — Issues #16 e #7 sobre o PR #17)
+A branch `feat/custom-music-widescreen` estende `feat/campaigns-randomizer-v1` (PR #17, `eec523d`) com a **Issue #16 (Suporte a Música Customizada `.wav`/`.mp3`/`.ogg`)** e a **Issue #7 (Modos Widescreen)**:
+- **Música Customizada (`runner/src/dos_custom_music.{h,cpp}`, `third_party/audio/{dr_mp3.h,stb_vorbis.c}`, `io.cpp`, `frontend.cpp`, `mods/music/README.md`, `tools/list_bgm_tracks.py`):** Decodificação nativa sem DLLs para `.wav`/`.mp3`/`.ogg` + reamostragem 32768 Hz estéreo, detecção dinâmica PXI `tag == 7` (Nitro SDK 2.x) nas 30 faixas BGM (`00..29`), mute seletivo comprovado via `MUTE_TRACK` (`pico SPU BGM 6528 -> 0` mantendo SFX do DS em `6304..7808`), controles ao vivo em `F1 -> Áudio` e manifesto opcional `music.json` com loop points e `gain_db`.
+- **Widescreen (`screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend.cpp`, `dos_imgui_menu.cpp`, `recomplauncher.json`):** `WidescreenTheatre` (`342×192` 16:9 com gameplay 4:3 + lateral acoplada esquerda/direita), `SmartCrop16x9` (`SDL_LOGICAL_PRESENTATION_OVERSCAN` pixels 1:1 + ajuste vertical `-24..+24 px` + toque preciso) e `Balanced16x10` (`16:10` equilibrado).
+- **Issue #19 (Albus Mode):** Aberta em `Neguchads/cdos-nintendods-recomp#19` para correção futura.
+
+### Estado Anterior (Branch `feat/campaigns-randomizer-v1` — PR #17 sobre `development`)
 A branch `feat/campaigns-randomizer-v1` estende `development` (PR #15, `b367ba3`, mantido intacto e verde) com as **Etapas 16A–16D do PR #16**:
 - **16A (Fundação):** [`mods/registry.json`](mods/registry.json) declarativo, `ConflictEngine` de 3 estados (`verified` / `unverified` / `incompatible`), detecção binária XDELTA1 vs VCDIFF/IPS, limites ZIP + proteção contra path traversal + escrita atômica, separação `{install}` somente leitura vs `{data}` gravável, isolamento de saves/savestates por `profile_id + version + modset_hash` e 7ª aba `Mods & Campanhas` no `F1` mantendo **Definitive Edition** como padrão integrado e **Original USA** como modo avançado de compatibilidade.
 - **16B (Eternity of Sorrow 1.2):** Corrigido mascaramento de cartucho expandido fora de potência de 2 em `runner/src/io.cpp` (padding `0xFF` `68,6 MB -> 128 MiB` + `g_card_chip_id` dinâmico), adicionado fetcher verificado por SHA-256 (`tools/fetch_community_mods.py`) e verificado *Eternity of Sorrow 1.2* ao vivo em **`59,98 FPS`**, `emu_ms=2,37 ms`, `0` dispatch misses, save isolado `profiles/eternity-of-sorrow-v1.2-59644e04/dos.sav` e soft reset OK (mantido honestamente como `state: "unverified"`, `validation_level: "boot_and_perf_probe"`).
