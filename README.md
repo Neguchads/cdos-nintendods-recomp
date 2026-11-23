@@ -101,8 +101,10 @@ python tools/build.py banks
 python tools/build.py promote
 python tools/build.py ptbr-patch
 python tools/build.py build
-.\play.bat
+.\CastlevaniaDawnOfSorrow.exe
 ```
+
+`python tools/build.py build` embeds [`assets/recomplauncher/icon.ico`](assets/recomplauncher/icon.ico) into both `runtime/nds_runner.exe` and the standalone root launcher `CastlevaniaDawnOfSorrow.exe` (which auto-locates your `.nds` ROM or opens a native file picker). `.\play.bat` remains available as a console fallback.
 
 Package a clean, ROM-free release for RecompLauncher into `dist/`:
 
@@ -211,8 +213,10 @@ python tools/build.py banks
 python tools/build.py promote
 python tools/build.py ptbr-patch
 python tools/build.py build
-.\play.bat
+.\CastlevaniaDawnOfSorrow.exe
 ```
+
+`python tools/build.py build` embute [`assets/recomplauncher/icon.ico`](assets/recomplauncher/icon.ico) tanto em `runtime/nds_runner.exe` quanto no executável standalone `CastlevaniaDawnOfSorrow.exe` na raiz (que encontra automaticamente a sua ROM `.nds` ou abre o seletor nativo do Windows). `.\play.bat` continua disponível como alternativa de console.
 
 Gere um pacote limpo, sem ROM, para o RecompLauncher em `dist/`:
 

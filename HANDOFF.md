@@ -21,6 +21,7 @@ Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) over
   - `screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt`, `tests/{dos_enhancements_test,screen_layout_test}.cpp`: new INI settings (`36` loader/saver keys), `pip_size_pct`, `hud_mode`, `vsync`, `pause_on_menu`, `pause_unfocused`, `mute_unfocused`, `stick_deadzone_pct`, `--ptbr-patch`, `--validate-live-bytes`, live language switching, and removal of legacy `menu_texture`.
 - **`castlevania-dos-recomp\`:**
   - `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/prepare_media_assets.py`, `tests/test_recomplauncher.py`, `docs/RECOMPLAUNCHER.md`.
+  - `launcher/launcher_win32.cpp`, `launcher/app_icon.rc`, `tests/test_launcher.py` (compiles `CastlevaniaDawnOfSorrow.exe` and embeds `assets/recomplauncher/icon.ico` into both `CastlevaniaDawnOfSorrow.exe` and `runtime/nds_runner.exe` at the end of `tools/build.py build`).
   - `assets/recomplauncher/{icon.png,icon.ico,cover.png,cover.jpg,hero.png,hero.jpg,logo.png,wallpaper.png,artwork.png,catalog-entry.json}` and `assets/screenshots/{gameplay-dx12-pip.png,imgui-menu-f1.png,vulkan-spirv-ptbr.png}`.
   - `mods/ptbr/dos-ptbr.dospatch`, `tools/build_ptbr_patch.py`, `tests/test_ptbr_patch.py`.
   - `CMakePresets.json`, `tools/build_linux.sh`, `android/`, `.github/dependabot.yml`, `.github/workflows/ci.yml`, `.gitattributes`, `.gitignore`, `docs/MULTIPLATFORM.md`.
@@ -29,7 +30,7 @@ Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) over
 ### Verifications Executed
 - `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passed** (`0.21s`).
 - `python tools/prepare_media_assets.py --check-only`: **OK** (`8` RecompLauncher images + `icon.ico` + `catalog-entry.json` + `3` in-engine screenshots validated).
-- `python -m unittest discover -s tests -v`: **22/22 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` including media kit header dimension checks, `{install}`/`{data}` `start.args` guards, and runtime artifact staging exclusions).
+- `python -m unittest discover -s tests -v`: **26/26 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, and `launcher` including PE `.rsrc` `RT_ICON`/`RT_GROUP_ICON` checks on both Windows executables).
 - `python tools/package_recomplauncher.py --validate-only`: **OK** (all 30 INI keys + `inputs[game]` + verified dump `CRC32: 135737f6` + `{install}`/`{data}` `start.args` + media kit validated).
 - **End-to-end RecompLauncher simulation (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** boots cleanly from staged zip, loads `{install}/game.toml` and `{install}/mods/ptbr/dos-ptbr.dospatch`, activates `dx12-gpu` + `DXIL ps_6_0`, writes BIOS/firmware/save only inside `{data}`, zero files created inside `{install}/runtime`.
 - `python tools/build.py smoke`: **PASS** (`724` vblanks in `run/smoke/report.json`).
@@ -65,6 +66,7 @@ Port nativo de recompilação estática AOT atualizado com **menu gráfico Dear 
   - `screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt`, `tests/{dos_enhancements_test,screen_layout_test}.cpp`: novos campos INI (`36` chaves no loader/saver), `pip_size_pct`, `hud_mode`, `vsync`, `pause_on_menu`, `pause_unfocused`, `mute_unfocused`, `stick_deadzone_pct`, `--ptbr-patch`, `--validate-live-bytes`, troca de idioma ao vivo e eliminação do `menu_texture` legado.
 - **`castlevania-dos-recomp\`:**
   - `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/prepare_media_assets.py`, `tests/test_recomplauncher.py`, `docs/RECOMPLAUNCHER.md`.
+  - `launcher/launcher_win32.cpp`, `launcher/app_icon.rc`, `tests/test_launcher.py` (compila `CastlevaniaDawnOfSorrow.exe` e embute `assets/recomplauncher/icon.ico` tanto em `CastlevaniaDawnOfSorrow.exe` quanto em `runtime/nds_runner.exe` ao final de `tools/build.py build`).
   - `assets/recomplauncher/{icon.png,icon.ico,cover.png,cover.jpg,hero.png,hero.jpg,logo.png,wallpaper.png,artwork.png,catalog-entry.json}` e `assets/screenshots/{gameplay-dx12-pip.png,imgui-menu-f1.png,vulkan-spirv-ptbr.png}`.
   - `mods/ptbr/dos-ptbr.dospatch`, `tools/build_ptbr_patch.py`, `tests/test_ptbr_patch.py`.
   - `CMakePresets.json`, `tools/build_linux.sh`, `android/`, `.github/dependabot.yml`, `.github/workflows/ci.yml`, `.gitattributes`, `.gitignore`, `docs/MULTIPLATFORM.md`.
@@ -73,7 +75,7 @@ Port nativo de recompilação estática AOT atualizado com **menu gráfico Dear 
 ### Verificações Executadas
 - `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passaram** (`0.21s`).
 - `python tools/prepare_media_assets.py --check-only`: **OK** (`8` imagens RecompLauncher + `icon.ico` + `catalog-entry.json` + `3` capturas reais validadas).
-- `python -m unittest discover -s tests -v`: **22/22 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` incluindo validação de dimensões de cabeçalho do kit de mídia, bloqueio a caminhos relativos em `start.args` e exclusão de artefatos locais no staging de `runtime/`).
+- `python -m unittest discover -s tests -v`: **26/26 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` e `launcher` incluindo checagem de recursos PE `RT_ICON`/`RT_GROUP_ICON` em ambos os executáveis Windows).
 - `python tools/package_recomplauncher.py --validate-only`: **OK** (todas as 30 chaves INI + `inputs[game]` + dump verificado `CRC32: 135737f6` + caminhos `{install}`/`{data}` + kit de mídia validados).
 - **Simulação ponta a ponta do RecompLauncher (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** inicia sem erro a partir do zip empacotado, carrega `{install}/game.toml` e `{install}/mods/ptbr/dos-ptbr.dospatch`, ativa `dx12-gpu` + `DXIL ps_6_0`, grava BIOS/firmware/save apenas em `{data}` e não cria nenhum arquivo em `{install}/runtime`.
 - `python tools/build.py smoke`: **PASS** (`724` vblanks em `run/smoke/report.json`).

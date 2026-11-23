@@ -73,6 +73,7 @@ class TestRecompLauncher(unittest.TestCase):
             stage = Path(tmp) / "stage"
             pr.stage_release_tree(ROOT, out_dir=stage, make_zip=False)
             self.assertTrue((stage / "recomplauncher.json").is_file())
+            self.assertTrue((stage / "CastlevaniaDawnOfSorrow.exe").is_file())
             self.assertTrue((stage / "mods" / "ptbr" / "dos-ptbr.dospatch").is_file())
             self.assertTrue((stage / "runtime" / "nds_runner.exe").is_file())
             self.assertTrue((stage / "assets" / "recomplauncher" / "icon.png").is_file())
@@ -193,6 +194,7 @@ class TestRecompLauncher(unittest.TestCase):
 
             runtime = fake_root / "runtime"
             runtime.mkdir(parents=True, exist_ok=True)
+            (fake_root / "CastlevaniaDawnOfSorrow.exe").write_bytes(b"MZ-launcher")
             (runtime / "nds_runner.exe").write_bytes(b"MZ-stub")
             (runtime / "SDL3.dll").write_bytes(b"MZ-sdl3")
             for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log"):
@@ -202,6 +204,7 @@ class TestRecompLauncher(unittest.TestCase):
             pr.stage_release_tree(fake_root, out_dir=stage, make_zip=False)
             staged_runtime = {p.name for p in (stage / "runtime").iterdir()}
             self.assertEqual(staged_runtime, {"nds_runner.exe", "SDL3.dll"})
+            self.assertTrue((stage / "CastlevaniaDawnOfSorrow.exe").is_file())
             self.assertTrue((stage / "assets" / "recomplauncher" / "icon.png").is_file())
 
 

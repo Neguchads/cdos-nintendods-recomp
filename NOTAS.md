@@ -24,7 +24,7 @@
 
 ### Latest Verifications
 - `ctest`: **3/3 passed** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **22/22 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `unittest`: **26/26 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, `launcher` + PE icon check).
 - `prepare_media_assets.py --check-only`: **OK** (`8` images + `icon.ico` + `catalog-entry.json` + `3` screenshots).
 - `package_recomplauncher.py --validate-only`: **OK** (`30` INI keys + `inputs[game]` + media kit).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
@@ -55,7 +55,7 @@
 
 ### Verificações Mais Recentes
 - `ctest`: **3/3 passaram** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **22/22 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `unittest`: **26/26 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, `launcher` + checagem de ícone PE).
 - `prepare_media_assets.py --check-only`: **OK** (`8` imagens + `icon.ico` + `catalog-entry.json` + `3` capturas).
 - `package_recomplauncher.py --validate-only`: **OK** (`30` chaves INI + `inputs[game]` + kit de mídia).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).

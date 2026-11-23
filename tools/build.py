@@ -73,6 +73,13 @@ RECOMPILER_EXE = RECOMPILER_BUILD_DIR / "nds_recompile.exe"
 BUILT_RUNNER_EXE = RUNNER_BUILD_DIR / "nds_runner.exe"
 RUNTIME_RUNNER_EXE = RUNTIME_DIR / "nds_runner.exe"
 
+LAUNCHER_DIR = ROOT / "launcher"
+APP_ICON_ICO = ROOT / "assets" / "recomplauncher" / "icon.ico"
+APP_ICON_RC = LAUNCHER_DIR / "app_icon.rc"
+APP_ICON_OBJ = GENERATED_DIR / "app_icon.o"
+LAUNCHER_SRC = LAUNCHER_DIR / "launcher_win32.cpp"
+LAUNCHER_EXE = ROOT / "CastlevaniaDawnOfSorrow.exe"
+
 sys.path.insert(0, str(ROOT / "tools"))
 import prepare_rom  # noqa: E402
 import promote_banks  # noqa: E402
@@ -115,6 +122,7 @@ def ensure_toolchains() -> dict[str, Path]:
         "cc": LLVM_BIN_DIR / "x86_64-w64-mingw32-clang.exe",
         "cxx": LLVM_BIN_DIR / "x86_64-w64-mingw32-clang++.exe",
         "rc": LLVM_BIN_DIR / "llvm-rc.exe",
+        "windres": LLVM_BIN_DIR / "x86_64-w64-mingw32-windres.exe",
         "sdl3_config": SDL3_PREFIX_DIR / "lib" / "cmake" / "SDL3" / "SDL3Config.cmake",
         "sdl3_dll": SDL3_PREFIX_DIR / "bin" / "SDL3.dll",
         "libcxx_dll": LLVM_TARGET_BIN_DIR / "libc++.dll",
@@ -203,6 +211,7 @@ def cmd_status(_args: argparse.Namespace) -> int:
         ("dos_arm9_dispatch", BANKS_DIR / "dos_arm9_dispatch.c"),
         ("freebios_arm9", SYSTEM_DIR / "freebios_arm9_dispatch.c"),
         ("nds_runner", RUNTIME_RUNNER_EXE),
+        ("launcher_exe", LAUNCHER_EXE),
     ):
         state = "OK" if path.is_file() else "MISSING"
         print(f"  {label:<18} [{state}] {path}")
@@ -354,6 +363,67 @@ def cmd_promote(_args: argparse.Namespace) -> int:
     return 0
 
 
+def compile_app_icon_resource(tc: dict[str, Path]) -> Path:
+    if not APP_ICON_RC.is_file():
+        die(f"script de recurso ausente: {APP_ICON_RC}")
+    if not APP_ICON_ICO.is_file():
+        die(f"icone .ico ausente: {APP_ICON_ICO}. Rode: python tools/prepare_media_assets.py")
+    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+    run_logged(
+        "build-app-icon",
+        [
+            tc["windres"],
+            "-I",
+            posix(LAUNCHER_DIR),
+            "-i",
+            posix(APP_ICON_RC),
+            "-O",
+            "coff",
+            "-o",
+            posix(APP_ICON_OBJ),
+        ],
+    )
+    if not APP_ICON_OBJ.is_file():
+        die(f"objeto de recurso nao gerado: {APP_ICON_OBJ}")
+    return APP_ICON_OBJ
+
+
+def build_launcher_exe(tc: dict[str, Path], icon_obj: Path) -> Path:
+    if not LAUNCHER_SRC.is_file():
+        die(f"fonte do launcher ausente: {LAUNCHER_SRC}")
+    run_logged(
+        "build-launcher",
+        [
+            tc["cxx"],
+            "-std=c++20",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-mwindows",
+            "-municode",
+            "-static",
+            posix(LAUNCHER_SRC),
+            posix(icon_obj),
+            "-lcomdlg32",
+            "-lshell32",
+            "-luser32",
+            "-o",
+            posix(LAUNCHER_EXE),
+        ],
+    )
+    if not LAUNCHER_EXE.is_file():
+        die(f"executavel launcher nao gerado em {LAUNCHER_EXE}")
+    return LAUNCHER_EXE
+
+
+def cmd_launcher(_args: argparse.Namespace) -> int:
+    tc = ensure_toolchains()
+    icon_obj = compile_app_icon_resource(tc)
+    out = build_launcher_exe(tc, icon_obj)
+    print(f"[launcher] OK: {out} ({out.stat().st_size} bytes)")
+    return 0
+
+
 def cmd_build(args: argparse.Namespace) -> int:
     tc = ensure_toolchains()
     runner_src = FRAMEWORK_DIR / "runner"
@@ -363,6 +433,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         shutil.rmtree(RUNNER_BUILD_DIR)
     RUNNER_BUILD_DIR.mkdir(parents=True, exist_ok=True)
     _reset_stale_cmake_cache(RUNNER_BUILD_DIR, runner_src)
+    icon_obj = compile_app_icon_resource(tc)
     has_promoted = any(PROMOTED_BANKS_DIR.glob("*_[0-9][0-9].c"))
     if has_promoted:
         bank_flags = [
@@ -387,6 +458,7 @@ def cmd_build(args: argparse.Namespace) -> int:
             "-B",
             posix(RUNNER_BUILD_DIR),
             *cmake_common_args(tc, static_exe=False),
+            f"-DCMAKE_EXE_LINKER_FLAGS=\"{posix(icon_obj)}\"",
             "-DNDS_SDL_BACKEND=SDL3",
             f"-DSDL3_DIR={posix(SDL3_PREFIX_DIR / 'lib' / 'cmake' / 'SDL3')}",
             f"-DCMAKE_PREFIX_PATH={posix(SDL3_PREFIX_DIR)}",
@@ -423,7 +495,8 @@ def cmd_build(args: argparse.Namespace) -> int:
         dst = RUNTIME_DIR / src.name
         if not dst.is_file() or dst.stat().st_mtime < src.stat().st_mtime or dst.stat().st_size != src.stat().st_size:
             shutil.copy2(src, dst)
-    print(f"[build] OK: {RUNTIME_RUNNER_EXE}")
+    launcher_out = build_launcher_exe(tc, icon_obj)
+    print(f"[build] OK: {RUNTIME_RUNNER_EXE} + {launcher_out}")
     return 0
 
 
@@ -735,10 +808,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("promote", help="Promove overlays, ARM7 alias e cobertura para bancos C nativos")
     sub.add_parser("ptbr-patch", help="Gera e valida o patch delta PT-BR (dos-ptbr.dospatch)")
 
-    p_bld = sub.add_parser("build", help="Compila nds_runner.exe e copia runtime/")
+    p_bld = sub.add_parser("build", help="Compila nds_runner.exe (com icone), runtime/ e CastlevaniaDawnOfSorrow.exe")
     p_bld.add_argument("--jobs", type=int, default=jobs_default)
     p_bld.add_argument("--clean", action="store_true")
     p_bld.add_argument("--software-3d", action="store_true")
+
+    sub.add_parser("launcher", help="Compila apenas CastlevaniaDawnOfSorrow.exe com icone embutido")
 
     p_smk = sub.add_parser("smoke", help="Executa boot headless via debug server e captura PNG")
     p_smk.add_argument("--frames", type=int, default=600)
@@ -769,6 +844,7 @@ def main() -> int:
         "promote": cmd_promote,
         "ptbr-patch": cmd_ptbr_patch,
         "build": cmd_build,
+        "launcher": cmd_launcher,
         "smoke": cmd_smoke,
         "analyze": cmd_analyze,
         "play": cmd_play,
