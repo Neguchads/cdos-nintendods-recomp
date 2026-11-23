@@ -29,8 +29,9 @@ Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) over
 ### Verifications Executed
 - `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passed** (`0.21s`).
 - `python tools/prepare_media_assets.py --check-only`: **OK** (`8` RecompLauncher images + `icon.ico` + `catalog-entry.json` + `3` in-engine screenshots validated).
-- `python -m unittest discover -s tests -v`: **19/19 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` including media kit header dimension checks).
-- `python tools/package_recomplauncher.py --validate-only`: **OK** (all 30 INI keys + `inputs[game]` + verified dump `CRC32: 135737f6` + media kit validated).
+- `python -m unittest discover -s tests -v`: **22/22 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` including media kit header dimension checks, `{install}`/`{data}` `start.args` guards, and runtime artifact staging exclusions).
+- `python tools/package_recomplauncher.py --validate-only`: **OK** (all 30 INI keys + `inputs[game]` + verified dump `CRC32: 135737f6` + `{install}`/`{data}` `start.args` + media kit validated).
+- **End-to-end RecompLauncher simulation (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** boots cleanly from staged zip, loads `{install}/game.toml` and `{install}/mods/ptbr/dos-ptbr.dospatch`, activates `dx12-gpu` + `DXIL ps_6_0`, writes BIOS/firmware/save only inside `{data}`, zero files created inside `{install}/runtime`.
 - `python tools/build.py smoke`: **PASS** (`724` vblanks in `run/smoke/report.json`).
 - **Clean `dx12-gpu` PT-BR benchmark (`420` frames, isolated INI, `NDS_FRONTEND_AUDIO_MUTE=1`):** **`59.86 FPS`**, `emu_mean=3.72ms`, `pres_mean=0.78ms`, `rb_max=0.000ms`, `underruns=0`.
 - **Visual `vulkan-gpu` SPIR-V PT-BR capture (`1920x1080`):** `[sdl] render driver: vulkan-gpu (vsync=0)`, `[dos-gpu] HLSL shader active (SPIR-V Vulkan)`, full HUD `FPS:60.0 EMU:2.0MS PRES:0.3MS T3:0.0K VULKAN-GPU XBR2X SIDE-BY-SIDE PT-BR`.
@@ -72,8 +73,9 @@ Port nativo de recompilação estática AOT atualizado com **menu gráfico Dear 
 ### Verificações Executadas
 - `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passaram** (`0.21s`).
 - `python tools/prepare_media_assets.py --check-only`: **OK** (`8` imagens RecompLauncher + `icon.ico` + `catalog-entry.json` + `3` capturas reais validadas).
-- `python -m unittest discover -s tests -v`: **19/19 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` incluindo validação de dimensões de cabeçalho do kit de mídia).
-- `python tools/package_recomplauncher.py --validate-only`: **OK** (todas as 30 chaves INI + `inputs[game]` + dump verificado `CRC32: 135737f6` + kit de mídia validados).
+- `python -m unittest discover -s tests -v`: **22/22 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` incluindo validação de dimensões de cabeçalho do kit de mídia, bloqueio a caminhos relativos em `start.args` e exclusão de artefatos locais no staging de `runtime/`).
+- `python tools/package_recomplauncher.py --validate-only`: **OK** (todas as 30 chaves INI + `inputs[game]` + dump verificado `CRC32: 135737f6` + caminhos `{install}`/`{data}` + kit de mídia validados).
+- **Simulação ponta a ponta do RecompLauncher (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** inicia sem erro a partir do zip empacotado, carrega `{install}/game.toml` e `{install}/mods/ptbr/dos-ptbr.dospatch`, ativa `dx12-gpu` + `DXIL ps_6_0`, grava BIOS/firmware/save apenas em `{data}` e não cria nenhum arquivo em `{install}/runtime`.
 - `python tools/build.py smoke`: **PASS** (`724` vblanks em `run/smoke/report.json`).
 - **Benchmark limpo `dx12-gpu` PT-BR (`420` quadros em INI isolado, `NDS_FRONTEND_AUDIO_MUTE=1`):** **`59.86 FPS`**, `emu_mean=3.72ms`, `pres_mean=0.78ms`, `rb_max=0.000ms`, `underruns=0`.
 - **Captura visual `vulkan-gpu` SPIR-V PT-BR (`1920x1080`):** `[sdl] render driver: vulkan-gpu (vsync=0)`, `[dos-gpu] HLSL shader active (SPIR-V Vulkan)`, HUD completo `FPS:60.0 EMU:2.0MS PRES:0.3MS T3:0.0K VULKAN-GPU XBR2X SIDE-BY-SIDE PT-BR`.

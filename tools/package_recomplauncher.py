@@ -113,11 +113,23 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
             errors.append(f"Secao obrigatoria ausente: '{sec}'")
 
     start_args = data.get("start", {}).get("args", [])
-    for needed in ("--ptbr-patch", "--rom", "{input:game}"):
+    for needed in ("--ptbr-patch", "--rom", "{input:game}", "--config"):
         if needed not in start_args:
             errors.append(f"start.args deve conter {needed}")
     if any("{game}" in a for a in start_args):
         errors.append("start.args nao pode usar {game}; use {input:game}")
+    # RecompLauncher executa start.program com cwd = {install}/runtime; caminhos relativos quebram.
+    if not start_args or start_args[0] != "{data}/run/bios":
+        errors.append("start.args[0] deve ser '{data}/run/bios' (cwd do RecompLauncher e runtime/)")
+    for flag, expected in (
+        ("--config", "{install}/game.toml"),
+        ("--ptbr-patch", "{install}/mods/ptbr/dos-ptbr.dospatch"),
+    ):
+        if flag in start_args:
+            idx = start_args.index(flag)
+            actual = start_args[idx + 1] if idx + 1 < len(start_args) else None
+            if actual != expected:
+                errors.append(f"start.args apos {flag} deve ser {expected!r} (obtido {actual!r})")
 
     cfg_list = data.get("config", [])
     cfg_paths = [f.get("path", "") for c in cfg_list for f in c.get("file", [])]
@@ -221,10 +233,15 @@ def stage_release_tree(
             raise FileNotFoundError(f"Origem ausente: {src}")
         dst = target_dir / rel
         if src.is_dir():
+            patterns = (
+                ("*.log", "*.tmp", "dispatch_miss*", "*.ndshp", "*.jsonl", "*.bmp", "*.png")
+                if rel == "runtime"
+                else ("*.log", "*.tmp", "dispatch_miss*")
+            )
             shutil.copytree(
                 src,
                 dst,
-                ignore=shutil.ignore_patterns("*.log", "*.tmp", "dispatch_miss*"),
+                ignore=shutil.ignore_patterns(*patterns),
             )
         else:
             dst.parent.mkdir(parents=True, exist_ok=True)

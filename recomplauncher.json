@@ -38,14 +38,14 @@
       "nds_runner"
     ],
     "args": [
-      "run/bios",
+      "{data}/run/bios",
       "--interactive",
       "--rom",
       "{input:game}",
       "--ptbr-patch",
-      "mods/ptbr/dos-ptbr.dospatch",
+      "{install}/mods/ptbr/dos-ptbr.dospatch",
       "--config",
-      "game.toml",
+      "{install}/game.toml",
       "--freebios",
       "--generated-firmware",
       "--boot",

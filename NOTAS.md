@@ -19,12 +19,12 @@
 - **Applied solution:** `DosImGuiMenu` (Dear ImGui v1.92.9b) renders directly over the 2 real DS screens by temporarily suspending `SDL_SetRenderLogicalPresentation` for native 1080p+ sharpness and bypassing `menu_texture` / `g_runtime_menu_surface`.
 
 ### RecompLauncher 1.0 SDK & Media Kit (`assets/recomplauncher/`)
-- **`recomplauncher.json`:** upgraded to the RecompLauncher 1.0 SDK format (`inputs[game]` with `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` & size `67108864`, `config[0].new` defaults, `looks`, `actions`, `system`, `exit_codes`, and no window-opening `prepare` step).
+- **`recomplauncher.json`:** upgraded to the RecompLauncher 1.0 SDK format (`inputs[game]` with `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` & size `67108864`, `config[0].new` defaults, `looks`, `actions`, `system`, `exit_codes`, and no window-opening `prepare` step). `start.args` uses `{install}/game.toml`, `{install}/mods/ptbr/dos-ptbr.dospatch`, and `{data}/run/bios` because RecompLauncher runs `runtime/nds_runner.exe` with `cwd = {install}/runtime`.
 - **Media kit (`tools/prepare_media_assets.py`):** `icon.png` (`256x256`) + `icon.ico` (`256, 64, 48, 32, 16`), `cover.png`/`cover.jpg` (`600x900`), `hero.png`/`hero.jpg` (`1920x620`), transparent `logo.png` (`1000x500` RGBA), `wallpaper.png` (`1920x1080`), `artwork.png` (`1024x1024`), `catalog-entry.json` (`media_design.kind = "ds"`), plus 3 in-engine captures (`1920x1080`) in `assets/screenshots/`.
 
 ### Latest Verifications
 - `ctest`: **3/3 passed** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **19/19 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `unittest`: **22/22 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
 - `prepare_media_assets.py --check-only`: **OK** (`8` images + `icon.ico` + `catalog-entry.json` + `3` screenshots).
 - `package_recomplauncher.py --validate-only`: **OK** (`30` INI keys + `inputs[game]` + media kit).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
@@ -50,12 +50,12 @@
 - **Solução aplicada:** `DosImGuiMenu` (Dear ImGui v1.92.9b) desenha diretamente sobre as 2 telas reais suspendendo temporariamente `SDL_SetRenderLogicalPresentation` para manter nitidez nativa (1080p+) e ignorando `menu_texture` / `g_runtime_menu_surface`.
 
 ### SDK 1.0 do RecompLauncher & Kit de Mídia (`assets/recomplauncher/`)
-- **`recomplauncher.json`:** atualizado para o formato do SDK 1.0 do RecompLauncher (`inputs[game]` com `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` e tamanho `67108864`, padrões em `config[0].new`, `looks`, `actions`, `system`, `exit_codes` e sem etapa `prepare` com janela).
+- **`recomplauncher.json`:** atualizado para o formato do SDK 1.0 do RecompLauncher (`inputs[game]` com `.nds`, `check.ids = ["ACVE"]`, `dumps` CRC32 `135737f6` e tamanho `67108864`, padrões em `config[0].new`, `looks`, `actions`, `system`, `exit_codes` e sem etapa `prepare` com janela). `start.args` usa `{install}/game.toml`, `{install}/mods/ptbr/dos-ptbr.dospatch` e `{data}/run/bios` porque o RecompLauncher executa `runtime/nds_runner.exe` com `cwd = {install}/runtime`.
 - **Kit de mídia (`tools/prepare_media_assets.py`):** `icon.png` (`256x256`) + `icon.ico` (`256, 64, 48, 32, 16`), `cover.png`/`cover.jpg` (`600x900`), `hero.png`/`hero.jpg` (`1920x620`), `logo.png` transparente (`1000x500` RGBA), `wallpaper.png` (`1920x1080`), `artwork.png` (`1024x1024`), `catalog-entry.json` (`media_design.kind = "ds"`), mais 3 capturas reais do motor (`1920x1080`) em `assets/screenshots/`.
 
 ### Verificações Mais Recentes
 - `ctest`: **3/3 passaram** (`frontend_config_test`, `dos_enhancements_test`, `screen_layout_test`).
-- `unittest`: **19/19 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
+- `unittest`: **22/22 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`).
 - `prepare_media_assets.py --check-only`: **OK** (`8` imagens + `icon.ico` + `catalog-entry.json` + `3` capturas).
 - `package_recomplauncher.py --validate-only`: **OK** (`30` chaves INI + `inputs[game]` + kit de mídia).
 - `build.py smoke`: **PASS** (`724` vblanks, `report.json`).
