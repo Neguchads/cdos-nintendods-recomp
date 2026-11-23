@@ -5,6 +5,7 @@ from __future__ import annotations
 import struct
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -103,6 +104,68 @@ class TestWindowsLauncherAndIcon(unittest.TestCase):
         self.assertIn("--ptbr-patch", proc.stdout)
         self.assertIn("dos-ptbr.dospatch", proc.stdout)
         self.assertIn(str(fake_rom), proc.stdout)
+
+    def test_launcher_setup_validates_rom_installs_locally_and_creates_shortcut(self) -> None:
+        launcher_exe = ROOT / "CastlevaniaDawnOfSorrow.exe"
+        real_rom = ROOT.parent / "Roms" / "Castlevania - Dawn of Sorrow (USA).nds"
+        if not launcher_exe.is_file() or not real_rom.is_file():
+            self.skipTest("CastlevaniaDawnOfSorrow.exe ou ROM USA nao disponiveis neste ambiente.")
+        with tempfile.TemporaryDirectory() as tmp:
+            install = Path(tmp) / "cdos-install"
+            install.mkdir(parents=True, exist_ok=True)
+            (install / "CastlevaniaDawnOfSorrow.exe").write_bytes(launcher_exe.read_bytes())
+            (install / "game.toml").write_bytes((ROOT / "game.toml").read_bytes())
+            (install / "runtime").mkdir(parents=True, exist_ok=True)
+            (install / "runtime" / "nds_runner.exe").write_bytes(b"MZ-stub")
+            (install / "mods" / "ptbr").mkdir(parents=True, exist_ok=True)
+            (install / "mods" / "ptbr" / "dos-ptbr.dospatch").write_bytes(b"DOSPATCH")
+
+            bad_rom = Path(tmp) / "invalid.nds"
+            bad_rom.write_bytes(b"not-a-valid-ds-rom")
+            bad_proc = subprocess.run(
+                [str(install / "CastlevaniaDawnOfSorrow.exe"), "--setup-only", "--rom", str(bad_rom)],
+                cwd=str(install),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(bad_proc.returncode, 0, "Setup aceitou ROM invalida")
+
+            shortcut_path = Path(tmp) / "Castlevania - Dawn of Sorrow.lnk"
+            ok_proc = subprocess.run(
+                [
+                    str(install / "CastlevaniaDawnOfSorrow.exe"),
+                    "--setup-only",
+                    "--rom",
+                    str(real_rom),
+                    "--shortcut-path",
+                    str(shortcut_path),
+                ],
+                cwd=str(install),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(ok_proc.returncode, 0, f"setup falhou: out={ok_proc.stdout} err={ok_proc.stderr}")
+            installed_rom = install / "game" / "Castlevania - Dawn of Sorrow (USA).nds"
+            self.assertTrue(installed_rom.is_file(), "ROM nao instalada em game/")
+            self.assertEqual(installed_rom.stat().st_size, 67108864)
+            self.assertTrue(shortcut_path.is_file(), "Atalho .lnk nao criado")
+            self.assertGreater(shortcut_path.stat().st_size, 100)
+
+            # Com a ROM instalada em game/, --print-command sem --rom deve resolver game/ automaticamente.
+            cmd_proc = subprocess.run(
+                [str(install / "CastlevaniaDawnOfSorrow.exe"), "--print-command"],
+                cwd=str(install),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(cmd_proc.returncode, 0, f"stderr={cmd_proc.stderr}")
+            self.assertIn(str(installed_rom), cmd_proc.stdout)
 
 
 if __name__ == "__main__":
