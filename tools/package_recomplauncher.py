@@ -197,6 +197,7 @@ def stage_release_tree(
     runtime_dir = root / "runtime"
     required_files = [
         root / "recomplauncher.json",
+        root / "CastlevaniaDawnOfSorrow.exe",
         root / "game.toml",
         root / "play.bat",
         root / "README.md",
@@ -216,6 +217,7 @@ def stage_release_tree(
 
     copy_items = [
         ("recomplauncher.json", False),
+        ("CastlevaniaDawnOfSorrow.exe", False),
         ("game.toml", False),
         ("play.bat", False),
         ("README.md", False),
