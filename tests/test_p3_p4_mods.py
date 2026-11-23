@@ -123,5 +123,63 @@ class TestFoundation16A(unittest.TestCase):
             )
 
 
+class TestCampaignsAndCharacterPacks16BC(unittest.TestCase):
+    def test_character_packs_exclusive_group_and_manual_slots_uninstalled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            data_mods = Path(tmp) / "mods"
+            (data_mods / "profiles").mkdir(parents=True)
+            for fname in ("albus-mode.dospatch", "model-zx.dospatch", "model-omega.dospatch"):
+                (data_mods / "profiles" / fname).write_bytes(b"DOSPATCH")
+
+            reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
+
+            # All three Julius Mode packs share exclusive_group "julius-pack" and remain unverified
+            for pack_id in ("albus-mode", "model-zx", "model-omega"):
+                pack = reg.character_packs[pack_id]
+                self.assertEqual(pack["exclusive_group"], "julius-pack")
+                self.assertEqual(pack["state"], "unverified")
+                self.assertTrue(reg._profile_installed(pack)[0])
+                dec_blocked = reg.resolve(
+                    mr.SelectionRequest(character_pack_id=pack_id, baseline_id="original", allow_unverified=False)
+                )
+                self.assertEqual(dec_blocked.state, "unverified")
+                self.assertFalse(dec_blocked.allowed)
+                dec_ok = reg.resolve(
+                    mr.SelectionRequest(character_pack_id=pack_id, baseline_id="original", allow_unverified=True)
+                )
+                self.assertEqual(dec_ok.state, "unverified")
+                self.assertTrue(dec_ok.allowed)
+                # Cannot stack Julius Mode pack over PT-BR or Eternity
+                self.assertEqual(
+                    reg.resolve(
+                        mr.SelectionRequest(character_pack_id=pack_id, baseline_id="original", language="ptbr")
+                    ).state,
+                    "incompatible",
+                )
+                self.assertEqual(
+                    reg.resolve(
+                        mr.SelectionRequest(
+                            campaign_id="eternity-of-sorrow", character_pack_id=pack_id, baseline_id="original"
+                        )
+                    ).state,
+                    "incompatible",
+                )
+
+            # Manual-import slots must report installed=False and be incompatible when absent
+            for manual_cid in ("alucards-requiem-sotn", "alucards-requiem-cv3", "draculas-curse"):
+                self.assertFalse(reg._profile_installed(reg.campaigns[manual_cid])[0])
+                dec = reg.resolve(
+                    mr.SelectionRequest(campaign_id=manual_cid, baseline_id="original", allow_unverified=True)
+                )
+                self.assertEqual(dec.state, "incompatible")
+                self.assertFalse(dec.allowed)
+
+            self.assertFalse(reg._profile_installed(reg.baselines["definitive-plus"])[0])
+            self.assertEqual(
+                reg.resolve(mr.SelectionRequest(baseline_id="definitive-plus", allow_unverified=True)).state,
+                "incompatible",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

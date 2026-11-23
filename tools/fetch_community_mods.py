@@ -35,22 +35,37 @@ COMMUNITY_SOURCES: dict[str, dict[str, str]] = {
         "url": "https://raw.githubusercontent.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow/main/no%20touch%20screen/Castlevania%20-%20Eternity%20of%20Sorrow%201.2(final%20build).xdelta",
         "download_name": "eternity_of_sorrow_1.2.xdelta",
         "profile_file": "eternity-of-sorrow.dospatch",
+        "expected_patch_sha256": "f1ebfb44ca48796a84e5e13a7600a02e7d93c3be9ec1e463c25a8ad5446b0e72",
     },
     "albus-mode": {
         "name": "Albus Mode (Julius Mode Pack)",
-        "author": "Oersted",
+        "author": "Oersted, DeadSkullzJr, Masked Dedede, DevAnj",
         "version": "1.0",
         "url": "https://files.gamebanana.com/mods/dawn_of_sorrow_-_albus_mode.zip",
         "download_name": "dawn_of_sorrow_-_albus_mode.zip",
+        "inner_match": "Albus Mode",
         "profile_file": "albus-mode.dospatch",
+        "expected_patch_sha256": "ddbc1e450a0c50e0ff5789a679ef7aeb1c67593ba88446e6f32b0c881f210d18",
     },
-    "zx-omega": {
-        "name": "Playable Model ZX & OX (Julius Mode Pack)",
-        "author": "Oersted",
+    "model-zx": {
+        "name": "Playable Model ZX (Julius Mode Pack)",
+        "author": "Oersted, DevAnj, Masked Dedede",
         "version": "1.0.1",
         "url": "https://files.gamebanana.com/mods/dos_-_playable_zx_omega_101_1_.zip",
         "download_name": "dos_-_playable_zx_omega_101_1_.zip",
-        "profile_file": "zx-omega.dospatch",
+        "inner_match": "Model ZX",
+        "profile_file": "model-zx.dospatch",
+        "expected_patch_sha256": "5ecdb77ead563aa976bc7dd782528d68da8fb65a65061a1603288462096ba3a7",
+    },
+    "model-omega": {
+        "name": "Playable Model Omega (Julius Mode Pack)",
+        "author": "Oersted, DevAnj, Masked Dedede",
+        "version": "1.0.1",
+        "url": "https://files.gamebanana.com/mods/dos_-_playable_zx_omega_101_1_.zip",
+        "download_name": "dos_-_playable_zx_omega_101_1_.zip",
+        "inner_match": "Model O",
+        "profile_file": "model-omega.dospatch",
+        "expected_patch_sha256": "5da254844a0883e3861619077e1e8cd340bb92936e06c6d8a6f0afe2fea3baa1",
     },
 }
 
@@ -63,7 +78,12 @@ def download_file(url: str, dst: Path) -> bytes:
     return data
 
 
-def extract_first_compatible_patch(raw_name: str, raw_bytes: bytes) -> tuple[str, str, bytes]:
+def extract_first_compatible_patch(
+    raw_name: str,
+    raw_bytes: bytes,
+    *,
+    inner_match: str = "",
+) -> tuple[str, str, bytes]:
     """Retorna (nome_interno, formato, bytes_patch) validando limites ZIP e assinatura binaria."""
     if raw_name.lower().endswith(".zip"):
         candidates: list[tuple[str, str, bytes]] = []
@@ -82,11 +102,14 @@ def extract_first_compatible_patch(raw_name: str, raw_bytes: bytes) -> tuple[str
                 payload = zf.read(info.filename)
                 fmt = vi.detect_patch_format(payload)
                 if fmt in ("vcdiff", "ips", "dospatch"):
-                    candidates.append((info.filename, fmt, payload))
+                    if not inner_match or inner_match.lower() in info.filename.lower():
+                        candidates.append((info.filename, fmt, payload))
                 elif fmt == "xdelta1":
                     raise ValueError(f"Patch XDELTA1 legado encontrado em {info.filename}; conversao manual necessaria.")
         if not candidates:
-            raise ValueError(f"Nenhum patch VCDIFF/IPS/DOSPATCH valido encontrado dentro de {raw_name}")
+            raise ValueError(
+                f"Nenhum patch VCDIFF/IPS/DOSPATCH valido encontrado dentro de {raw_name} (filtro='{inner_match}')"
+            )
         # Prefere VCDIFF sobre IPS se houver ambos
         candidates.sort(key=lambda item: (0 if item[1] == "vcdiff" else 1, item[0]))
         return candidates[0]
@@ -271,7 +294,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[fetch] baixando {mod_id} ({spec['name']}) de {spec['url']} ...", flush=True)
             raw_bytes = download_file(spec["url"], raw_path)
         dl_sha256 = hashlib.sha256(raw_bytes).hexdigest()
-        inner_name, fmt, patch_bytes = extract_first_compatible_patch(spec["download_name"], raw_bytes)
+        inner_name, fmt, patch_bytes = extract_first_compatible_patch(
+            spec["download_name"],
+            raw_bytes,
+            inner_match=spec.get("inner_match", ""),
+        )
+        expected_sha256 = spec.get("expected_patch_sha256", "").strip().lower()
+        actual_sha256 = hashlib.sha256(patch_bytes).hexdigest()
+        if expected_sha256 and actual_sha256 != expected_sha256:
+            raise ValueError(
+                f"SHA-256 divergente para {mod_id} ({inner_name}): esperado {expected_sha256}, obtido {actual_sha256}"
+            )
         rep = compile_profile_from_patch(
             mod_id,
             fmt,
