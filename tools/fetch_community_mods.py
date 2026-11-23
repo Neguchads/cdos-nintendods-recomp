@@ -225,8 +225,8 @@ def compile_profile_from_patch(
             if usa_rom[sa:ea] != target_rom[sb:eb]:
                 changed_overlays.append(ov_id)
 
-        fat_a = reg_a["fat"]  # type: ignore[assignment]
-        fat_b = reg_b["fat"]  # type: ignore[assignment]
+        fat_a = reg_a["fat_entries"]  # type: ignore[assignment]
+        fat_b = reg_b["fat_entries"]  # type: ignore[assignment]
         for fid in range(min(len(fat_a), len(fat_b))):
             sa, ea = fat_a[fid]
             sb, eb = fat_b[fid]
@@ -257,6 +257,7 @@ def compile_profile_from_patch(
         "structural_audit_error": structural_err,
         "arm9_changed_bytes": arm9_diff,
         "arm7_changed_bytes": arm7_diff,
+        "changed_files_count": changed_files_count,
         "changed_overlays": changed_overlays,
         "relocated_overlays": relocated_overlays,
         "validation_state": "unverified",

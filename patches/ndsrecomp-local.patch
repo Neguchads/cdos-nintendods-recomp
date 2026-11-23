@@ -8622,7 +8622,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..2ab7782 100644
+index 7ff4316..68dd71d 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,6 +14,7 @@
@@ -11412,7 +11412,7 @@ index 7ff4316..2ab7782 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5538,235 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5538,241 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -11610,6 +11610,9 @@ index 7ff4316..2ab7782 100644
 +            imgui_defaults_reset_requested = false;
 +            const DosContentProfile prev_profile = options.dos.content_profile;
 +            const DosLanguage prev_game_lang = options.dos.game_language;
++            const std::string prev_campaign = options.dos.active_campaign;
++            const std::string prev_char_pack = options.dos.active_character_pack;
++            const std::string prev_seed = options.dos.randomizer_seed;
 +            options.dos = DosEnhancementSettings{};
 +            if (!g_definitive_patch_available) {
 +                options.dos.content_profile = DosContentProfile::Original;
@@ -11628,7 +11631,10 @@ index 7ff4316..2ab7782 100644
 +            imgui_settings_dirty = false;
 +            imgui_settings_dirty_at = 0;
 +            if (prev_profile != options.dos.content_profile ||
-+                prev_game_lang != options.dos.game_language) {
++                prev_game_lang != options.dos.game_language ||
++                prev_campaign != options.dos.active_campaign ||
++                prev_char_pack != options.dos.active_character_pack ||
++                prev_seed != options.dos.randomizer_seed) {
 +                imgui_content_swap_requested = true;
 +            }
 +            show_dos_toast(dos_tr(options.dos.ui_language, DosStrId::ToastDefaultsRestored), "");
@@ -11648,7 +11654,7 @@ index 7ff4316..2ab7782 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +5778,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +5784,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -11730,7 +11736,7 @@ index 7ff4316..2ab7782 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +5829,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +5835,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -11739,7 +11745,7 @@ index 7ff4316..2ab7782 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6065,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6071,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -11749,7 +11755,7 @@ index 7ff4316..2ab7782 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6077,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6083,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -11758,7 +11764,7 @@ index 7ff4316..2ab7782 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6091,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6097,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -11769,7 +11775,7 @@ index 7ff4316..2ab7782 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4218,11 +6117,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4218,11 +6123,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                              screen, &widths[screen]);
                  }
              }
@@ -11791,7 +11797,7 @@ index 7ff4316..2ab7782 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4417,12 +6324,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6330,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -11812,7 +11818,7 @@ index 7ff4316..2ab7782 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6353,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6359,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -11847,7 +11853,7 @@ index 7ff4316..2ab7782 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,7 +6459,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,7 +6465,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -11856,7 +11862,7 @@ index 7ff4316..2ab7782 100644
          if (audio_pace_floor > kAudioQueueFrames + kGlideStepFrames)
              audio_pace_floor -= kGlideStepFrames;
          else
-@@ -4542,12 +6469,20 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4542,12 +6475,20 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (turbo_active) {
              if (!cpu_handoff) discard_spu_output();
          } else {
@@ -11879,7 +11885,7 @@ index 7ff4316..2ab7782 100644
                  );
          }
          const uint64_t frame_drain_ticks =
-@@ -4620,17 +6555,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +6561,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -11937,7 +11943,7 @@ index 7ff4316..2ab7782 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,6 +6662,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,6 +6668,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -11948,7 +11954,7 @@ index 7ff4316..2ab7782 100644
      if (controller) SDL_GameControllerClose(controller);
      if (runtime_ui) {
          g_runtime_menu_ui = nullptr;
-@@ -5053,3 +7029,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7035,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -12909,10 +12915,10 @@ index e411b57..90cf236 100644
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..4da5546
+index 0000000..70f2902
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,745 @@
+@@ -0,0 +1,758 @@
 +#undef NDEBUG
 +#include "dos_enhancements.h"
 +#include "dos_gpu_shader.h"
@@ -13602,10 +13608,23 @@ index 0000000..4da5546
 +    assert(!dos_seed_mutator_apply(&fake_rom, "CASTLE2026", "standard", "definitive", "", nullptr, &mut_err));
 +    assert(mut_err.find("signature mismatch") != std::string::npos);
 +
-+    // 7. If local USA ACVE ROM is present in workspace, verify determinism, boss invariance, and spoiler log
-+    const std::filesystem::path local_rom =
-+        "G:/Recomps e Mods/Nintendo/Nintendo DS/Roms/Castlevania - Dawn of Sorrow (USA).nds";
-+    if (std::filesystem::is_regular_file(local_rom, ec)) {
++    // 7. If local USA ACVE ROM is present via env or relative workspace path, verify determinism, boss invariance, and spoiler log
++    std::filesystem::path local_rom;
++    if (const char* env_rom = std::getenv("CDOS_USA_ROM"); env_rom && env_rom[0] != '\0') {
++        local_rom = env_rom;
++    } else {
++        for (const char* rel : {
++                 "../../../Roms/Castlevania - Dawn of Sorrow (USA).nds",
++                 "../../Roms/Castlevania - Dawn of Sorrow (USA).nds",
++                 "../Roms/Castlevania - Dawn of Sorrow (USA).nds",
++             }) {
++            if (std::filesystem::is_regular_file(rel, ec)) {
++                local_rom = rel;
++                break;
++            }
++        }
++    }
++    if (!local_rom.empty() && std::filesystem::is_regular_file(local_rom, ec)) {
 +        const auto sz = std::filesystem::file_size(local_rom, ec);
 +        std::vector<uint8_t> rom_a(static_cast<size_t>(sz));
 +        {
