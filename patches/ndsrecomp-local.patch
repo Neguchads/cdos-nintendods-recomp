@@ -1,5 +1,5 @@
 diff --git a/runner/CMakeLists.txt b/runner/CMakeLists.txt
-index addb5d1..9176406 100644
+index addb5d1..a0a8152 100644
 --- a/runner/CMakeLists.txt
 +++ b/runner/CMakeLists.txt
 @@ -468,11 +468,23 @@ if(NDS_PREBUILT_BANK_ARCHIVE)
@@ -52,7 +52,7 @@ index addb5d1..9176406 100644
      ${GEN}/freebios_arm7.c ${GEN}/freebios_arm7_dispatch.c)
  set(SM64DS_ARM9_BANK_SOURCES)
  set(SM64DS_HLE_PROFILE_SOURCES)
-@@ -820,6 +831,13 @@ add_executable(nds_runner
+@@ -820,6 +831,14 @@ add_executable(nds_runner
      src/profile_report.cpp
      src/scheduler.cpp
      src/debug_server.cpp
@@ -62,11 +62,12 @@ index addb5d1..9176406 100644
 +    src/dos_imgui_menu.cpp
 +    src/dos_intro_player.cpp
 +    src/dos_mod_profile.cpp
++    src/dos_mod_registry.cpp
 +    src/dos_rom_patch.cpp
      src/frontend_config.cpp
      src/relative_mouse_touch.cpp
      "${NDS_RECOMP_UI_ROOT}/src/common/recomp_runtime_ui.c"
-@@ -1148,6 +1166,12 @@ if(NDS_ENABLE_COMPUTE_RENDERER)
+@@ -1148,6 +1167,12 @@ if(NDS_ENABLE_COMPUTE_RENDERER)
      endif()
  endif()
  target_link_libraries(nds_runner PRIVATE nds_banks nds_support nds_armv4t slirp)
@@ -79,7 +80,7 @@ index addb5d1..9176406 100644
  if(NDS_MKDS_PERFORMANCE)
      if(TARGET nds_performance_banks)
          target_link_libraries(nds_runner PRIVATE nds_performance_banks)
-@@ -1254,6 +1278,22 @@ if(NDS_SDL_BACKEND STREQUAL "SDL3")
+@@ -1254,6 +1279,22 @@ if(NDS_SDL_BACKEND STREQUAL "SDL3")
      if(NOT TARGET SDL3::SDL3)
          message(FATAL_ERROR "NDS_SDL_BACKEND=SDL3 requires target SDL3::SDL3")
      endif()
@@ -102,7 +103,7 @@ index addb5d1..9176406 100644
      target_compile_definitions(nds_runner PRIVATE
          NDS_HAVE_SDL3=1
          NDS_SDL_BACKEND_NAME="SDL3")
-@@ -1279,7 +1319,7 @@ if(CMAKE_DL_LIBS)
+@@ -1279,7 +1320,7 @@ if(CMAKE_DL_LIBS)
      target_link_libraries(nds_runner PRIVATE ${CMAKE_DL_LIBS})
  endif()
  if(WIN32)
@@ -111,7 +112,7 @@ index addb5d1..9176406 100644
      if(NDS_ENABLE_PCAP_BACKEND)
          target_link_libraries(nds_runner PRIVATE iphlpapi)
      endif()
-@@ -1317,11 +1357,25 @@ add_test(NAME cpu_render_handoff_test COMMAND cpu_render_handoff_test)
+@@ -1317,11 +1358,26 @@ add_test(NAME cpu_render_handoff_test COMMAND cpu_render_handoff_test)
  
    add_executable(frontend_config_test
        tests/frontend_config_test.cpp
@@ -129,6 +130,7 @@ index addb5d1..9176406 100644
 +    src/dos_i18n.cpp
 +    src/dos_intro_player.cpp
 +    src/dos_mod_profile.cpp
++    src/dos_mod_registry.cpp
 +    src/dos_rom_patch.cpp
 +    ${CMAKE_CURRENT_SOURCE_DIR}/../recompiler/support/sha1.cpp)
 +target_include_directories(dos_enhancements_test PRIVATE src
@@ -140,10 +142,10 @@ index addb5d1..9176406 100644
    add_test(NAME screen_layout_test COMMAND screen_layout_test)
 diff --git a/runner/src/dos_enhancements.cpp b/runner/src/dos_enhancements.cpp
 new file mode 100644
-index 0000000..faffbcf
+index 0000000..fdb0e63
 --- /dev/null
 +++ b/runner/src/dos_enhancements.cpp
-@@ -0,0 +1,1289 @@
+@@ -0,0 +1,1331 @@
 +#include "dos_enhancements.h"
 +
 +#include <algorithm>
@@ -1300,7 +1302,22 @@ index 0000000..faffbcf
 +        else if (key == "dos_game_language") dos_parse_language(val, &dos->game_language);
 +        else if (key == "dos_content_profile") dos_parse_content_profile(val, &dos->content_profile);
 +        else if (key == "dos_enhanced_intro" && parse_bool_ini(val, &btmp)) dos->enhanced_intro = btmp;
-+        else if (key == "dos_button_prompts") dos_parse_button_prompts(val, &dos->button_prompts);
++        else if (key == "dos_active_campaign" && !val.empty() && val.size() <= 48 &&
++                 val.find("..") == std::string::npos && val.find('/') == std::string::npos &&
++                 val.find('\\') == std::string::npos) {
++            dos->active_campaign = val;
++        } else if (key == "dos_active_character_pack" && !val.empty() && val.size() <= 48 &&
++                   val.find("..") == std::string::npos && val.find('/') == std::string::npos &&
++                   val.find('\\') == std::string::npos) {
++            dos->active_character_pack = val;
++        } else if (key == "dos_allow_unverified_mods" && parse_bool_ini(val, &btmp)) {
++            dos->allow_unverified_mods = btmp;
++        } else if (key == "dos_randomizer_seed" && val.size() <= 32) {
++            dos->randomizer_seed = val;
++        } else if (key == "dos_randomizer_preset" &&
++                   (val == "casual" || val == "standard" || val == "hard")) {
++            dos->randomizer_preset = val;
++        } else if (key == "dos_button_prompts") dos_parse_button_prompts(val, &dos->button_prompts);
 +        else if (key == "dos_internal_resolution" && internal_resolution && parse_int_range(val, 1, 12, &tmp))
 +            *internal_resolution = static_cast<uint8_t>(tmp);
 +        else if (key == "dos_texture_upscale" && texture_upscale &&
@@ -1348,7 +1365,7 @@ index 0000000..faffbcf
 +    const DosHudMode eff_hud_mode =
 +        (dos.hud_mode != DosHudMode::Off) ? dos.hud_mode
 +                                          : (dos.dev_hud ? DosHudMode::Full : DosHudMode::Off);
-+    const std::array<std::pair<const char*, std::string>, 36> kv = {{
++    const std::array<std::pair<const char*, std::string>, 41> kv = {{
 +        {"dos_layout", layout_to_ini_name(layout)},
 +        {"dos_pip_corner", corner_to_ini_name(pip_corner)},
 +        {"dos_pip_main", pip_main == NdsPipMainScreen::Bottom ? "bottom" : "top"},
@@ -1381,6 +1398,11 @@ index 0000000..faffbcf
 +        {"dos_game_language", dos_language_name(dos.game_language)},
 +        {"dos_content_profile", dos_content_profile_name(dos.content_profile)},
 +        {"dos_enhanced_intro", dos.enhanced_intro ? "1" : "0"},
++        {"dos_active_campaign", dos.active_campaign.empty() ? "dawn-of-sorrow" : dos.active_campaign},
++        {"dos_active_character_pack", dos.active_character_pack.empty() ? "default" : dos.active_character_pack},
++        {"dos_allow_unverified_mods", dos.allow_unverified_mods ? "1" : "0"},
++        {"dos_randomizer_seed", dos.randomizer_seed},
++        {"dos_randomizer_preset", dos.randomizer_preset.empty() ? "standard" : dos.randomizer_preset},
 +        {"dos_button_prompts", dos_button_prompts_name(dos.button_prompts)},
 +        {"dos_internal_resolution", std::to_string(internal_resolution)},
 +        {"dos_texture_upscale", std::to_string(texture_upscale)},
@@ -1428,17 +1450,39 @@ index 0000000..faffbcf
 +    if (custom_gamepad && !written[kPadIdx])
 +        lines.push_back("dos_gamepad_bindings=" + nds_format_bindings(gamepad_bindings));
 +
-+    std::ofstream out(path, std::ios::trunc);
-+    if (!out) return false;
-+    for (const auto& l : lines) out << l << '\n';
-+    return static_cast<bool>(out);
++    // Escrita atomica (tmp + rename) para evitar corrupcao de dos-settings.ini.
++    const std::filesystem::path tmp_path =
++        fs_path.parent_path() / (fs_path.filename().string() + ".tmp");
++    {
++        std::ofstream out(tmp_path, std::ios::binary | std::ios::trunc);
++        if (!out) return false;
++        for (const auto& l : lines) out << l << '\n';
++        out.flush();
++        if (!out) {
++            out.close();
++            std::filesystem::remove(tmp_path, ec);
++            return false;
++        }
++    }
++    std::filesystem::rename(tmp_path, fs_path, ec);
++    if (ec) {
++        std::error_code ec2;
++        std::filesystem::remove(fs_path, ec2);
++        ec.clear();
++        std::filesystem::rename(tmp_path, fs_path, ec);
++        if (ec) {
++            std::filesystem::remove(tmp_path, ec2);
++            return false;
++        }
++    }
++    return true;
 +}
 diff --git a/runner/src/dos_enhancements.h b/runner/src/dos_enhancements.h
 new file mode 100644
-index 0000000..082c170
+index 0000000..c9e9f9e
 --- /dev/null
 +++ b/runner/src/dos_enhancements.h
-@@ -0,0 +1,291 @@
+@@ -0,0 +1,296 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -1557,6 +1601,11 @@ index 0000000..082c170
 +    DosLanguage game_language = DosLanguage::English;
 +    DosContentProfile content_profile = DosContentProfile::Definitive;
 +    bool enhanced_intro = true;
++    std::string active_campaign = "dawn-of-sorrow";
++    std::string active_character_pack = "default";
++    bool allow_unverified_mods = false;
++    std::string randomizer_seed;
++    std::string randomizer_preset = "standard";
 +    DosButtonPrompts button_prompts = DosButtonPrompts::Auto;
 +    NdsButtonBindings secondary_keyboard_bindings = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 +};
@@ -4281,10 +4330,10 @@ index 0000000..367f8c1
 +inline constexpr size_t kDosPostProcessSpirvSize = 22152;
 diff --git a/runner/src/dos_i18n.cpp b/runner/src/dos_i18n.cpp
 new file mode 100644
-index 0000000..9f0dd25
+index 0000000..d292e61
 --- /dev/null
 +++ b/runner/src/dos_i18n.cpp
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,259 @@
 +#include "dos_i18n.h"
 +
 +#include <array>
@@ -4304,6 +4353,7 @@ index 0000000..9f0dd25
 +    {DosStrId::TabGraphics, "Graphics & HD", "Gráficos HD"},
 +    {DosStrId::TabAudio, "Audio", "Áudio"},
 +    {DosStrId::TabControls, "Controls", "Controles"},
++    {DosStrId::TabMods, "Mods & Campaigns", "Mods & Campanhas"},
 +    {DosStrId::TabPerformance, "Performance & Dev", "Desempenho & Dev"},
 +
 +    {DosStrId::AppSubtitle,
@@ -4487,6 +4537,29 @@ index 0000000..9f0dd25
 +    {DosStrId::IntroVideoReady, "Opening video ready (native Media Foundation decoder).", "Vídeo de abertura pronto (decodificador nativo Media Foundation)."},
 +    {DosStrId::IntroVideoMissing, "Opening video not imported yet (mods/intro/opening.mp4).", "Vídeo de abertura ainda não importado (mods/intro/opening.mp4)."},
 +
++    {DosStrId::SecCampaignSelect, "Campaign Selection (Exclusive)", "Seleção de Campanha (Exclusiva)"},
++    {DosStrId::SecCharacterPacks, "Character Packs (Julius Mode)", "Packs de Personagem (Modo Julius)"},
++    {DosStrId::SecBaselineAdvanced, "Advanced Baseline (Comparison / Compatibility)", "Base Avançada (Comparação / Compatibilidade)"},
++    {DosStrId::SecConflictStatus, "Compatibility & Conflict Engine", "Compatibilidade e Motor de Conflitos"},
++    {DosStrId::LblAllowUnverified, "Allow Unverified Mods (Dev / Audit Opt-in)", "Permitir Mods Não Verificados (Modo Dev / Auditoria)"},
++    {DosStrId::BtnApplyProfileRestart, "Apply & Restart", "Aplicar e Reiniciar"},
++    {DosStrId::BtnRescanMods, "Rescan {data}/mods", "Reescanear {data}/mods"},
++    {DosStrId::BadgeVerified, "VERIFIED", "VERIFICADO"},
++    {DosStrId::BadgeUnverified, "UNVERIFIED", "NÃO VERIFICADO"},
++    {DosStrId::BadgeIncompatible, "INCOMPATIBLE", "INCOMPATÍVEL"},
++    {DosStrId::BadgeInstalled, "Installed", "Instalado"},
++    {DosStrId::BadgeNotInstalled, "Not Installed", "Não Instalado"},
++    {DosStrId::SecRandomizer, "Native Seed Mutator (Offline Randomizer)", "Mutador Nativo por Seed (Randomizer Offline)"},
++    {DosStrId::LblRandoSeed, "Seed (A-Z, 0-9, -, _)", "Seed (A-Z, 0-9, -, _)"},
++    {DosStrId::LblRandoPreset, "Preset", "Preset"},
++    {DosStrId::BtnRandomSeed, "Random Seed", "Seed Aleatória"},
++    {DosStrId::BtnApplySeed, "Apply Seed & Restart", "Aplicar Seed e Reiniciar"},
++    {DosStrId::BtnClearSeed, "Disable Seed", "Desativar Seed"},
++    {DosStrId::RandoScopeNote,
++     "Mutates non-progression enemy drop & stat tables natively in C++ (no Python/Ruby needed) with isolated saves and spoiler log in {data}/mods/cache/.",
++     "Altera tabelas de drops e atributos de inimigos fora da progressão nativamente em C++ (sem Python/Ruby) com save isolado e spoiler log em {data}/mods/cache/."},
++    {DosStrId::ToastModsRescanned, "Mods folder rescanned.", "Pasta de mods reescaneada."},
++
 +    {DosStrId::ToastSettingsSaved, "Settings saved.", "Configurações salvas."},
 +    {DosStrId::ToastScreenshotSaved, "Screenshot saved.", "Captura de tela salva."},
 +    {DosStrId::ToastScreenshotFailed, "Screenshot failed.", "Falha ao capturar tela."},
@@ -4522,10 +4595,10 @@ index 0000000..9f0dd25
 +}
 diff --git a/runner/src/dos_i18n.h b/runner/src/dos_i18n.h
 new file mode 100644
-index 0000000..6ce33ac
+index 0000000..83988d1
 --- /dev/null
 +++ b/runner/src/dos_i18n.h
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,219 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -4539,6 +4612,7 @@ index 0000000..6ce33ac
 +    TabGraphics,
 +    TabAudio,
 +    TabControls,
++    TabMods,
 +    TabPerformance,
 +
 +    AppSubtitle,
@@ -4700,6 +4774,27 @@ index 0000000..6ce33ac
 +    IntroVideoReady,
 +    IntroVideoMissing,
 +
++    SecCampaignSelect,
++    SecCharacterPacks,
++    SecBaselineAdvanced,
++    SecConflictStatus,
++    LblAllowUnverified,
++    BtnApplyProfileRestart,
++    BtnRescanMods,
++    BadgeVerified,
++    BadgeUnverified,
++    BadgeIncompatible,
++    BadgeInstalled,
++    BadgeNotInstalled,
++    SecRandomizer,
++    LblRandoSeed,
++    LblRandoPreset,
++    BtnRandomSeed,
++    BtnApplySeed,
++    BtnClearSeed,
++    RandoScopeNote,
++    ToastModsRescanned,
++
 +    ToastSettingsSaved,
 +    ToastScreenshotSaved,
 +    ToastScreenshotFailed,
@@ -4725,10 +4820,10 @@ index 0000000..6ce33ac
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..b6db03c
+index 0000000..9130ba9
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
-@@ -0,0 +1,1129 @@
+@@ -0,0 +1,1275 @@
 +#include "dos_imgui_menu.h"
 +
 +#if defined(NDS_HAVE_SDL3)
@@ -4745,6 +4840,7 @@ index 0000000..b6db03c
 +#include <string>
 +
 +#include "dos_i18n.h"
++#include "dos_mod_registry.h"
 +#include "frontend.h"
 +#include "imgui.h"
 +#include "imgui_impl_sdl3.h"
@@ -5411,6 +5507,171 @@ index 0000000..b6db03c
 +    }
 +}
 +
++void draw_tab_mods(DosImGuiMenuContext& ctx, DosLanguage lang, ImFont* heading_font) {
++    NdsFrontendOptions* opt = ctx.options;
++    if (!opt) return;
++
++    if (ctx.active_profile_label && ctx.active_profile_label[0] != '\0') {
++        ImGui::TextColored(ImVec4(0.85f, 0.92f, 1.0f, 1.0f), "Active: %s  [%s]",
++                           ctx.active_profile_label,
++                           (ctx.active_modset_hash && ctx.active_modset_hash[0])
++                               ? ctx.active_modset_hash : "-");
++        if (ctx.active_save_path && ctx.active_save_path[0] != '\0') {
++            ImGui::TextDisabled("Save: %s", ctx.active_save_path);
++        }
++    }
++    if (ctx.definitive_patch_available) {
++        ImGui::TextDisabled("%s", dos_tr(lang, DosStrId::ContentDefinitiveFeatures));
++    }
++
++    const DosModRegistry* reg = ctx.mod_registry;
++    if (reg) {
++        begin_section(dos_tr(lang, DosStrId::SecCampaignSelect), heading_font);
++        for (const auto& c : reg->campaigns) {
++            const bool selected = (opt->dos.active_campaign == c.id);
++            const char* badge = c.installed ? dos_tr(lang, DosStrId::BadgeInstalled)
++                                            : dos_tr(lang, DosStrId::BadgeNotInstalled);
++            char label[192]{};
++            std::snprintf(label, sizeof(label), "%s  v%s  [%s]##camp_%s",
++                          c.name.c_str(), c.version.c_str(), badge, c.id.c_str());
++            if (!c.installed) ImGui::BeginDisabled();
++            if (ImGui::RadioButton(label, selected)) {
++                opt->dos.active_campaign = c.id;
++                if (!c.definitive_compatible) {
++                    opt->dos.content_profile = DosContentProfile::Original;
++                    opt->dos.active_character_pack = "default";
++                }
++                mark_dirty(ctx, false);
++            }
++            if (!c.installed) ImGui::EndDisabled();
++            if (!c.author.empty()) {
++                ImGui::SameLine();
++                ImGui::TextDisabled("by %s", c.author.c_str());
++            }
++        }
++
++        begin_section(dos_tr(lang, DosStrId::SecCharacterPacks), heading_font);
++        for (const auto& p : reg->character_packs) {
++            const bool selected = (opt->dos.active_character_pack == p.id);
++            const char* badge = p.installed ? dos_tr(lang, DosStrId::BadgeInstalled)
++                                            : dos_tr(lang, DosStrId::BadgeNotInstalled);
++            char label[192]{};
++            std::snprintf(label, sizeof(label), "%s  [%s]##pack_%s",
++                          p.name.c_str(), badge, p.id.c_str());
++            if (!p.installed) ImGui::BeginDisabled();
++            if (ImGui::RadioButton(label, selected)) {
++                opt->dos.active_character_pack = p.id;
++                if (!p.builtin) {
++                    opt->dos.content_profile = DosContentProfile::Original;
++                }
++                mark_dirty(ctx, false);
++            }
++            if (!p.installed) ImGui::EndDisabled();
++            if (!p.author.empty()) {
++                ImGui::SameLine();
++                ImGui::TextDisabled("by %s", p.author.c_str());
++            }
++        }
++
++        begin_section(dos_tr(lang, DosStrId::SecBaselineAdvanced), heading_font);
++        static constexpr std::array<DosContentProfile, 2> kProfiles = {
++            DosContentProfile::Definitive, DosContentProfile::Original};
++        static constexpr std::array<DosStrId, 2> kProfileNames = {
++            DosStrId::ProfileDefinitive, DosStrId::ProfileOriginal};
++        if (!ctx.definitive_patch_available) ImGui::BeginDisabled();
++        if (combo_enum(dos_tr(lang, DosStrId::LblContentProfile),
++                       &opt->dos.content_profile, kProfiles, kProfileNames, lang)) {
++            mark_dirty(ctx, false);
++        }
++        if (!ctx.definitive_patch_available) ImGui::EndDisabled();
++
++        begin_section(dos_tr(lang, DosStrId::SecConflictStatus), heading_font);
++        if (ImGui::Checkbox(dos_tr(lang, DosStrId::LblAllowUnverified),
++                            &opt->dos.allow_unverified_mods)) {
++            mark_dirty(ctx, false);
++        }
++        if (ctx.builtin_patches) {
++            DosModSelection sel{};
++            sel.campaign_id = opt->dos.active_campaign;
++            sel.character_pack_id = opt->dos.active_character_pack;
++            sel.baseline_id = (opt->dos.content_profile == DosContentProfile::Definitive)
++                                  ? "definitive"
++                                  : "original";
++            sel.language = opt->dos.game_language;
++            sel.allow_unverified = opt->dos.allow_unverified_mods;
++            sel.randomizer_seed = opt->dos.randomizer_seed;
++            sel.randomizer_preset = opt->dos.randomizer_preset;
++            const DosConflictDecision dec = dos_mod_resolve_conflict(
++                *reg, sel, ctx.base_rom_sha1 ? ctx.base_rom_sha1 : "", *ctx.builtin_patches);
++            ImVec4 col(0.95f, 0.35f, 0.35f, 1.0f);
++            const char* st_txt = dos_tr(lang, DosStrId::BadgeIncompatible);
++            if (dec.state == DosCompatState::Verified) {
++                col = ImVec4(0.32f, 0.90f, 0.48f, 1.0f);
++                st_txt = dos_tr(lang, DosStrId::BadgeVerified);
++            } else if (dec.state == DosCompatState::Unverified) {
++                col = ImVec4(0.98f, 0.78f, 0.28f, 1.0f);
++                st_txt = dos_tr(lang, DosStrId::BadgeUnverified);
++            }
++            ImGui::TextColored(col, "[%s] %s", st_txt, dec.reason.c_str());
++            if (!dec.allowed) ImGui::BeginDisabled();
++            if (ImGui::Button(dos_tr(lang, DosStrId::BtnApplyProfileRestart), ImVec2(210.0f, 0.0f))) {
++                if (ctx.content_swap_requested) *ctx.content_swap_requested = true;
++            }
++            if (!dec.allowed) ImGui::EndDisabled();
++            ImGui::SameLine();
++            if (ImGui::Button(dos_tr(lang, DosStrId::BtnRescanMods), ImVec2(200.0f, 0.0f))) {
++                if (ctx.rescan_mods_requested) *ctx.rescan_mods_requested = true;
++            }
++        }
++    }
++
++    begin_section(dos_tr(lang, DosStrId::SecRandomizer), heading_font);
++    ImGui::TextWrapped("%s", dos_tr(lang, DosStrId::RandoScopeNote));
++    char seed_buf[40]{};
++    std::snprintf(seed_buf, sizeof(seed_buf), "%s", opt->dos.randomizer_seed.c_str());
++    ImGui::SetNextItemWidth(220.0f);
++    if (ImGui::InputText(dos_tr(lang, DosStrId::LblRandoSeed), seed_buf, sizeof(seed_buf))) {
++        opt->dos.randomizer_seed = dos_mod_sanitize_seed(seed_buf);
++        mark_dirty(ctx, false);
++    }
++    ImGui::SameLine();
++    if (ImGui::Button(dos_tr(lang, DosStrId::BtnRandomSeed), ImVec2(140.0f, 0.0f))) {
++        static uint64_t s_rng = 0x9E3779B97F4A7C15ULL;
++        s_rng ^= SDL_GetPerformanceCounter();
++        s_rng ^= s_rng >> 12;
++        s_rng ^= s_rng << 25;
++        s_rng ^= s_rng >> 27;
++        char gen[20]{};
++        std::snprintf(gen, sizeof(gen), "CDOS-%08X", static_cast<unsigned>(s_rng & 0xFFFFFFFFu));
++        opt->dos.randomizer_seed = gen;
++        mark_dirty(ctx, false);
++    }
++    static constexpr const char* kPresets[3] = {"casual", "standard", "hard"};
++    int cur_preset = 1;
++    for (int i = 0; i < 3; ++i) {
++        if (opt->dos.randomizer_preset == kPresets[i]) cur_preset = i;
++    }
++    ImGui::SetNextItemWidth(180.0f);
++    if (ImGui::Combo(dos_tr(lang, DosStrId::LblRandoPreset), &cur_preset, kPresets, 3)) {
++        opt->dos.randomizer_preset = kPresets[cur_preset];
++        mark_dirty(ctx, false);
++    }
++    ImGui::SameLine();
++    if (opt->dos.randomizer_seed.empty()) ImGui::BeginDisabled();
++    if (ImGui::Button(dos_tr(lang, DosStrId::BtnApplySeed), ImVec2(190.0f, 0.0f))) {
++        if (ctx.content_swap_requested) *ctx.content_swap_requested = true;
++    }
++    if (opt->dos.randomizer_seed.empty()) ImGui::EndDisabled();
++    ImGui::SameLine();
++    if (opt->dos.randomizer_seed.empty()) ImGui::BeginDisabled();
++    if (ImGui::Button(dos_tr(lang, DosStrId::BtnClearSeed), ImVec2(130.0f, 0.0f))) {
++        opt->dos.randomizer_seed.clear();
++        mark_dirty(ctx, false);
++        if (ctx.content_swap_requested) *ctx.content_swap_requested = true;
++    }
++    if (opt->dos.randomizer_seed.empty()) ImGui::EndDisabled();
++}
++
 +void draw_tab_performance(DosImGuiMenuContext& ctx, DosLanguage lang,
 +                          ImFont* heading_font, const float* fps_hist, int count,
 +                          int offset, double last_emu_ms, double last_present_ms) {
@@ -5454,30 +5715,6 @@ index 0000000..b6db03c
 +                     overlay, 0.0f, 70.0f, ImVec2(-1.0f, 92.0f));
 +
 +    begin_section(dos_tr(lang, DosStrId::SecContentMods), heading_font);
-+    static constexpr std::array<DosContentProfile, 2> kProfiles = {
-+        DosContentProfile::Definitive, DosContentProfile::Original};
-+    static constexpr std::array<DosStrId, 2> kProfileNames = {
-+        DosStrId::ProfileDefinitive, DosStrId::ProfileOriginal};
-+    if (!ctx.definitive_patch_available) ImGui::BeginDisabled();
-+    if (combo_enum(dos_tr(lang, DosStrId::LblContentProfile),
-+                   &opt->dos.content_profile, kProfiles, kProfileNames, lang)) {
-+        mark_dirty(ctx, false);
-+        if (ctx.content_swap_requested) *ctx.content_swap_requested = true;
-+    }
-+    if (!ctx.definitive_patch_available) ImGui::EndDisabled();
-+    if (ctx.active_profile_label && ctx.active_profile_label[0] != '\0') {
-+        ImGui::TextDisabled("Active: %s  [%s]",
-+                            ctx.active_profile_label,
-+                            (ctx.active_modset_hash && ctx.active_modset_hash[0])
-+                                ? ctx.active_modset_hash : "-");
-+    }
-+    if (ctx.definitive_patch_available) {
-+        ImGui::TextWrapped("%s", dos_tr(lang, DosStrId::ContentDefinitiveFeatures));
-+    } else {
-+        ImGui::TextColored(ImVec4(0.95f, 0.72f, 0.30f, 1.0f), "%s",
-+                           dos_tr(lang, DosStrId::ContentDefinitiveMissing));
-+    }
-+    ImGui::Spacing();
 +    if (ImGui::Checkbox(dos_tr(lang, DosStrId::LblEnhancedIntro), &opt->dos.enhanced_intro)) {
 +        mark_dirty(ctx, false);
 +    }
@@ -5577,7 +5814,7 @@ index 0000000..b6db03c
 +
 +void DosImGuiMenu::set_open(bool open, int tab) {
 +    open_ = open;
-+    if (tab >= 0 && tab < 6) active_tab_ = tab;
++    if (tab >= 0 && tab < 7) active_tab_ = tab;
 +    if (!open_) {
 +        capture_kind_ = CaptureKind::None;
 +        capture_row_ = -1;
@@ -5687,11 +5924,11 @@ index 0000000..b6db03c
 +    if (event->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
 +        const auto btn = static_cast<SDL_GamepadButton>(event->gbutton.button);
 +        if (btn == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
-+            active_tab_ = (active_tab_ + 5) % 6;
++            active_tab_ = (active_tab_ + 6) % 7;
 +            return true;
 +        }
 +        if (btn == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER) {
-+            active_tab_ = (active_tab_ + 1) % 6;
++            active_tab_ = (active_tab_ + 1) % 7;
 +            return true;
 +        }
 +        if (btn == SDL_GAMEPAD_BUTTON_START || btn == SDL_GAMEPAD_BUTTON_GUIDE) {
@@ -5767,10 +6004,11 @@ index 0000000..b6db03c
 +            const float sidebar_w = std::clamp(win_w * 0.23f, 148.0f, 220.0f);
 +
 +            if (ImGui::BeginChild("##Sidebar", ImVec2(sidebar_w, body_h), ImGuiChildFlags_Borders)) {
-+                static constexpr std::array<DosStrId, 6> kTabs = {
++                static constexpr std::array<DosStrId, 7> kTabs = {
 +                    DosStrId::TabHome, DosStrId::TabDisplay, DosStrId::TabGraphics,
-+                    DosStrId::TabAudio, DosStrId::TabControls, DosStrId::TabPerformance};
-+                for (int i = 0; i < 6; ++i) {
++                    DosStrId::TabAudio, DosStrId::TabControls, DosStrId::TabMods,
++                    DosStrId::TabPerformance};
++                for (int i = 0; i < 7; ++i) {
 +                    const bool selected = (active_tab_ == i);
 +                    if (selected) {
 +                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.76f, 0.17f, 0.24f, 0.95f));
@@ -5804,6 +6042,9 @@ index 0000000..b6db03c
 +                                          begin_cap, *this);
 +                        break;
 +                    case 5:
++                        draw_tab_mods(ctx, lang, head);
++                        break;
++                    case 6:
 +                        draw_tab_performance(ctx, lang, head, fps_history_.data(),
 +                                             fps_history_count_, fps_history_offset_,
 +                                             last_emu_ms_, last_present_ms_);
@@ -5860,10 +6101,10 @@ index 0000000..b6db03c
 +#endif
 diff --git a/runner/src/dos_imgui_menu.h b/runner/src/dos_imgui_menu.h
 new file mode 100644
-index 0000000..1d6cdcf
+index 0000000..de55c05
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.h
-@@ -0,0 +1,94 @@
+@@ -0,0 +1,101 @@
 +#pragma once
 +
 +#include <array>
@@ -5872,6 +6113,8 @@ index 0000000..1d6cdcf
 +
 +#include "dos_enhancements.h"
 +
++struct DosModRegistry;
++struct DosRomPatchSet;
 +struct SDL_Window;
 +struct SDL_Renderer;
 +typedef union SDL_Event SDL_Event;
@@ -5891,6 +6134,7 @@ index 0000000..1d6cdcf
 +    int* load_slot_requested = nullptr;   // 1..5 ou 0
 +    bool* language_swap_requested = nullptr;
 +    bool* content_swap_requested = nullptr;
++    bool* rescan_mods_requested = nullptr;
 +    bool* play_intro_requested = nullptr;
 +    bool* defaults_reset_requested = nullptr;
 +    bool ptbr_patch_available = false;
@@ -5898,6 +6142,10 @@ index 0000000..1d6cdcf
 +    bool intro_video_available = false;
 +    const char* active_profile_label = nullptr;
 +    const char* active_modset_hash = nullptr;
++    const char* active_save_path = nullptr;
++    const DosModRegistry* mod_registry = nullptr;
++    const DosRomPatchSet* builtin_patches = nullptr;
++    const char* base_rom_sha1 = nullptr;
 +    const char* active_driver = "auto";
 +    const char* active_shader_format = "none";
 +    const DosHudMetrics* hud_metrics = nullptr;
@@ -6593,6 +6841,839 @@ index 0000000..b5a0dc8
 +
 +// Isola caminho de save (.sav) por perfil (Original preserva caminho raiz; Definitive usa subpasta).
 +std::string dos_profile_save_path(const std::string& base_save_path, DosContentProfile profile);
+diff --git a/runner/src/dos_mod_registry.cpp b/runner/src/dos_mod_registry.cpp
+new file mode 100644
+index 0000000..8da34ed
+--- /dev/null
++++ b/runner/src/dos_mod_registry.cpp
+@@ -0,0 +1,697 @@
++#include "dos_mod_registry.h"
++
++#include <algorithm>
++#include <cctype>
++#include <cstdio>
++#include <filesystem>
++#include <fstream>
++#include <sstream>
++
++#include "dos_rom_patch.h"
++#include "sha1.h"
++
++namespace {
++
++namespace fs = std::filesystem;
++
++// Parser JSON minimo (somente leitura) para mods/registry.json, sem dependencias externas.
++struct JsonVal {
++    enum class Type { Null, Bool, Number, String, Array, Object } type = Type::Null;
++    bool b = false;
++    double n = 0.0;
++    std::string s;
++    std::vector<JsonVal> arr;
++    std::vector<std::pair<std::string, JsonVal>> obj;
++
++    const JsonVal* field(const char* key) const {
++        if (type != Type::Object) return nullptr;
++        for (const auto& kv : obj) {
++            if (kv.first == key) return &kv.second;
++        }
++        return nullptr;
++    }
++    std::string str_or(const char* key, const std::string& def = "") const {
++        const JsonVal* v = field(key);
++        return (v && v->type == Type::String) ? v->s : def;
++    }
++    bool bool_or(const char* key, bool def = false) const {
++        const JsonVal* v = field(key);
++        return (v && v->type == Type::Bool) ? v->b : def;
++    }
++    std::vector<std::string> str_list(const char* key) const {
++        std::vector<std::string> out;
++        const JsonVal* v = field(key);
++        if (!v || v->type != Type::Array) return out;
++        for (const auto& elem : v->arr) {
++            if (elem.type == Type::String) out.push_back(elem.s);
++        }
++        return out;
++    }
++};
++
++class MiniJsonParser {
++public:
++    explicit MiniJsonParser(std::string src) : src_(std::move(src)) {}
++
++    bool parse(JsonVal* out) {
++        skip_ws();
++        if (!parse_value(out)) return false;
++        skip_ws();
++        return pos_ == src_.size();
++    }
++
++private:
++    std::string src_;
++    size_t pos_ = 0;
++
++    void skip_ws() {
++        while (pos_ < src_.size() &&
++               (src_[pos_] == ' ' || src_[pos_] == '\t' || src_[pos_] == '\r' || src_[pos_] == '\n')) {
++            ++pos_;
++        }
++    }
++
++    bool parse_value(JsonVal* out) {
++        skip_ws();
++        if (pos_ >= src_.size()) return false;
++        const char ch = src_[pos_];
++        if (ch == '{') return parse_object(out);
++        if (ch == '[') return parse_array(out);
++        if (ch == '"') {
++            out->type = JsonVal::Type::String;
++            return parse_string(&out->s);
++        }
++        if (ch == 't' && src_.compare(pos_, 4, "true") == 0) {
++            pos_ += 4;
++            out->type = JsonVal::Type::Bool;
++            out->b = true;
++            return true;
++        }
++        if (ch == 'f' && src_.compare(pos_, 5, "false") == 0) {
++            pos_ += 5;
++            out->type = JsonVal::Type::Bool;
++            out->b = false;
++            return true;
++        }
++        if (ch == 'n' && src_.compare(pos_, 4, "null") == 0) {
++            pos_ += 4;
++            out->type = JsonVal::Type::Null;
++            return true;
++        }
++        if (ch == '-' || std::isdigit(static_cast<unsigned char>(ch))) {
++            size_t start = pos_;
++            if (src_[pos_] == '-') ++pos_;
++            while (pos_ < src_.size() &&
++                   (std::isdigit(static_cast<unsigned char>(src_[pos_])) ||
++                    src_[pos_] == '.' || src_[pos_] == 'e' || src_[pos_] == 'E' ||
++                    src_[pos_] == '+' || src_[pos_] == '-')) {
++                ++pos_;
++            }
++            out->type = JsonVal::Type::Number;
++            out->n = std::strtod(src_.substr(start, pos_ - start).c_str(), nullptr);
++            return true;
++        }
++        return false;
++    }
++
++    bool parse_string(std::string* out) {
++        if (pos_ >= src_.size() || src_[pos_] != '"') return false;
++        ++pos_;
++        out->clear();
++        while (pos_ < src_.size()) {
++            const char c = src_[pos_++];
++            if (c == '"') return true;
++            if (c == '\\') {
++                if (pos_ >= src_.size()) return false;
++                const char esc = src_[pos_++];
++                switch (esc) {
++                    case '"': out->push_back('"'); break;
++                    case '\\': out->push_back('\\'); break;
++                    case '/': out->push_back('/'); break;
++                    case 'b': out->push_back('\b'); break;
++                    case 'f': out->push_back('\f'); break;
++                    case 'n': out->push_back('\n'); break;
++                    case 'r': out->push_back('\r'); break;
++                    case 't': out->push_back('\t'); break;
++                    case 'u':
++                        if (pos_ + 4 > src_.size()) return false;
++                        pos_ += 4;
++                        out->push_back('?');
++                        break;
++                    default: out->push_back(esc); break;
++                }
++            } else {
++                out->push_back(c);
++            }
++        }
++        return false;
++    }
++
++    bool parse_array(JsonVal* out) {
++        ++pos_;  // '['
++        out->type = JsonVal::Type::Array;
++        out->arr.clear();
++        skip_ws();
++        if (pos_ < src_.size() && src_[pos_] == ']') {
++            ++pos_;
++            return true;
++        }
++        while (pos_ < src_.size()) {
++            JsonVal item{};
++            if (!parse_value(&item)) return false;
++            out->arr.push_back(std::move(item));
++            skip_ws();
++            if (pos_ < src_.size() && src_[pos_] == ',') {
++                ++pos_;
++                continue;
++            }
++            if (pos_ < src_.size() && src_[pos_] == ']') {
++                ++pos_;
++                return true;
++            }
++            return false;
++        }
++        return false;
++    }
++
++    bool parse_object(JsonVal* out) {
++        ++pos_;  // '{'
++        out->type = JsonVal::Type::Object;
++        out->obj.clear();
++        skip_ws();
++        if (pos_ < src_.size() && src_[pos_] == '}') {
++            ++pos_;
++            return true;
++        }
++        while (pos_ < src_.size()) {
++            skip_ws();
++            std::string key;
++            if (!parse_string(&key)) return false;
++            skip_ws();
++            if (pos_ >= src_.size() || src_[pos_] != ':') return false;
++            ++pos_;
++            JsonVal val{};
++            if (!parse_value(&val)) return false;
++            out->obj.emplace_back(std::move(key), std::move(val));
++            skip_ws();
++            if (pos_ < src_.size() && src_[pos_] == ',') {
++                ++pos_;
++                continue;
++            }
++            if (pos_ < src_.size() && src_[pos_] == '}') {
++                ++pos_;
++                return true;
++            }
++            return false;
++        }
++        return false;
++    }
++};
++
++std::string lower_ascii(std::string s) {
++    for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
++    return s;
++}
++
++bool is_safe_leaf_filename(const std::string& name) {
++    if (name.empty() || name.size() > 128) return false;
++    if (name.find("..") != std::string::npos) return false;
++    if (name.find('/') != std::string::npos || name.find('\\') != std::string::npos ||
++        name.find(':') != std::string::npos) {
++        return false;
++    }
++    return true;
++}
++
++const DosModEntry* find_entry(const std::vector<DosModEntry>& list, const std::string& id) {
++    for (const auto& e : list) {
++        if (e.id == id) return &e;
++    }
++    return nullptr;
++}
++
++bool contains_str(const std::vector<std::string>& list, const std::string& v) {
++    return std::find(list.begin(), list.end(), v) != list.end();
++}
++
++void parse_entry_list(const JsonVal* arr, const char* kind, std::vector<DosModEntry>* out) {
++    if (!arr || arr->type != JsonVal::Type::Array || !out) return;
++    out->clear();
++    for (const auto& item : arr->arr) {
++        if (item.type != JsonVal::Type::Object) continue;
++        DosModEntry e{};
++        e.id = dos_mod_sanitize_id(item.str_or("id"));
++        if (e.id.empty()) continue;
++        e.name = item.str_or("name", e.id);
++        e.version = item.str_or("version", "1.0");
++        e.kind = kind;
++        e.profile_file = item.str_or("profile_file");
++        e.author = item.str_or("author");
++        e.summary = item.str_or("summary");
++        e.source_url = item.str_or("source_url");
++        e.validation_level = item.str_or("validation_level", "none");
++        e.registry_state = item.str_or("state", "unverified");
++        e.exclusive_group = item.str_or("exclusive_group");
++        e.allowed_character_packs = item.str_list("allowed_character_packs");
++        e.compatible_campaigns = item.str_list("compatible_campaigns");
++        e.builtin = item.bool_or("builtin", false);
++        e.manual_import = item.bool_or("manual_import", false);
++        e.supports_ptbr = item.bool_or("supports_ptbr", false);
++        e.definitive_compatible = item.bool_or("definitive_compatible", false);
++        out->push_back(std::move(e));
++    }
++}
++
++void populate_default_builtin_registry(DosModRegistry* out) {
++    out->baselines.clear();
++    out->campaigns.clear();
++    out->character_packs.clear();
++    out->verified_combos.clear();
++
++    DosModEntry def{};
++    def.id = "definitive";
++    def.name = "Definitive Edition (Integrated Default)";
++    def.version = "1.0";
++    def.kind = "baseline";
++    def.builtin = true;
++    def.supports_ptbr = true;
++    def.registry_state = "verified";
++    def.validation_level = "full";
++    def.installed = true;
++    out->baselines.push_back(def);
++
++    DosModEntry orig{};
++    orig.id = "original";
++    orig.name = "Original USA (Advanced Compatibility Mode)";
++    orig.version = "1.0";
++    orig.kind = "baseline";
++    orig.builtin = true;
++    orig.supports_ptbr = true;
++    orig.registry_state = "verified";
++    orig.validation_level = "full";
++    orig.installed = true;
++    out->baselines.push_back(orig);
++
++    DosModEntry camp{};
++    camp.id = "dawn-of-sorrow";
++    camp.name = "Dawn of Sorrow (Main Campaign)";
++    camp.version = "1.0";
++    camp.kind = "campaign";
++    camp.builtin = true;
++    camp.supports_ptbr = true;
++    camp.definitive_compatible = true;
++    camp.registry_state = "verified";
++    camp.validation_level = "full";
++    camp.allowed_character_packs = {"default"};
++    camp.installed = true;
++    out->campaigns.push_back(camp);
++
++    DosModEntry pack{};
++    pack.id = "default";
++    pack.name = "Native Cast (Soma / Julius / Yoko / Alucard)";
++    pack.version = "1.0";
++    pack.kind = "character_pack";
++    pack.builtin = true;
++    pack.supports_ptbr = true;
++    pack.registry_state = "verified";
++    pack.validation_level = "full";
++    pack.compatible_campaigns = {"dawn-of-sorrow"};
++    pack.installed = true;
++    out->character_packs.push_back(pack);
++
++    for (const char* b : {"definitive", "original"}) {
++        for (const char* l : {"en", "ptbr"}) {
++            out->verified_combos.push_back({"dawn-of-sorrow", "default", b, l, "full"});
++        }
++    }
++}
++
++std::string short_sha1_vec(const std::vector<uint8_t>& data) {
++    if (data.empty()) return "000000000000";
++    const std::string h = gba::sha1(data.data(), data.size()).hex();
++    return h.size() > 12 ? h.substr(0, 12) : h;
++}
++
++}  // namespace
++
++std::string dos_mod_sanitize_id(const std::string& raw, const std::string& fallback) {
++    std::string out;
++    out.reserve(raw.size());
++    for (unsigned char ch : raw) {
++        if (std::isspace(ch)) continue;
++        const char lc = static_cast<char>(std::tolower(ch));
++        if ((lc >= 'a' && lc <= 'z') || (lc >= '0' && lc <= '9') || lc == '-' || lc == '_') {
++            out.push_back(lc);
++        } else {
++            return fallback;
++        }
++    }
++    if (out.empty() || out.size() > 48 ||
++        !((out[0] >= 'a' && out[0] <= 'z') || (out[0] >= '0' && out[0] <= '9'))) {
++        return fallback;
++    }
++    return out;
++}
++
++std::string dos_mod_sanitize_seed(const std::string& raw) {
++    std::string out;
++    for (unsigned char ch : raw) {
++        if (std::isalnum(ch) || ch == '-' || ch == '_') {
++            out.push_back(static_cast<char>(ch));
++            if (out.size() >= 32) break;
++        }
++    }
++    return out;
++}
++
++std::string dos_mod_profile_namespace(const std::string& profile_id,
++                                      const std::string& version,
++                                      const std::string& modset_hash) {
++    const std::string sid = dos_mod_sanitize_id(profile_id, "profile");
++    std::string sver;
++    for (unsigned char ch : version) {
++        if (std::isalnum(ch) || ch == '.' || ch == '_' || ch == '-') {
++            sver.push_back(static_cast<char>(ch));
++            if (sver.size() >= 20) break;
++        }
++    }
++    if (sver.empty() || sver.find("..") != std::string::npos) sver = "1.0";
++    std::string h8;
++    for (unsigned char ch : modset_hash) {
++        const char lc = static_cast<char>(std::tolower(ch));
++        if ((lc >= '0' && lc <= '9') || (lc >= 'a' && lc <= 'f')) {
++            h8.push_back(lc);
++            if (h8.size() >= 8) break;
++        }
++    }
++    if (h8.empty()) h8 = "00000000";
++    return sid + "-v" + sver + "-" + h8;
++}
++
++bool dos_write_text_atomic(const std::string& path, const std::string& content) {
++    if (path.empty()) return false;
++    std::error_code ec;
++    const fs::path dst(path);
++    if (!dst.parent_path().empty()) {
++        fs::create_directories(dst.parent_path(), ec);
++        if (ec) return false;
++    }
++    const fs::path tmp = dst.parent_path() / (dst.filename().string() + ".tmp");
++    {
++        std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
++        if (!out) return false;
++        out.write(content.data(), static_cast<std::streamsize>(content.size()));
++        out.flush();
++        if (!out) {
++            out.close();
++            fs::remove(tmp, ec);
++            return false;
++        }
++    }
++    fs::rename(tmp, dst, ec);
++    if (ec) {
++        // Windows: rename pode falhar se destino existir dependendo da implementacao STL.
++        std::error_code ec2;
++        fs::remove(dst, ec2);
++        ec.clear();
++        fs::rename(tmp, dst, ec);
++        if (ec) {
++            fs::remove(tmp, ec2);
++            return false;
++        }
++    }
++    return true;
++}
++
++void dos_mod_registry_rescan_installed(DosModRegistry* reg) {
++    if (!reg) return;
++    auto check_list = [&](std::vector<DosModEntry>& list) {
++        for (auto& e : list) {
++            if (e.builtin) {
++                e.installed = true;
++                e.resolved_patch_path.clear();
++                continue;
++            }
++            e.installed = false;
++            e.resolved_patch_path.clear();
++            if (reg->data_mods_dir.empty() || !is_safe_leaf_filename(e.profile_file)) continue;
++            std::error_code ec;
++            const fs::path candidate = fs::path(reg->data_mods_dir) / "profiles" / e.profile_file;
++            if (fs::is_regular_file(candidate, ec)) {
++                e.installed = true;
++                e.resolved_patch_path = candidate.string();
++            }
++        }
++    };
++    check_list(reg->baselines);
++    check_list(reg->campaigns);
++    check_list(reg->character_packs);
++}
++
++bool dos_mod_registry_load(const std::string& registry_json_path,
++                           const std::string& data_mods_dir,
++                           DosModRegistry* out,
++                           std::string* error_out) {
++    if (!out) return false;
++    *out = DosModRegistry{};
++    out->registry_path = registry_json_path;
++    out->data_mods_dir = data_mods_dir;
++    populate_default_builtin_registry(out);
++
++    if (registry_json_path.empty()) {
++        dos_mod_registry_rescan_installed(out);
++        out->loaded = true;
++        return true;
++    }
++
++    std::ifstream in(registry_json_path, std::ios::binary);
++    if (!in) {
++        if (error_out) *error_out = "registry.json not found; using builtin defaults";
++        dos_mod_registry_rescan_installed(out);
++        out->loaded = false;
++        return false;
++    }
++    std::ostringstream ss;
++    ss << in.rdbuf();
++    JsonVal root{};
++    MiniJsonParser parser(ss.str());
++    if (!parser.parse(&root) || root.type != JsonVal::Type::Object) {
++        if (error_out) *error_out = "invalid JSON in registry.json";
++        dos_mod_registry_rescan_installed(out);
++        out->loaded = false;
++        return false;
++    }
++    if (root.str_or("schema") != "cdos.mod-registry.v1") {
++        if (error_out) *error_out = "unexpected registry schema";
++        dos_mod_registry_rescan_installed(out);
++        out->loaded = false;
++        return false;
++    }
++
++    out->base_rom_sha1 = lower_ascii(root.str_or("base_rom_sha1", out->base_rom_sha1));
++    out->runtime_compat = root.str_or("runtime_compat", out->runtime_compat);
++    parse_entry_list(root.field("baselines"), "baseline", &out->baselines);
++    parse_entry_list(root.field("campaigns"), "campaign", &out->campaigns);
++    parse_entry_list(root.field("character_packs"), "character_pack", &out->character_packs);
++
++    out->verified_combos.clear();
++    if (const JsonVal* vc = root.field("verified_combinations"); vc && vc->type == JsonVal::Type::Array) {
++        for (const auto& item : vc->arr) {
++            if (item.type != JsonVal::Type::Object) continue;
++            DosVerifiedCombo c{};
++            c.campaign = item.str_or("campaign");
++            c.character_pack = item.str_or("character_pack");
++            c.baseline = item.str_or("baseline");
++            c.language = item.str_or("language");
++            c.validation_level = item.str_or("validation_level", "none");
++            out->verified_combos.push_back(std::move(c));
++        }
++    }
++
++    dos_mod_registry_rescan_installed(out);
++    out->loaded = true;
++    return true;
++}
++
++DosConflictDecision dos_mod_resolve_conflict(const DosModRegistry& reg,
++                                             const DosModSelection& sel,
++                                             const std::string& base_rom_sha1,
++                                             const DosRomPatchSet& builtin_patches) {
++    DosConflictDecision dec{};
++    if (!base_rom_sha1.empty() && lower_ascii(base_rom_sha1) != lower_ascii(reg.base_rom_sha1)) {
++        dec.state = DosCompatState::Incompatible;
++        dec.allowed = false;
++        dec.reason = "Base ROM SHA-1 does not match verified USA ACVE dump.";
++        return dec;
++    }
++
++    const DosModEntry* camp = find_entry(reg.campaigns, sel.campaign_id);
++    const DosModEntry* pack = find_entry(reg.character_packs, sel.character_pack_id);
++    const DosModEntry* base = find_entry(reg.baselines, sel.baseline_id);
++    if (!camp || !pack || !base) {
++        dec.state = DosCompatState::Incompatible;
++        dec.allowed = false;
++        dec.reason = "Selected campaign, character pack, or baseline is not registered.";
++        return dec;
++    }
++
++    if (!contains_str(camp->allowed_character_packs, pack->id) ||
++        !contains_str(pack->compatible_campaigns, camp->id)) {
++        dec.state = DosCompatState::Incompatible;
++        dec.allowed = false;
++        dec.reason = "Character pack '" + pack->name + "' is incompatible with campaign '" + camp->name + "'.";
++        return dec;
++    }
++
++    if (!camp->definitive_compatible && base->id != "original") {
++        dec.state = DosCompatState::Incompatible;
++        dec.allowed = false;
++        dec.reason = "Independent campaign '" + camp->name +
++                     "' modifies its own overlays and cannot be stacked on Definitive Edition.";
++        return dec;
++    }
++
++    if (!pack->builtin && base->id != "original") {
++        dec.state = DosCompatState::Incompatible;
++        dec.allowed = false;
++        dec.reason = "Character pack '" + pack->name +
++                     "' targets clean USA ROM; switch baseline to Original USA.";
++        return dec;
++    }
++
++    if (sel.language == DosLanguage::PtBr) {
++        if (!camp->supports_ptbr || !pack->supports_ptbr || !base->supports_ptbr) {
++            dec.state = DosCompatState::Incompatible;
++            dec.allowed = false;
++            dec.reason = "PT-BR translation is not validated for this campaign/pack; switch Game Language to English.";
++            return dec;
++        }
++    }
++
++    const DosModEntry* active = base;
++    if (!camp->builtin) active = camp;
++    else if (!pack->builtin) active = pack;
++
++    dec.active_profile_id = active->id;
++    dec.active_profile_name = active->name;
++    dec.active_version = active->version;
++    dec.validation_level = active->validation_level;
++    dec.uses_builtin_rom = active->builtin;
++
++    if (active->builtin) {
++        if (active->id == "definitive" && !builtin_patches.has_definitive()) {
++            dec.state = DosCompatState::Incompatible;
++            dec.allowed = false;
++            dec.reason = "Definitive Edition delta patch is not loaded.";
++            return dec;
++        }
++    } else {
++        if (!active->installed || active->resolved_patch_path.empty()) {
++            dec.state = DosCompatState::Incompatible;
++            dec.allowed = false;
++            dec.reason = "Mod '" + active->name + "' is not installed in {data}/mods/profiles/.";
++            return dec;
++        }
++        dec.patch_path = active->resolved_patch_path;
++    }
++
++    const char* lang_str = (sel.language == DosLanguage::PtBr) ? "ptbr" : "en";
++    bool allowlisted_full = false;
++    for (const auto& vc : reg.verified_combos) {
++        if (vc.campaign == camp->id && vc.character_pack == pack->id &&
++            vc.baseline == base->id && vc.language == lang_str &&
++            vc.validation_level == "full") {
++            allowlisted_full = true;
++            break;
++        }
++    }
++
++    if (allowlisted_full && active->registry_state == "verified") {
++        dec.state = DosCompatState::Verified;
++        dec.allowed = true;
++        dec.reason = "Verified combination (full validation).";
++        return dec;
++    }
++
++    dec.state = DosCompatState::Unverified;
++    dec.allowed = sel.allow_unverified;
++    dec.reason = "Unverified profile (validation='" + active->validation_level +
++                 "'). Enable Dev/Audit opt-in to test.";
++    return dec;
++}
++
++bool dos_mod_build_rom_from_registry(const DosRomPatchSet& builtin_patches,
++                                     const DosModRegistry& reg,
++                                     const DosModSelection& sel,
++                                     const std::string& base_rom_sha1,
++                                     std::vector<uint8_t>* out_rom,
++                                     DosActiveRomSelection* active_out,
++                                     DosConflictDecision* decision_out,
++                                     std::string* error_out) {
++    if (!out_rom || builtin_patches.rom_base.empty()) {
++        if (error_out) *error_out = "Base ROM is empty.";
++        return false;
++    }
++
++    const DosConflictDecision dec =
++        dos_mod_resolve_conflict(reg, sel, base_rom_sha1, builtin_patches);
++    if (decision_out) *decision_out = dec;
++    if (!dec.allowed) {
++        if (error_out) *error_out = dec.reason;
++        return false;
++    }
++
++    if (dec.uses_builtin_rom) {
++        const DosContentProfile prof =
++            (dec.active_profile_id == "definitive") ? DosContentProfile::Definitive
++                                                    : DosContentProfile::Original;
++        return dos_build_active_rom(builtin_patches, prof, sel.language, out_rom, active_out);
++    }
++
++    std::vector<uint8_t> patched;
++    std::string patch_err;
++    if (!dos_rom_patch_apply_file(builtin_patches.rom_base, dec.patch_path, &patched, &patch_err)) {
++        if (error_out) *error_out = "Failed to apply profile patch: " + patch_err;
++        return false;
++    }
++    *out_rom = std::move(patched);
++    if (active_out) {
++        active_out->actual_profile = DosContentProfile::Original;
++        active_out->actual_language = sel.language;
++        active_out->label = dec.active_profile_name +
++                            (dec.state == DosCompatState::Unverified ? " [Unverified]" : "");
++        active_out->modset_hash = short_sha1_vec(*out_rom);
++    }
++    return true;
++}
++
++std::string dos_mod_isolated_save_path(const std::string& base_save_path,
++                                       const std::string& profile_id,
++                                       const std::string& version,
++                                       const std::string& modset_hash) {
++    if (base_save_path.empty()) return {};
++    if (profile_id == "original" || profile_id.empty()) {
++        return dos_profile_save_path(base_save_path, DosContentProfile::Original);
++    }
++    if (profile_id == "definitive") {
++        return dos_profile_save_path(base_save_path, DosContentProfile::Definitive);
++    }
++    const fs::path p(base_save_path);
++    const std::string ns = dos_mod_profile_namespace(profile_id, version, modset_hash);
++    return (p.parent_path() / "profiles" / ns / p.filename()).string();
++}
++
++std::string dos_mod_isolated_savestate_dir(const std::string& base_savestate_dir,
++                                           const std::string& profile_id,
++                                           const std::string& version,
++                                           const std::string& modset_hash) {
++    if (base_savestate_dir.empty()) return {};
++    if (profile_id == "original" || profile_id.empty()) {
++        return dos_profile_savestate_dir(base_savestate_dir, DosContentProfile::Original);
++    }
++    if (profile_id == "definitive") {
++        return dos_profile_savestate_dir(base_savestate_dir, DosContentProfile::Definitive);
++    }
++    const std::string ns = dos_mod_profile_namespace(profile_id, version, modset_hash);
++    return (fs::path(base_savestate_dir) / "profiles" / ns).string();
++}
+diff --git a/runner/src/dos_mod_registry.h b/runner/src/dos_mod_registry.h
+new file mode 100644
+index 0000000..595350e
+--- /dev/null
++++ b/runner/src/dos_mod_registry.h
+@@ -0,0 +1,124 @@
++#pragma once
++
++#include <cstdint>
++#include <string>
++#include <vector>
++
++#include "dos_enhancements.h"
++#include "dos_mod_profile.h"
++
++enum class DosCompatState : uint8_t {
++    Verified = 0,
++    Unverified = 1,
++    Incompatible = 2,
++};
++
++struct DosModEntry {
++    std::string id;
++    std::string name;
++    std::string version = "1.0";
++    std::string kind;  // "baseline", "campaign", "character_pack"
++    std::string profile_file;
++    std::string author;
++    std::string summary;
++    std::string source_url;
++    std::string validation_level = "none";
++    std::string registry_state = "unverified";
++    std::string exclusive_group;
++    std::vector<std::string> allowed_character_packs;
++    std::vector<std::string> compatible_campaigns;
++    bool builtin = false;
++    bool manual_import = false;
++    bool supports_ptbr = false;
++    bool definitive_compatible = false;
++    bool installed = false;
++    std::string resolved_patch_path;
++};
++
++struct DosVerifiedCombo {
++    std::string campaign;
++    std::string character_pack;
++    std::string baseline;
++    std::string language;
++    std::string validation_level;
++};
++
++struct DosModRegistry {
++    std::string base_rom_sha1 = "47530ff87e608f88105a314fdf36dc385f8dec94";
++    std::string runtime_compat = "cdos-recomp-v1";
++    std::string registry_path;
++    std::string data_mods_dir;
++    std::vector<DosModEntry> baselines;
++    std::vector<DosModEntry> campaigns;
++    std::vector<DosModEntry> character_packs;
++    std::vector<DosVerifiedCombo> verified_combos;
++    bool loaded = false;
++};
++
++struct DosModSelection {
++    std::string campaign_id = "dawn-of-sorrow";
++    std::string character_pack_id = "default";
++    std::string baseline_id = "definitive";
++    DosLanguage language = DosLanguage::English;
++    bool allow_unverified = false;
++    std::string randomizer_seed;
++    std::string randomizer_preset = "standard";
++};
++
++struct DosConflictDecision {
++    DosCompatState state = DosCompatState::Incompatible;
++    bool allowed = false;
++    std::string reason;
++    std::string active_profile_id;
++    std::string active_profile_name;
++    std::string active_version = "1.0";
++    std::string patch_path;
++    std::string validation_level = "none";
++    bool uses_builtin_rom = false;
++};
++
++// Sanitizacao segura contra path traversal para IDs, versoes e seeds.
++std::string dos_mod_sanitize_id(const std::string& raw, const std::string& fallback = "");
++std::string dos_mod_sanitize_seed(const std::string& raw);
++std::string dos_mod_profile_namespace(const std::string& profile_id,
++                                      const std::string& version,
++                                      const std::string& modset_hash);
++
++// Escrita atomica segura (tmp + rename) para configs/metadados.
++bool dos_write_text_atomic(const std::string& path, const std::string& content);
++
++// Carrega {install}/mods/registry.json e inspeciona perfis instalados em {data}/mods/profiles/.
++bool dos_mod_registry_load(const std::string& registry_json_path,
++                           const std::string& data_mods_dir,
++                           DosModRegistry* out,
++                           std::string* error_out = nullptr);
++
++// Reescaneia {data}/mods/profiles/ sem alterar {install}/mods/registry.json.
++void dos_mod_registry_rescan_installed(DosModRegistry* reg);
++
++// Avalia combinacao pelo ConflictEngine de 3 estados (Verified / Unverified / Incompatible).
++DosConflictDecision dos_mod_resolve_conflict(const DosModRegistry& reg,
++                                             const DosModSelection& sel,
++                                             const std::string& base_rom_sha1,
++                                             const DosRomPatchSet& builtin_patches);
++
++// Constroi a ROM ativa em RAM a partir do registry + patches builtin ou DOSPATCH em {data}/mods/profiles/.
++bool dos_mod_build_rom_from_registry(const DosRomPatchSet& builtin_patches,
++                                     const DosModRegistry& reg,
++                                     const DosModSelection& sel,
++                                     const std::string& base_rom_sha1,
++                                     std::vector<uint8_t>* out_rom,
++                                     DosActiveRomSelection* active_out,
++                                     DosConflictDecision* decision_out = nullptr,
++                                     std::string* error_out = nullptr);
++
++// Isolamento de save e savestate por perfil, versao e hash (preserva caminhos do PR #15 para original/definitive).
++std::string dos_mod_isolated_save_path(const std::string& base_save_path,
++                                       const std::string& profile_id,
++                                       const std::string& version,
++                                       const std::string& modset_hash);
++
++std::string dos_mod_isolated_savestate_dir(const std::string& base_savestate_dir,
++                                           const std::string& profile_id,
++                                           const std::string& version,
++                                           const std::string& modset_hash);
 diff --git a/runner/src/dos_postprocess.frag.hlsl b/runner/src/dos_postprocess.frag.hlsl
 new file mode 100644
 index 0000000..64423b8
@@ -7024,7 +8105,7 @@ index 0000000..d01aa6e
 +                              std::vector<uint8_t>* out_rom,
 +                              std::string* error = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..6a86910 100644
+index 7ff4316..2ab7782 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,6 +14,7 @@
@@ -7058,12 +8139,18 @@ index 7ff4316..6a86910 100644
  #include "title_patches.h"
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
  #include "melonds_compute/ComputeHost.h"
-@@ -50,6 +58,13 @@ namespace {
+@@ -50,6 +58,19 @@ namespace {
  NdsFrontendLiveStats g_live_stats{};
  // Accessed only by the SDL/frontend owner, including debug_pump callbacks.
  bool g_frontend_paused = false;
 +NdsLanguageResetFn g_language_reset_fn{};
 +NdsContentResetFn g_content_reset_fn{};
++NdsModApplyFn g_mod_apply_fn{};
++std::function<void()> g_mod_rescan_fn{};
++const DosModRegistry* g_mod_registry = nullptr;
++const DosRomPatchSet* g_builtin_patches = nullptr;
++std::string g_base_rom_sha1;
++std::string g_active_save_path;
 +bool g_ptbr_patch_available = false;
 +bool g_definitive_patch_available = false;
 +std::string g_active_profile_label;
@@ -7072,7 +8159,7 @@ index 7ff4316..6a86910 100644
  NdsFrontendPacingStats g_pacing_stats{};
  uint64_t g_pacing_previous_counter = 0;
  
-@@ -721,15 +736,9 @@ constexpr int kWindowScale = 2;
+@@ -721,15 +742,9 @@ constexpr int kWindowScale = 2;
  constexpr uint64_t kSystemCyclesPerFrame = 2130ull * 263ull;
  constexpr int kAudioFrequency = 33513982 / 1024;
  constexpr uint32_t kAudioQueueFrames = 2048;
@@ -7091,7 +8178,7 @@ index 7ff4316..6a86910 100644
  constexpr uint32_t kAudioFrameBytes = 2u * sizeof(int16_t);
  constexpr uint32_t kAudioCapacityFrames = 65536;
  
-@@ -866,6 +875,14 @@ bool sdl_event_shift(const SDL_Event& event) {
+@@ -866,6 +881,14 @@ bool sdl_event_shift(const SDL_Event& event) {
  #endif
  }
  
@@ -7106,7 +8193,7 @@ index 7ff4316..6a86910 100644
  unsigned savestate_function_key(SDL_Scancode scancode) {
      if (scancode < SDL_SCANCODE_F1 || scancode > SDL_SCANCODE_F12)
          return 0u;
-@@ -1012,7 +1029,12 @@ uint32_t audio_queue_count(const NdsAudioDevice& device, AudioQueue& queue) {
+@@ -1012,7 +1035,12 @@ uint32_t audio_queue_count(const NdsAudioDevice& device, AudioQueue& queue) {
  
  uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
                       bool throttle, uint32_t pace_floor, bool& queue_error,
@@ -7120,7 +8207,7 @@ index 7ff4316..6a86910 100644
      if (!device) return 0;
      std::array<int16_t, 2048> samples{};
      size_t pcm_offset=0;
-@@ -1025,6 +1047,10 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
+@@ -1025,6 +1053,10 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
              std::copy_n(owned_pcm->data()+pcm_offset,frames*2u,samples.data());
              pcm_offset+=frames*2u;
          }
@@ -7131,7 +8218,7 @@ index 7ff4316..6a86910 100644
          bool pushed = false;
          while (!pushed) {
  #if defined(NDS_HAVE_SDL3)
-@@ -1188,26 +1214,228 @@ uint64_t framebuffer_rgb_fnv(int screen) {
+@@ -1188,26 +1220,228 @@ uint64_t framebuffer_rgb_fnv(int screen) {
      return hash;
  }
  
@@ -7364,7 +8451,7 @@ index 7ff4316..6a86910 100644
      return 0;
  }
  
-@@ -1215,12 +1443,151 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
+@@ -1215,12 +1449,151 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
                             int value) {
      auto* state = static_cast<RuntimeMenuState*>(context);
      if (!state || !state->options || !item) return 0;
@@ -7520,7 +8607,7 @@ index 7ff4316..6a86910 100644
          return 1;
      }
      return 0;
-@@ -1229,14 +1596,58 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
+@@ -1229,14 +1602,58 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
  int runtime_menu_run_action(void* context, const RecompRuntimeUiItem* item) {
      auto* state = static_cast<RuntimeMenuState*>(context);
      if (!state || !item) return 0;
@@ -7581,7 +8668,7 @@ index 7ff4316..6a86910 100644
      return 0;
  }
  
-@@ -1245,16 +1656,24 @@ int runtime_menu_is_enabled(void* context, const RecompRuntimeUiItem* item) {
+@@ -1245,16 +1662,24 @@ int runtime_menu_is_enabled(void* context, const RecompRuntimeUiItem* item) {
      if (!state || !state->options || !item) return 0;
      if (std::strcmp(item->key, kRuntimeMouseSensitivityKey) == 0)
          return state->options->relative_mouse_touch ? 1 : 0;
@@ -7610,7 +8697,7 @@ index 7ff4316..6a86910 100644
  }
  
  bool runtime_menu_key_input(SDL_Scancode scancode,
-@@ -1262,6 +1681,7 @@ bool runtime_menu_key_input(SDL_Scancode scancode,
+@@ -1262,6 +1687,7 @@ bool runtime_menu_key_input(SDL_Scancode scancode,
      if (!input) return false;
      switch (scancode) {
          case SDL_SCANCODE_ESCAPE:
@@ -7618,7 +8705,7 @@ index 7ff4316..6a86910 100644
              *input = RECOMP_RUNTIME_UI_INPUT_TOGGLE;
              return true;
          case SDL_SCANCODE_BACKSPACE:
-@@ -1348,18 +1768,37 @@ struct FrontendPresentation {
+@@ -1348,18 +1774,37 @@ struct FrontendPresentation {
      bool separate = false;
      bool pip = false;
      bool gl_top = false;
@@ -7656,7 +8743,7 @@ index 7ff4316..6a86910 100644
  };
  
  // docs/frame_interpolation.md, MVP blend mode. Holds the previous DS frame's
-@@ -1421,6 +1860,20 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1421,6 +1866,20 @@ void destroy_presentation(FrontendPresentation& presentation) {
          nds_survivor_host_stop();
      }
  #endif
@@ -7677,7 +8764,7 @@ index 7ff4316..6a86910 100644
      for (SDL_Texture*& texture : presentation.sample_targets) {
          if (texture) SDL_DestroyTexture(texture);
          texture = nullptr;
-@@ -1429,6 +1882,15 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1429,6 +1888,15 @@ void destroy_presentation(FrontendPresentation& presentation) {
          if (texture) SDL_DestroyTexture(texture);
          texture = nullptr;
      }
@@ -7693,7 +8780,7 @@ index 7ff4316..6a86910 100644
      if (presentation.separate && presentation.renderers[1])
          SDL_DestroyRenderer(presentation.renderers[1]);
      if (presentation.renderers[0])
-@@ -1443,34 +1905,42 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1443,34 +1911,42 @@ void destroy_presentation(FrontendPresentation& presentation) {
      presentation.windows[1] = nullptr;
  }
  
@@ -7758,7 +8845,7 @@ index 7ff4316..6a86910 100644
      if (const char* forced = std::getenv("NDS_SDL_RENDER_DRIVER")) {
          if (forced[0] != '\0') {
              renderer = SDL_CreateRenderer(window, forced);
-@@ -1480,21 +1950,79 @@ SDL_Renderer* create_renderer(SDL_Window* window,bool survivor_target=false) {
+@@ -1480,21 +1956,79 @@ SDL_Renderer* create_renderer(SDL_Window* window,bool survivor_target=false) {
                      forced, SDL_GetError());
          }
      }
@@ -7840,7 +8927,7 @@ index 7ff4316..6a86910 100644
  #endif
      return renderer;
  }
-@@ -1524,11 +2052,31 @@ bool set_window_fullscreen(SDL_Window* window, NdsFullscreenMode mode) {
+@@ -1524,11 +2058,31 @@ bool set_window_fullscreen(SDL_Window* window, NdsFullscreenMode mode) {
  #endif
  }
  
@@ -7875,7 +8962,7 @@ index 7ff4316..6a86910 100644
      return SDL_RenderSetLogicalSize(renderer, width, height) == 0;
  #endif
  }
-@@ -1612,12 +2160,240 @@ void convert_mouse_event_to_logical_coordinates(
+@@ -1612,12 +2166,240 @@ void convert_mouse_event_to_logical_coordinates(
  #endif
  }
  
@@ -7919,14 +9006,12 @@ index 7ff4316..6a86910 100644
 +    if (!renderer || w <= 0 || h <= 0) return false;
 +    int tw = 0, th = 0;
 +    if (presentation.hud_texture) {
- #if defined(NDS_HAVE_SDL3)
--    return SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
++#if defined(NDS_HAVE_SDL3)
 +        float fw = 0.0f, fh = 0.0f;
 +        SDL_GetTextureSize(presentation.hud_texture, &fw, &fh);
 +        tw = static_cast<int>(fw);
 +        th = static_cast<int>(fh);
- #else
--    return SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest) == 0;
++#else
 +        SDL_QueryTexture(presentation.hud_texture, nullptr, nullptr, &tw, &th);
 +#endif
 +        if (tw != w || th != h) {
@@ -7968,14 +9053,16 @@ index 7ff4316..6a86910 100644
 +    if (!renderer || w <= 0 || h <= 0) return false;
 +    int tw = 0, th = 0;
 +    if (presentation.menu_texture) {
-+#if defined(NDS_HAVE_SDL3)
+ #if defined(NDS_HAVE_SDL3)
+-    return SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 +        float fw = 0.0f, fh = 0.0f;
 +        SDL_GetTextureSize(presentation.menu_texture, &fw, &fh);
 +        tw = static_cast<int>(fw);
 +        th = static_cast<int>(fh);
-+#else
+ #else
+-    return SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest) == 0;
 +        SDL_QueryTexture(presentation.menu_texture, nullptr, nullptr, &tw, &th);
-+#endif
+ #endif
 +        if (tw != w || th != h) {
 +            SDL_DestroyTexture(presentation.menu_texture);
 +            presentation.menu_texture = nullptr;
@@ -8062,7 +9149,7 @@ index 7ff4316..6a86910 100644
 +            SDL_SetRenderVSync(presentation.renderers[s], want_vsync);
 +        }
 +    }
- #endif
++#endif
 +    if (!presentation.separate && !presentation.gl_top) {
 +        if (options.screen_layout != NdsScreenLayout::Separate) {
 +            presentation.layout = options.screen_layout;
@@ -8118,7 +9205,7 @@ index 7ff4316..6a86910 100644
  }
  
  void render_texture(SDL_Renderer* renderer, SDL_Texture* texture,
-@@ -1750,11 +2526,26 @@ void draw_savestate_notice(SDL_Renderer* renderer,
+@@ -1750,11 +2532,26 @@ void draw_savestate_notice(SDL_Renderer* renderer,
  bool create_presentation(const NdsFrontendOptions& options,
                           FrontendPresentation& presentation,
                           bool allow_gl_top = true) {
@@ -8145,7 +9232,7 @@ index 7ff4316..6a86910 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
      const char* direct_selection =
          std::getenv("NDS_COMPUTE_DIRECT_PRESENT");
-@@ -1764,12 +2555,15 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1764,12 +2561,15 @@ bool create_presentation(const NdsFrontendOptions& options,
      const bool direct_top_requested =
          (options.adaptive_screens & NDS_ADAPTIVE_TOP) != 0u ||
          options.internal_resolution > 1u;
@@ -8162,7 +9249,7 @@ index 7ff4316..6a86910 100644
  #endif
      presentation.antialiasing = options.antialiasing;
      const int aa_scale = presentation.gl_top ? 1 : options.antialiasing >= 8 ? 4 :
-@@ -1784,26 +2578,29 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1784,26 +2584,29 @@ bool create_presentation(const NdsFrontendOptions& options,
                  options.adaptive_max_width[screen];
          }
      }
@@ -8206,7 +9293,7 @@ index 7ff4316..6a86910 100644
          top_window_flags);
      if (!presentation.windows[0]) {
          std::fprintf(stderr, "[sdl] window failed: %s\n", SDL_GetError());
-@@ -1830,8 +2627,10 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1830,8 +2633,10 @@ bool create_presentation(const NdsFrontendOptions& options,
              presentation.separate || presentation.pip, options.window_scale, coordinate_scale,
              usable.w, usable.h);
          SDL_SetWindowSize(presentation.windows[0],
@@ -8219,7 +9306,7 @@ index 7ff4316..6a86910 100644
              initial_size.height);
          SDL_SetWindowPosition(presentation.windows[0],
              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-@@ -1847,12 +2646,16 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1847,12 +2652,16 @@ bool create_presentation(const NdsFrontendOptions& options,
              initial_size.height, initial_size.bottom_width, initial_size.height);
      }
      if (!presentation.gl_top) {
@@ -8237,7 +9324,7 @@ index 7ff4316..6a86910 100644
      }
  
      if (presentation.separate) {
-@@ -1873,10 +2676,15 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1873,10 +2682,15 @@ bool create_presentation(const NdsFrontendOptions& options,
              return false;
          }
          presentation.renderers[1] =
@@ -8255,7 +9342,7 @@ index 7ff4316..6a86910 100644
              );
          if (!presentation.renderers[1]) {
              std::fprintf(stderr, "[sdl] bottom renderer failed: %s\n",
-@@ -1905,6 +2713,38 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1905,6 +2719,38 @@ bool create_presentation(const NdsFrontendOptions& options,
          return false;
      }
  
@@ -8294,7 +9381,7 @@ index 7ff4316..6a86910 100644
      for (int screen = 0; screen < 2; ++screen) {
          if ((screen == 0 || presentation.pip) && presentation.gl_top) {
              presentation.window_ids[screen] =
-@@ -1920,30 +2760,20 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1920,30 +2766,20 @@ bool create_presentation(const NdsFrontendOptions& options,
                  presentation.separate
                      ? presentation.screen_widths[screen]
                      : presentation.canvas_width,
@@ -8336,7 +9423,7 @@ index 7ff4316..6a86910 100644
              destroy_presentation(presentation);
              return false;
          }
-@@ -1977,8 +2807,24 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1977,8 +2813,24 @@ bool create_presentation(const NdsFrontendOptions& options,
      return true;
  }
  
@@ -8362,7 +9449,7 @@ index 7ff4316..6a86910 100644
      SDL_Renderer* renderer = presentation.renderers[screen];
      SDL_Texture* source = presentation.textures[screen];
      if (presentation.sample_scale > 1 && presentation.sample_targets[screen]) {
-@@ -1989,6 +2835,15 @@ void render_screen(FrontendPresentation& presentation, int screen,
+@@ -1989,6 +2841,15 @@ void render_screen(FrontendPresentation& presentation, int screen,
          SDL_SetRenderTarget(renderer, nullptr);
          source = presentation.sample_targets[screen];
      }
@@ -8378,7 +9465,7 @@ index 7ff4316..6a86910 100644
      // Apply PiP alpha only on the final copy, never the SSAA intermediate.
      SDL_BlendMode blend{};
      uint8_t alpha = 255;
-@@ -2003,6 +2858,9 @@ void render_screen(FrontendPresentation& presentation, int screen,
+@@ -2003,6 +2864,9 @@ void render_screen(FrontendPresentation& presentation, int screen,
          SDL_SetTextureAlphaMod(source, alpha);
          SDL_SetTextureBlendMode(source, blend);
      }
@@ -8388,7 +9475,7 @@ index 7ff4316..6a86910 100644
  }
  
  struct PresentationTicks {
-@@ -2107,6 +2965,7 @@ struct OwnedPresentationFrame {
+@@ -2107,6 +2971,7 @@ struct OwnedPresentationFrame {
  #endif
  
  PresentationTicks present_screens(FrontendPresentation& presentation,
@@ -8396,7 +9483,7 @@ index 7ff4316..6a86910 100644
                                    const uint32_t* top_pixels,
                                    int top_width,
                                    const uint32_t* bottom_pixels,
-@@ -2115,10 +2974,13 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2115,10 +2980,13 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
                                    bool virtual_stylus_visible,
                                    float virtual_stylus_x,
                                    float virtual_stylus_y,
@@ -8411,7 +9498,7 @@ index 7ff4316..6a86910 100644
                                    ) {
      PresentationTicks ticks{};
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
-@@ -2128,7 +2990,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2128,7 +2996,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
          // Before the first GPU publication, and immediately after a paused
          // state load, the canonical saved CPU images are the current frame.
          const auto p=nds_screen_placement(NdsScreenLayout::PictureInPicture,
@@ -8420,7 +9507,7 @@ index 7ff4316..6a86910 100644
          std::vector<uint32_t> pixels(size_t(p.width)*p.height,0xFF000000u);
          const uint32_t* sources[2]{top_pixels,bottom_pixels};const int widths[2]{top_width,bottom_width};
          for(unsigned layer=0;layer<2;++layer) {
-@@ -2151,7 +3013,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2151,7 +3019,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
      }
      if(presentation.pip && presentation.gl_top && survivors) {
          const auto placement=nds_screen_placement(NdsScreenLayout::PictureInPicture,
@@ -8429,7 +9516,7 @@ index 7ff4316..6a86910 100644
          std::vector<uint32_t> black[2],white[2];
          const bool menu=runtime_ui&&(recomp_runtime_ui_is_open(runtime_ui)||recomp_runtime_ui_toast_visible(runtime_ui));
          for(unsigned screen=0;screen<2;++screen) {
-@@ -2306,37 +3168,261 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2306,37 +3174,261 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
  #endif
          return ticks;
      }
@@ -8714,7 +9801,7 @@ index 7ff4316..6a86910 100644
          start = SDL_GetPerformanceCounter();
          SDL_RenderPresent(renderer);
          ticks.swap += SDL_GetPerformanceCounter() - start;
-@@ -2348,15 +3434,47 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2348,15 +3440,47 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
              0, 0, presentation.screen_widths[screen], kScreenHeight};
          SDL_Renderer* renderer = presentation.renderers[screen];
          start = SDL_GetPerformanceCounter();
@@ -8764,7 +9851,7 @@ index 7ff4316..6a86910 100644
          start = SDL_GetPerformanceCounter();
          SDL_RenderPresent(renderer);
          ticks.swap += SDL_GetPerformanceCounter() - start;
-@@ -2369,6 +3487,21 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2369,6 +3493,21 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
  int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      g_frontend_thread = std::this_thread::get_id();
      NdsFrontendOptions options = initial_options;
@@ -8786,7 +9873,7 @@ index 7ff4316..6a86910 100644
      SDL_SetMainReady();
      // SDL_INIT_TIMER matters on Windows: it raises the OS timer resolution
      // to 1 ms (SDL_HINT_TIMER_RESOLUTION default). Without it SDL_Delay(1)
-@@ -2395,30 +3528,56 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2395,30 +3534,56 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          SDL_Quit();
          return 1;
      }
@@ -8861,7 +9948,7 @@ index 7ff4316..6a86910 100644
      const uint16_t output_width = static_cast<uint16_t>(std::max(
          presentation.screen_widths[0],
          presentation.screen_widths[1]));
-@@ -2447,12 +3606,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2447,12 +3612,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          SDL_Quit();
          return 1;
      }
@@ -8879,7 +9966,7 @@ index 7ff4316..6a86910 100644
      }
      // The adaptive compositor only pays for the extra per-pixel stores when
      // something can consume them.
-@@ -2461,6 +3620,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2461,6 +3626,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_texture_upscale_set_factor(options.texture_upscale);
  
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
@@ -8899,7 +9986,7 @@ index 7ff4316..6a86910 100644
      // Activate only after every fallible visible-frontend allocation. From
      // here onward teardown always destroys the compute renderer while this
      // context is current.
-@@ -2508,6 +3680,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2508,6 +3686,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          std::strcmp(window_direct, "1") == 0 : qualified_hd_windows;
      nds_gpu2d_set_direct_windows(window_requested &&
          (qualified_hd_windows || options.internal_resolution == 1u));
@@ -8907,7 +9994,7 @@ index 7ff4316..6a86910 100644
  #else
      if (nds_gpu3d_renderer_policy() == NdsGpu3dRendererPolicy::Auto) {
          std::fprintf(stderr,
-@@ -2601,9 +3774,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2601,9 +3780,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      std::fputs("[sdl] keyboard:", stderr);
      for (size_t row = 0; row < options.keyboard_bindings.size(); ++row)
          std::fprintf(stderr, " %s=%s", kNdsButtonNames[row],
@@ -8929,7 +10016,7 @@ index 7ff4316..6a86910 100644
      if (options.relative_mouse_touch) {
          std::fprintf(stderr,
              "[sdl] relative mouse: click game screen to capture; "
-@@ -2686,8 +3869,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2686,8 +3875,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          ? sdl_controller_id(controller)
          : -1;
      uint16_t keyboard_pressed = 0;
@@ -8942,7 +10029,7 @@ index 7ff4316..6a86910 100644
      uint16_t mph_prime_pressed = 0;
      // Left analog stick mapped to the D-pad (movement in MPH, menus
      // everywhere), kept separate from button-event state so a wobbling
-@@ -2697,29 +3884,164 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2697,29 +3890,164 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          nds_set_key_mask(static_cast<uint16_t>(
              0x0FFFu &
              ~(keyboard_pressed | controller_pressed | mouse_pressed |
@@ -9123,7 +10210,7 @@ index 7ff4316..6a86910 100644
      runtime_menu_config.callbacks.context = &runtime_menu_state;
      runtime_menu_config.callbacks.get_value = runtime_menu_get_value;
      runtime_menu_config.callbacks.set_value = runtime_menu_set_value;
-@@ -2731,6 +4053,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2731,6 +4059,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      runtime_menu_config.back_label = "B / Backspace";
      RecompRuntimeUi* runtime_ui =
          recomp_runtime_ui_create(&runtime_menu_config);
@@ -9131,7 +10218,7 @@ index 7ff4316..6a86910 100644
      if (!runtime_ui) {
          std::fprintf(stderr, "[sdl] runtime menu unavailable\n");
      }
-@@ -2991,8 +4314,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2991,8 +4320,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              nds_set_touch(0, 0, false);
              std::fprintf(stderr, "[sdl] relative mouse released\n");
          }
@@ -9143,7 +10230,7 @@ index 7ff4316..6a86910 100644
              publish_keys();
          }
          clear_mph_prime_controls();
-@@ -3037,13 +4362,65 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3037,13 +4368,66 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          std::getenv("NDS_FRONTEND_SELFTEST_RELATIVE_MOUSE") != nullptr;
      const uint64_t relative_mouse_selftest_start_vblank =
          environment_u64("NDS_FRONTEND_SELFTEST_RELATIVE_MOUSE_VBLANK");
@@ -9200,6 +10287,7 @@ index 7ff4316..6a86910 100644
 +    bool imgui_backup_save_requested = false;
 +    bool imgui_language_swap_requested = false;
 +    bool imgui_content_swap_requested = false;
++    bool imgui_rescan_mods_requested = false;
 +    bool imgui_play_intro_requested = false;
 +    bool imgui_defaults_reset_requested = false;
 +    int imgui_save_slot_requested = 0;
@@ -9210,7 +10298,7 @@ index 7ff4316..6a86910 100644
      bool presentation_window_focused[2] = {
          (SDL_GetWindowFlags(presentation.windows[0]) &
           SDL_WINDOW_INPUT_FOCUS) != 0,
-@@ -3059,14 +4436,58 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3059,14 +4443,63 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (options.tab_turbo) turbo_pressed = false;
      };
      auto runtime_menu_open = [&]() {
@@ -9240,6 +10328,7 @@ index 7ff4316..6a86910 100644
 +    imgui_ctx.load_slot_requested = &imgui_load_slot_requested;
 +    imgui_ctx.language_swap_requested = &imgui_language_swap_requested;
 +    imgui_ctx.content_swap_requested = &imgui_content_swap_requested;
++    imgui_ctx.rescan_mods_requested = &imgui_rescan_mods_requested;
 +    imgui_ctx.play_intro_requested = &imgui_play_intro_requested;
 +    imgui_ctx.defaults_reset_requested = &imgui_defaults_reset_requested;
 +    imgui_ctx.ptbr_patch_available = g_ptbr_patch_available;
@@ -9247,6 +10336,10 @@ index 7ff4316..6a86910 100644
 +    imgui_ctx.intro_video_available = intro_video_available;
 +    imgui_ctx.active_profile_label = g_active_profile_label.c_str();
 +    imgui_ctx.active_modset_hash = g_active_modset_hash.c_str();
++    imgui_ctx.active_save_path = g_active_save_path.c_str();
++    imgui_ctx.mod_registry = g_mod_registry;
++    imgui_ctx.builtin_patches = g_builtin_patches;
++    imgui_ctx.base_rom_sha1 = g_base_rom_sha1.c_str();
 +    imgui_ctx.active_driver = presentation.active_driver.c_str();
 +    imgui_ctx.active_shader_format =
 +        presentation.gpu_shader_active[0]
@@ -9269,7 +10362,7 @@ index 7ff4316..6a86910 100644
          mph_prime_pressed = 0;
          mph_prime_pad_engaged = false;
          mph_pad_trigger_left_held = false;
-@@ -3079,13 +4500,39 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3079,13 +4512,39 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          nds_set_touch(0, 0, false);
          publish_keys();
      };
@@ -9309,7 +10402,7 @@ index 7ff4316..6a86910 100644
      };
      uint32_t audio_pace_floor = kAudioQueueFrames;
      uint32_t audio_min_queue = std::numeric_limits<uint32_t>::max();
-@@ -3183,6 +4630,35 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3183,6 +4642,35 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          NdsSavestateSlotResult completed{};
          if (nds_savestate_slot_poll_save(&completed)) show_savestate_result(completed);
      };
@@ -9345,7 +10438,7 @@ index 7ff4316..6a86910 100644
  
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
      // Captured producer data must outlive the handoff's exception-path drain.
-@@ -3216,6 +4692,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3216,6 +4704,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      }
  #endif
      g_frontend_paused = options.start_paused;
@@ -9371,7 +10464,7 @@ index 7ff4316..6a86910 100644
      bool audio_review_paused = false;
      while (running) {
          finish_pending_save(false);
-@@ -3237,7 +4732,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3237,7 +4744,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // client is connected). See debug_server.h.
          publish_input_debug();
          debug_pump();
@@ -9381,7 +10474,7 @@ index 7ff4316..6a86910 100644
              // Every previous producer was joined before this safe point.
              // Drop wall-clock audio backlog, then resume through the ordinary
              // short prebuffer rather than playing catch-up after a long pause.
-@@ -3247,7 +4743,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3247,7 +4755,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
              audio_pace_floor = kAudioQueueFrames;
@@ -9390,7 +10483,7 @@ index 7ff4316..6a86910 100644
              fps_frames = 0;
              fps_start = SDL_GetPerformanceCounter();
              g_pacing_previous_counter = 0;
-@@ -3461,6 +4957,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3461,6 +4969,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  compute_failed=true;running=false;break;
              }
  #endif
@@ -9398,7 +10491,7 @@ index 7ff4316..6a86910 100644
              convert_mouse_event_to_logical_coordinates(event, presentation);
              if (event.type == SDL_QUIT) {
                  release_relative_mouse();
-@@ -3491,6 +4988,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3491,6 +5000,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      presentation_window_focused[index] = true;
                  focus_release_pending = false;
              }
@@ -9472,7 +10565,7 @@ index 7ff4316..6a86910 100644
              // NDS_DEBUG_KEYEV=1: trace every polled keyboard event to stderr.
              // Exists because an injected key that vanishes between
              // SDL_PushEvent (debug pump, counted) and this loop is otherwise
-@@ -3507,10 +5071,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3507,10 +5083,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                               (int)sdl_event_scancode(event),
                               (int)event.key.repeat);
              }
@@ -9511,7 +10604,7 @@ index 7ff4316..6a86910 100644
                  const bool known = runtime_menu_key_input(
                      scancode, &menu_input);
                  if (known && runtime_ui &&
-@@ -3524,118 +5115,141 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3524,118 +5127,141 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      finish_runtime_menu_input(was_open);
                      continue;
                  }
@@ -9745,7 +10838,7 @@ index 7ff4316..6a86910 100644
                  if (runtime_menu_controller_input(button, &menu_input) &&
                      runtime_ui &&
                      recomp_runtime_ui_handle_input(
-@@ -3685,6 +5299,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3685,6 +5311,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (event.type == SDL_MOUSEBUTTONDOWN ||
                   event.type == SDL_MOUSEBUTTONUP ||
                   event.type == SDL_MOUSEMOTION)) {
@@ -9771,7 +10864,7 @@ index 7ff4316..6a86910 100644
                  continue;
              }
              const bool primary_left_down =
-@@ -3701,7 +5334,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3701,7 +5346,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (bottom_left_down && mph_prime_unified_window_focus);
              const NdsStackedRelativeMouseRoute stacked_left_route =
                  primary_left_down && !presentation.separate
@@ -9780,7 +10873,7 @@ index 7ff4316..6a86910 100644
                         nds_screen_touch_position(touch_placement,presentation.screen_widths[1],event.button.x,event.button.y,nullptr,nullptr)
                          ? NdsStackedRelativeMouseRoute::Touchscreen : nds_route_stacked_relative_mouse_button(
                          options.relative_mouse_touch,
-@@ -3816,6 +5449,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3816,6 +5461,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      set_touch_from_mouse(event.button.x, event.button.y, false,
                                           touch_placement, presentation.screen_widths[1]);
              }
@@ -9802,7 +10895,7 @@ index 7ff4316..6a86910 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5526,205 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5538,235 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -9899,6 +10992,11 @@ index 7ff4316..6a86910 100644
 +                show_dos_toast(dos_tr(options.dos.ui_language, DosStrId::ToastBackupFailed), "");
 +            }
 +        }
++        if (imgui_rescan_mods_requested) {
++            imgui_rescan_mods_requested = false;
++            if (g_mod_rescan_fn) g_mod_rescan_fn();
++            show_dos_toast(dos_tr(options.dos.ui_language, DosStrId::ToastModsRescanned), "");
++        }
 +        if (imgui_language_swap_requested || imgui_content_swap_requested) {
 +            const bool profile_changed = imgui_content_swap_requested;
 +            imgui_language_swap_requested = false;
@@ -9907,7 +11005,28 @@ index 7ff4316..6a86910 100644
 +            imgui_settings_dirty = false;
 +            imgui_settings_dirty_at = 0;
 +            bool swapped = false;
-+            if (g_content_reset_fn) {
++            std::string swap_err;
++            if (g_mod_apply_fn) {
++                std::string new_savestate_dir;
++                std::string new_save_path;
++                std::string new_label;
++                std::string new_hash;
++                swapped = g_mod_apply_fn(
++                    &options.dos, &new_savestate_dir, &new_save_path,
++                    &new_label, &new_hash, &swap_err);
++                if (swapped) {
++                    if (!new_savestate_dir.empty()) {
++                        options.savestate_directory = new_savestate_dir;
++                        imgui_ctx.savestate_dir = new_savestate_dir;
++                    }
++                    if (!new_save_path.empty()) g_active_save_path = new_save_path;
++                    if (!new_label.empty()) g_active_profile_label = new_label;
++                    if (!new_hash.empty()) g_active_modset_hash = new_hash;
++                    imgui_ctx.active_save_path = g_active_save_path.c_str();
++                    imgui_ctx.active_profile_label = g_active_profile_label.c_str();
++                    imgui_ctx.active_modset_hash = g_active_modset_hash.c_str();
++                }
++            } else if (g_content_reset_fn) {
 +                std::string new_savestate_dir;
 +                std::string new_label;
 +                std::string new_hash;
@@ -9929,6 +11048,7 @@ index 7ff4316..6a86910 100644
 +            }
 +            if (swapped) {
 +                sync_live_display();
++                save_all_runtime_settings(runtime_menu_state);
 +                audio_presentation_epoch = nds_spu_presentation_epoch();
 +                blend_cache.valid = false;
 +                ++g_frame_digest_epoch;
@@ -9937,6 +11057,9 @@ index 7ff4316..6a86910 100644
 +                           profile_changed ? DosStrId::ToastProfileChanged
 +                                           : DosStrId::ToastLanguageChanged),
 +                    g_active_profile_label.c_str());
++            } else if (!swap_err.empty()) {
++                show_dos_toast(dos_tr(options.dos.ui_language, DosStrId::BadgeIncompatible),
++                               swap_err.c_str());
 +            }
 +        }
 +        if (imgui_play_intro_requested) {
@@ -10008,7 +11131,7 @@ index 7ff4316..6a86910 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +5736,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +5778,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -10090,7 +11213,7 @@ index 7ff4316..6a86910 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +5787,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +5829,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -10099,7 +11222,7 @@ index 7ff4316..6a86910 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6023,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6065,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -10109,7 +11232,7 @@ index 7ff4316..6a86910 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6035,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6077,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -10118,7 +11241,7 @@ index 7ff4316..6a86910 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6049,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6091,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -10129,7 +11252,7 @@ index 7ff4316..6a86910 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4218,11 +6075,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4218,11 +6117,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                              screen, &widths[screen]);
                  }
              }
@@ -10151,7 +11274,7 @@ index 7ff4316..6a86910 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4417,12 +6282,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6324,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -10172,7 +11295,7 @@ index 7ff4316..6a86910 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6311,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6353,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -10207,7 +11330,7 @@ index 7ff4316..6a86910 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,7 +6417,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,7 +6459,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -10216,7 +11339,7 @@ index 7ff4316..6a86910 100644
          if (audio_pace_floor > kAudioQueueFrames + kGlideStepFrames)
              audio_pace_floor -= kGlideStepFrames;
          else
-@@ -4542,12 +6427,20 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4542,12 +6469,20 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (turbo_active) {
              if (!cpu_handoff) discard_spu_output();
          } else {
@@ -10239,7 +11362,7 @@ index 7ff4316..6a86910 100644
                  );
          }
          const uint64_t frame_drain_ticks =
-@@ -4620,17 +6513,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +6555,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -10297,7 +11420,7 @@ index 7ff4316..6a86910 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,6 +6620,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,6 +6662,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -10308,7 +11431,7 @@ index 7ff4316..6a86910 100644
      if (controller) SDL_GameControllerClose(controller);
      if (runtime_ui) {
          g_runtime_menu_ui = nullptr;
-@@ -5053,3 +6987,24 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7029,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -10330,11 +11453,25 @@ index 7ff4316..6a86910 100644
 +    g_active_modset_hash = std::move(active_hash);
 +}
 +
++void nds_frontend_set_mod_context(const DosModRegistry* registry,
++                                  const DosRomPatchSet* builtin_patches,
++                                  std::string base_rom_sha1,
++                                  std::string active_save_path,
++                                  std::function<void()> rescan_fn,
++                                  NdsModApplyFn apply_fn) {
++    g_mod_registry = registry;
++    g_builtin_patches = builtin_patches;
++    g_base_rom_sha1 = std::move(base_rom_sha1);
++    g_active_save_path = std::move(active_save_path);
++    g_mod_rescan_fn = std::move(rescan_fn);
++    g_mod_apply_fn = std::move(apply_fn);
++}
++
 +void nds_frontend_set_soft_reset_fn(std::function<void()> fn) {
 +    g_soft_reset_fn = std::move(fn);
 +}
 diff --git a/runner/src/frontend.h b/runner/src/frontend.h
-index 41b6110..fccd77c 100644
+index 41b6110..4de30c9 100644
 --- a/runner/src/frontend.h
 +++ b/runner/src/frontend.h
 @@ -1,10 +1,12 @@
@@ -10350,32 +11487,48 @@ index 41b6110..fccd77c 100644
  #include "../../launcher/nds_input_bindings.h"
  #include "screen_layout.h"
  
-@@ -332,6 +334,9 @@ struct NdsFrontendOptions {
+@@ -332,6 +334,11 @@ struct NdsFrontendOptions {
      // Optional launcher-owned settings file. Runtime-only menu changes update
      // the existing key/value file when the launcher passes this path.
      std::string runtime_settings_path;
 +    std::string intro_video_path;
++    std::string mod_registry_path;
++    std::string mod_data_dir;
 +    std::string game_title;
 +    DosEnhancementSettings dos{};
  };
  
  // Parse [display] settings from a game TOML. Missing [display] is valid.
-@@ -585,3 +590,16 @@ uint64_t nds_frontend_frame_digest_count();
+@@ -585,3 +592,30 @@ uint64_t nds_frontend_frame_digest_count();
  // Returns the number copied; 0 when the window has already been evicted.
  uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
                                      NdsFrontendFrameDigest* out);
 +
++struct DosModRegistry;
++struct DosRomPatchSet;
 +using NdsLanguageResetFn = std::function<bool(DosLanguage)>;
 +using NdsContentResetFn = std::function<bool(DosContentProfile*, DosLanguage*,
 +                                             std::string* savestate_dir_out,
 +                                             std::string* label_out,
 +                                             std::string* hash_out)>;
++using NdsModApplyFn = std::function<bool(DosEnhancementSettings* settings_io,
++                                         std::string* savestate_dir_out,
++                                         std::string* save_path_out,
++                                         std::string* label_out,
++                                         std::string* hash_out,
++                                         std::string* error_out)>;
 +void nds_frontend_set_language_reset_fn(NdsLanguageResetFn fn, bool ptbr_available);
 +void nds_frontend_set_content_reset_fn(NdsContentResetFn fn,
 +                                       bool definitive_available,
 +                                       bool ptbr_available,
 +                                       std::string active_label,
 +                                       std::string active_hash);
++void nds_frontend_set_mod_context(const DosModRegistry* registry,
++                                  const DosRomPatchSet* builtin_patches,
++                                  std::string base_rom_sha1,
++                                  std::string active_save_path,
++                                  std::function<void()> rescan_fn,
++                                  NdsModApplyFn apply_fn);
 +void nds_frontend_set_soft_reset_fn(std::function<void()> fn);
 diff --git a/runner/src/frontend_config.cpp b/runner/src/frontend_config.cpp
 index 1762e25..a1ca1b9 100644
@@ -10665,20 +11818,21 @@ index 7c9f618..e654065 100644
  
  bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..cf0ca83 100644
+index afa9e18..37daca0 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
-@@ -55,6 +55,9 @@
+@@ -55,6 +55,10 @@
  // so NDS_RUNNER_BUILD_ID is the commit this binary was actually compiled from
  // rather than whatever HEAD was when cmake last configured.
  #include "nds_build_id.h"
 +#include "dos_enhancements.h"
 +#include "dos_mod_profile.h"
++#include "dos_mod_registry.h"
 +#include "dos_rom_patch.h"
  #include "frontend.h"
  #include "gpu2d.h"
  #include "gpu2d_window.h"
-@@ -79,10 +82,12 @@
+@@ -79,10 +83,12 @@
  #endif
  
  // Generated per-CPU dispatch tables (C linkage).
@@ -10691,7 +11845,7 @@ index afa9e18..cf0ca83 100644
  extern "C" const DispatchEntry g_dispatch_freebios_arm9[];
  extern "C" const unsigned g_dispatch_freebios_arm9_len;
  extern "C" const DispatchEntry g_dispatch_freebios_arm7[];
-@@ -446,6 +451,11 @@ int main(int argc, char** argv) {
+@@ -446,6 +452,16 @@ int main(int argc, char** argv) {
      std::string cli_diagnostics_dir;
      std::string cli_diagnostics_interval_ms;
      std::string cli_runtime_settings_path;
@@ -10700,10 +11854,15 @@ index afa9e18..cf0ca83 100644
 +    std::string cli_definitive_ptbr_patch_path;
 +    std::string cli_content_profile;
 +    std::string cli_intro_video_path;
++    std::string cli_mod_registry_path;
++    std::string cli_mod_data_dir;
++    std::string cli_campaign_id;
++    std::string cli_character_pack_id;
++    bool cli_allow_unverified_mods = false;
      // beads-yjp.28: where the Tier-3 coverage manifest lands. Empty means
      // "derive it" (next to the save, else next to the ROM). Written on every
      // exit path, with no flag required, so a player's ordinary session yields
-@@ -531,6 +541,16 @@ int main(int argc, char** argv) {
+@@ -531,6 +547,26 @@ int main(int argc, char** argv) {
              cli_diagnostics_interval_ms = argv[++i];
          } else if (a == "--runtime-settings-path" && i + 1 < argc) {
              cli_runtime_settings_path = argv[++i];
@@ -10717,10 +11876,20 @@ index afa9e18..cf0ca83 100644
 +            cli_content_profile = argv[++i];
 +        } else if (a == "--intro-video" && i + 1 < argc) {
 +            cli_intro_video_path = argv[++i];
++        } else if (a == "--mod-registry" && i + 1 < argc) {
++            cli_mod_registry_path = argv[++i];
++        } else if (a == "--mod-data-dir" && i + 1 < argc) {
++            cli_mod_data_dir = argv[++i];
++        } else if (a == "--campaign" && i + 1 < argc) {
++            cli_campaign_id = argv[++i];
++        } else if (a == "--character-pack" && i + 1 < argc) {
++            cli_character_pack_id = argv[++i];
++        } else if (a == "--allow-unverified-mods") {
++            cli_allow_unverified_mods = true;
          } else if (a == "--coverage-manifest" && i + 1 < argc) {
              cli_coverage_manifest = argv[++i];
          } else if (a == "--no-coverage-manifest") {
-@@ -718,6 +738,11 @@ int main(int argc, char** argv) {
+@@ -718,6 +754,13 @@ int main(int argc, char** argv) {
                  "[--diagnostics on|off] [--diagnostics-dir dir] "
                  "[--diagnostics-interval-ms ms] "
                  "[--runtime-settings-path FILE] "
@@ -10729,14 +11898,18 @@ index afa9e18..cf0ca83 100644
 +                "[--definitive-ptbr-patch FILE] "
 +                "[--content-profile original|definitive] "
 +                "[--intro-video FILE] "
++                "[--mod-registry FILE] [--mod-data-dir DIR] "
++                "[--campaign ID] [--character-pack ID] [--allow-unverified-mods] "
                  "[--coverage-manifest out.json|--no-coverage-manifest] "
                  "[--firmware-path firmware.bin] "
                  "[--firmware-state-path mutable-firmware.bin] "
-@@ -824,12 +849,14 @@ int main(int argc, char** argv) {
+@@ -824,12 +867,16 @@ int main(int argc, char** argv) {
          return 2;
      }
      frontend_options.runtime_settings_path = cli_runtime_settings_path;
 +    frontend_options.intro_video_path = cli_intro_video_path;
++    frontend_options.mod_registry_path = cli_mod_registry_path;
++    frontend_options.mod_data_dir = cli_mod_data_dir;
      if (const char* value = std::getenv("NDS_SCREEN_LAYOUT")) {
          if (!nds_parse_screen_layout(value,
                                       &frontend_options.screen_layout)) {
@@ -10748,7 +11921,7 @@ index afa9e18..cf0ca83 100644
              return 2;
          }
      }
-@@ -959,7 +986,8 @@ int main(int argc, char** argv) {
+@@ -959,7 +1006,8 @@ int main(int argc, char** argv) {
                                   &frontend_options.screen_layout)) {
          std::fprintf(stderr,
                       "invalid --screen-layout "
@@ -10758,7 +11931,7 @@ index afa9e18..cf0ca83 100644
          return 2;
      }
      if ((!cli_pip_corner.empty() && !nds_parse_pip_corner(cli_pip_corner, &frontend_options.pip_corner)) ||
-@@ -1615,6 +1643,20 @@ int main(int argc, char** argv) {
+@@ -1615,6 +1663,20 @@ int main(int argc, char** argv) {
  
      if (cli_generated_firmware) frontend_options.generated_firmware = true;
      if (cli_freebios) frontend_options.freebios = true;
@@ -10779,7 +11952,7 @@ index afa9e18..cf0ca83 100644
      if (frontend_options.freebios &&
          frontend_options.boot_mode != NdsBootMode::Direct) {
          // A reimplemented BIOS cannot boot the firmware menu (melonDS
-@@ -1758,6 +1800,15 @@ int main(int argc, char** argv) {
+@@ -1758,6 +1820,15 @@ int main(int argc, char** argv) {
              return 1;
          }
      }
@@ -10795,7 +11968,7 @@ index afa9e18..cf0ca83 100644
      std::string execution_error;
      if (!nds_execution_model_select(cli_execution_model, rom_sha1, execution_error)) {
          std::fprintf(stderr, "refusing to start: %s\n", execution_error.c_str());
-@@ -2151,6 +2202,64 @@ int main(int argc, char** argv) {
+@@ -2151,6 +2222,138 @@ int main(int argc, char** argv) {
              "(LLE-faithful, reads real firmware dump over SPI)\n");
      }
  
@@ -10830,27 +12003,101 @@ index afa9e18..cf0ca83 100644
 +            return 2;
 +        }
 +    }
++    if (!cli_campaign_id.empty()) {
++        const std::string cid = dos_mod_sanitize_id(cli_campaign_id);
++        if (cid.empty()) {
++            std::fprintf(stderr, "invalid --campaign id\n");
++            return 2;
++        }
++        frontend_options.dos.active_campaign = cid;
++    }
++    if (!cli_character_pack_id.empty()) {
++        const std::string pid = dos_mod_sanitize_id(cli_character_pack_id);
++        if (pid.empty()) {
++            std::fprintf(stderr, "invalid --character-pack id\n");
++            return 2;
++        }
++        frontend_options.dos.active_character_pack = pid;
++    }
++    if (cli_allow_unverified_mods) {
++        frontend_options.dos.allow_unverified_mods = true;
++    }
++
++    DosModRegistry dos_mod_registry{};
++    {
++        std::string reg_err;
++        if (!dos_mod_registry_load(cli_mod_registry_path, cli_mod_data_dir,
++                                   &dos_mod_registry, &reg_err) &&
++            !cli_mod_registry_path.empty()) {
++            std::fprintf(stderr, "[mod-registry] note: %s\n", reg_err.c_str());
++        } else if (!cli_mod_registry_path.empty()) {
++            std::fprintf(stderr,
++                         "[mod-registry] loaded %s (campaigns=%zu packs=%zu data=%s)\n",
++                         cli_mod_registry_path.c_str(),
++                         dos_mod_registry.campaigns.size(),
++                         dos_mod_registry.character_packs.size(),
++                         cli_mod_data_dir.c_str());
++        }
++    }
++
 +    const std::string base_save_path = save_path;
 +    const std::string base_savestate_dir = frontend_options.savestate_directory;
 +    DosActiveRomSelection active_content{};
++    DosConflictDecision active_decision{};
++    auto build_selection_from_settings = [](const DosEnhancementSettings& s) -> DosModSelection {
++        DosModSelection sel{};
++        sel.campaign_id = s.active_campaign.empty() ? "dawn-of-sorrow" : s.active_campaign;
++        sel.character_pack_id = s.active_character_pack.empty() ? "default" : s.active_character_pack;
++        sel.baseline_id = (s.content_profile == DosContentProfile::Definitive)
++                              ? "definitive"
++                              : "original";
++        sel.language = s.game_language;
++        sel.allow_unverified = s.allow_unverified_mods;
++        sel.randomizer_seed = s.randomizer_seed;
++        sel.randomizer_preset = s.randomizer_preset;
++        return sel;
++    };
 +    if (!rom_base.empty()) {
-+        dos_build_active_rom(dos_patch_set,
-+                             frontend_options.dos.content_profile,
-+                             frontend_options.dos.game_language,
-+                             &rom,
-+                             &active_content);
-+        frontend_options.dos.content_profile = active_content.actual_profile;
++        const DosModSelection init_sel = build_selection_from_settings(frontend_options.dos);
++        std::string build_err;
++        if (!dos_mod_build_rom_from_registry(
++                dos_patch_set, dos_mod_registry, init_sel, rom_sha1,
++                &rom, &active_content, &active_decision, &build_err)) {
++            std::fprintf(stderr,
++                         "[mod-registry] fallback to safe baseline (%s)\n",
++                         build_err.c_str());
++            frontend_options.dos.active_campaign = "dawn-of-sorrow";
++            frontend_options.dos.active_character_pack = "default";
++            dos_build_active_rom(dos_patch_set,
++                                 frontend_options.dos.content_profile,
++                                 frontend_options.dos.game_language,
++                                 &rom,
++                                 &active_content);
++            frontend_options.dos.content_profile = active_content.actual_profile;
++            active_decision.active_profile_id =
++                (active_content.actual_profile == DosContentProfile::Definitive)
++                    ? "definitive"
++                    : "original";
++            active_decision.active_version = "1.0";
++        }
 +        if (!base_save_path.empty()) {
-+            save_path = dos_profile_save_path(base_save_path,
-+                                              active_content.actual_profile);
++            save_path = dos_mod_isolated_save_path(
++                base_save_path,
++                active_decision.active_profile_id,
++                active_decision.active_version,
++                active_content.modset_hash);
 +            nds_io_set_cartridge_save_path(save_path.c_str());
 +        }
 +        if (!base_savestate_dir.empty()) {
-+            frontend_options.savestate_directory = dos_profile_savestate_dir(
-+                base_savestate_dir, active_content.actual_profile);
++            frontend_options.savestate_directory = dos_mod_isolated_savestate_dir(
++                base_savestate_dir,
++                active_decision.active_profile_id,
++                active_decision.active_version,
++                active_content.modset_hash);
 +        }
-+        std::fprintf(stderr, "[content] active ROM: %s (modset=%s)\n",
++        std::fprintf(stderr, "[content] active ROM: %s (profile=%s modset=%s)\n",
 +                     active_content.label.c_str(),
++                     active_decision.active_profile_id.c_str(),
 +                     active_content.modset_hash.c_str());
 +        if (!save_path.empty()) {
 +            std::fprintf(stderr, "[content] save path: %s\n", save_path.c_str());
@@ -10860,7 +12107,7 @@ index afa9e18..cf0ca83 100644
      // Full power-on init, reusable so the debug server can honour `reset`
      // (the bisector compares fresh-from-reset at each event count).
      auto boot = [&]() {
-@@ -2183,11 +2292,13 @@ int main(int argc, char** argv) {
+@@ -2183,11 +2386,13 @@ int main(int argc, char** argv) {
                                    g_dispatch_freebios_arm9_len, 0xFFFF0000u);
              nds_register_dispatch(NDS_ARM7, g_dispatch_freebios_arm7,
                                    g_dispatch_freebios_arm7_len, 0x00000000u);
@@ -10874,7 +12121,7 @@ index afa9e18..cf0ca83 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2449,9 +2560,64 @@ int main(int argc, char** argv) {
+@@ -2449,9 +2654,123 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
@@ -10917,6 +12164,64 @@ index afa9e18..cf0ca83 100644
 +            reset_machine();
 +            return true;
 +        };
++        auto apply_mod_settings_switch = [&](DosEnhancementSettings* settings_io,
++                                             std::string* savestate_dir_out,
++                                             std::string* save_path_out,
++                                             std::string* label_out,
++                                             std::string* hash_out,
++                                             std::string* error_out) -> bool {
++            if (rom_base.empty() || !settings_io) return false;
++            const DosModSelection req = build_selection_from_settings(*settings_io);
++            std::vector<uint8_t> next_rom;
++            DosActiveRomSelection next_sel{};
++            DosConflictDecision next_dec{};
++            if (!dos_mod_build_rom_from_registry(
++                    dos_patch_set, dos_mod_registry, req, rom_sha1,
++                    &next_rom, &next_sel, &next_dec, error_out)) {
++                return false;
++            }
++            if (!save_disabled) nds_io_flush_cartridge_save();
++            rom = std::move(next_rom);
++            active_content = next_sel;
++            active_decision = next_dec;
++            if (next_dec.uses_builtin_rom) {
++                settings_io->content_profile = active_content.actual_profile;
++            }
++            settings_io->game_language = active_content.actual_language;
++            if (!base_save_path.empty() && !save_disabled) {
++                save_path = dos_mod_isolated_save_path(
++                    base_save_path,
++                    active_decision.active_profile_id,
++                    active_decision.active_version,
++                    active_content.modset_hash);
++                nds_io_set_cartridge_save_path(save_path.c_str());
++            }
++            if (!base_savestate_dir.empty()) {
++                frontend_options.savestate_directory = dos_mod_isolated_savestate_dir(
++                    base_savestate_dir,
++                    active_decision.active_profile_id,
++                    active_decision.active_version,
++                    active_content.modset_hash);
++            }
++            if (savestate_dir_out) *savestate_dir_out = frontend_options.savestate_directory;
++            if (save_path_out) *save_path_out = save_path;
++            if (label_out) *label_out = active_content.label;
++            if (hash_out) *hash_out = active_content.modset_hash;
++            std::fprintf(stderr, "[content] switched active ROM: %s (profile=%s modset=%s save=%s)\n",
++                         active_content.label.c_str(),
++                         active_decision.active_profile_id.c_str(),
++                         active_content.modset_hash.c_str(),
++                         save_path.c_str());
++            reset_machine();
++            return true;
++        };
++        nds_frontend_set_mod_context(
++            &dos_mod_registry,
++            &dos_patch_set,
++            rom_sha1,
++            save_path,
++            [&]() { dos_mod_registry_rescan_installed(&dos_mod_registry); },
++            apply_mod_settings_switch);
 +        nds_frontend_set_content_reset_fn(
 +            apply_content_switch,
 +            dos_patch_set.has_definitive(),
@@ -10933,6 +12238,7 @@ index afa9e18..cf0ca83 100644
          debug_pump_start(port);
          std::fprintf(stderr, "[run] interactive SDL mode from reset\n");
          const int rc = nds_run_interactive_frontend(frontend_options);
++        nds_frontend_set_mod_context(nullptr, nullptr, {}, {}, {}, {});
 +        nds_frontend_set_content_reset_fn({}, false, false, {}, {});
 +        nds_frontend_set_language_reset_fn({}, false);
 +        nds_frontend_set_soft_reset_fn({});
@@ -11037,16 +12343,17 @@ index e411b57..90cf236 100644
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..5c8c50d
+index 0000000..f9b0b75
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,567 @@
+@@ -0,0 +1,659 @@
 +#undef NDEBUG
 +#include "dos_enhancements.h"
 +#include "dos_gpu_shader.h"
 +#include "dos_i18n.h"
 +#include "dos_intro_player.h"
 +#include "dos_mod_profile.h"
++#include "dos_mod_registry.h"
 +#include "dos_rom_patch.h"
 +#include "sha1.h"
 +
@@ -11594,6 +12901,96 @@ index 0000000..5c8c50d
 +    std::filesystem::remove_all(tmp_dir, ec);
 +}
 +
++void test_mod_registry_and_conflict_engine() {
++    // Path traversal sanitization
++    assert(dos_mod_sanitize_id("eternity-of-sorrow") == "eternity-of-sorrow");
++    assert(dos_mod_sanitize_id("../evil").empty());
++    assert(dos_mod_sanitize_id("a/b").empty());
++    assert(dos_mod_sanitize_id("C:drive").empty());
++    assert(dos_mod_sanitize_seed("CDOS-2026!@#../ok") == "CDOS-2026ok");
++
++    // Isolated save paths preserve PR #15 paths for original/definitive and namespace others
++    assert(dos_mod_isolated_save_path("saves/dos.sav", "original", "1.0", "abcd1234") == "saves/dos.sav");
++    assert(dos_mod_isolated_save_path("saves/dos.sav", "definitive", "1.0", "abcd1234").find("definitive") != std::string::npos);
++    const std::string custom_sav =
++        dos_mod_isolated_save_path("saves/dos.sav", "eternity-of-sorrow", "1.2", "deadbeef9999");
++    assert(custom_sav.find("eternity-of-sorrow-v1.2-deadbeef") != std::string::npos);
++
++    const auto tmp_dir = std::filesystem::temp_directory_path() / "dos_mod_reg_test";
++    std::error_code ec;
++    std::filesystem::remove_all(tmp_dir, ec);
++    std::filesystem::create_directories(tmp_dir / "data" / "profiles", ec);
++
++    const std::string reg_json = (tmp_dir / "registry.json").string();
++    const std::string reg_body = R"({
++      "schema": "cdos.mod-registry.v1",
++      "base_rom_sha1": "47530ff87e608f88105a314fdf36dc385f8dec94",
++      "runtime_compat": "cdos-recomp-v1",
++      "baselines": [
++        {"id": "definitive", "name": "Definitive", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true},
++        {"id": "original", "name": "Original", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true}
++      ],
++      "campaigns": [
++        {"id": "dawn-of-sorrow", "name": "DoS", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true, "definitive_compatible": true, "allowed_character_packs": ["default", "albus-mode"]},
++        {"id": "eternity-of-sorrow", "name": "Eternity", "version": "1.2", "builtin": false, "state": "unverified", "validation_level": "boot_only", "profile_file": "eternity-of-sorrow.dospatch", "supports_ptbr": false, "definitive_compatible": false, "allowed_character_packs": ["default"]}
++      ],
++      "character_packs": [
++        {"id": "default", "name": "Native", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "compatible_campaigns": ["dawn-of-sorrow", "eternity-of-sorrow"], "supports_ptbr": true},
++        {"id": "albus-mode", "name": "Albus", "version": "1.0", "builtin": false, "state": "unverified", "validation_level": "none", "profile_file": "albus-mode.dospatch", "compatible_campaigns": ["dawn-of-sorrow"], "supports_ptbr": false}
++      ],
++      "verified_combinations": [
++        {"campaign": "dawn-of-sorrow", "character_pack": "default", "baseline": "definitive", "language": "en", "validation_level": "full"}
++      ]
++    })";
++    assert(dos_write_text_atomic(reg_json, reg_body));
++    // Install dummy eternity profile file; leave albus missing.
++    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "eternity-of-sorrow.dospatch").string(), "DOSPATCH"));
++
++    DosModRegistry reg{};
++    std::string err;
++    assert(dos_mod_registry_load(reg_json, (tmp_dir / "data").string(), &reg, &err));
++    assert(reg.loaded && reg.campaigns.size() == 2 && reg.character_packs.size() == 2);
++
++    DosRomPatchSet builtin{};
++    builtin.rom_base = {1, 2, 3, 4};
++    builtin.rom_definitive_en = {9, 9, 9, 1};
++    const std::string sha = "47530ff87e608f88105a314fdf36dc385f8dec94";
++
++    // 1. Verified combination
++    DosModSelection s_ok{};
++    auto dec = dos_mod_resolve_conflict(reg, s_ok, sha, builtin);
++    assert(dec.state == DosCompatState::Verified && dec.allowed);
++
++    // 2. Unverified campaign: blocked without opt-in, allowed with opt-in, never promoted to Verified
++    DosModSelection s_unv{};
++    s_unv.campaign_id = "eternity-of-sorrow";
++    s_unv.baseline_id = "original";
++    s_unv.allow_unverified = false;
++    dec = dos_mod_resolve_conflict(reg, s_unv, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && !dec.allowed);
++    s_unv.allow_unverified = true;
++    dec = dos_mod_resolve_conflict(reg, s_unv, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && dec.allowed);
++
++    // 3. Incompatible: Eternity + Definitive, Eternity + Albus, Eternity + PT-BR, missing Albus
++    DosModSelection s_bad = s_unv;
++    s_bad.baseline_id = "definitive";
++    assert(dos_mod_resolve_conflict(reg, s_bad, sha, builtin).state == DosCompatState::Incompatible);
++    s_bad = s_unv;
++    s_bad.character_pack_id = "albus-mode";
++    assert(dos_mod_resolve_conflict(reg, s_bad, sha, builtin).state == DosCompatState::Incompatible);
++    s_bad = s_unv;
++    s_bad.language = DosLanguage::PtBr;
++    assert(dos_mod_resolve_conflict(reg, s_bad, sha, builtin).state == DosCompatState::Incompatible);
++
++    DosModSelection s_missing{};
++    s_missing.character_pack_id = "albus-mode";
++    s_missing.baseline_id = "original";
++    assert(dos_mod_resolve_conflict(reg, s_missing, sha, builtin).state == DosCompatState::Incompatible);
++
++    std::filesystem::remove_all(tmp_dir, ec);
++}
++
 +}  // namespace
 +
 +int main() {
@@ -11605,6 +13002,7 @@ index 0000000..5c8c50d
 +    test_frame_cache_hud_and_gpu_shader();
 +    test_rom_patch();
 +    test_content_profiles_and_intro_validation();
++    test_mod_registry_and_conflict_engine();
 +    std::puts("dos_enhancements_test: ok");
 +    return 0;
 +}

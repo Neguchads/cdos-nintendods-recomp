@@ -8,8 +8,29 @@ import zlib
 from dataclasses import dataclass
 
 VCDIFF_MAGIC = b"\xd6\xc3\xc4\x00"
+XDELTA1_PREFIX = b"%XDZ00"
 IPS_MAGIC = b"PATCH"
 IPS_EOF = b"EOF"
+BPS_MAGIC = b"BPS1"
+UPS_MAGIC = b"UPS1"
+DOSPATCH_MAGIC = b"DOSPATCH"
+
+
+def detect_patch_format(data: bytes) -> str:
+    """Identifica o formato binario real do patch pela assinatura, nunca pela extensao."""
+    if len(data) >= 8 and data[:8] == DOSPATCH_MAGIC:
+        return "dospatch"
+    if len(data) >= 4 and data[:4] == VCDIFF_MAGIC:
+        return "vcdiff"
+    if len(data) >= 8 and data[:6] == XDELTA1_PREFIX and data[7:8] == b"%":
+        return "xdelta1"
+    if len(data) >= 5 and data[:5] == IPS_MAGIC:
+        return "ips"
+    if len(data) >= 4 and data[:4] == BPS_MAGIC:
+        return "bps"
+    if len(data) >= 4 and data[:4] == UPS_MAGIC:
+        return "ups"
+    return "unknown"
 
 # Flags VCDIFF (RFC 3284)
 _VCD_DECOMPRESS = 0x01
@@ -73,6 +94,10 @@ class VcdiffInfo:
 
 def inspect_vcdiff(delta: bytes) -> VcdiffInfo:
     """Inspeciona cabecalho e janelas de um arquivo VCDIFF sem precisar da ROM base."""
+    if detect_patch_format(delta) == "xdelta1":
+        raise ValueError(
+            "Formato XDELTA1 legado (%XDZ00x%) nao suportado pelo decodificador VCDIFF (RFC 3284)."
+        )
     if len(delta) < 5 or delta[:4] != VCDIFF_MAGIC:
         raise ValueError("Assinatura VCDIFF invalida.")
     hdr_ind = delta[4]
@@ -117,6 +142,10 @@ def inspect_vcdiff(delta: bytes) -> VcdiffInfo:
 
 def apply_vcdiff(source: bytes, delta: bytes, *, verify_adler32: bool = True) -> bytes:
     """Aplica um patch RFC 3284 VCDIFF (xdelta sem compressor secundario) sobre source em RAM."""
+    if detect_patch_format(delta) == "xdelta1":
+        raise ValueError(
+            "Formato XDELTA1 legado (%XDZ00x%) nao suportado pelo decodificador VCDIFF (RFC 3284)."
+        )
     if len(delta) < 5 or delta[:4] != VCDIFF_MAGIC:
         raise ValueError("Assinatura VCDIFF invalida.")
     hdr_ind = delta[4]

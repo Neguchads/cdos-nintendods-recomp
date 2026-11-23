@@ -754,6 +754,8 @@ def cmd_play(_args: argparse.Namespace) -> int:
     def_en_patch = ROOT / "mods" / "definitive" / "dos-definitive-en.dospatch"
     def_ptbr_patch = ROOT / "mods" / "definitive" / "dos-definitive-ptbr.dospatch"
     intro_video = ROOT / "mods" / "intro" / "opening.mp4"
+    mod_registry = ROOT / "mods" / "registry.json"
+    mod_data_dir = ROOT / "mods"
     cmd = [
         str(RUNTIME_RUNNER_EXE),
         str(BIOS_EMPTY_DIR),
@@ -769,6 +771,8 @@ def cmd_play(_args: argparse.Namespace) -> int:
         cmd += ["--definitive-ptbr-patch", str(def_ptbr_patch)]
     if intro_video.is_file():
         cmd += ["--intro-video", str(intro_video)]
+    if mod_registry.is_file():
+        cmd += ["--mod-registry", str(mod_registry), "--mod-data-dir", str(mod_data_dir)]
     cmd += [
         "--config",
         str(GAME_TOML),

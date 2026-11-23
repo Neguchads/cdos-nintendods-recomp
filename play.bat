@@ -17,6 +17,8 @@ set "DEF_PT_ARG="
 if exist "%ROOT%mods\definitive\dos-definitive-ptbr.dospatch" set DEF_PT_ARG=--definitive-ptbr-patch "%ROOT%mods\definitive\dos-definitive-ptbr.dospatch"
 set "INTRO_ARG="
 if exist "%ROOT%mods\intro\opening.mp4" set INTRO_ARG=--intro-video "%ROOT%mods\intro\opening.mp4"
+set "REG_ARG="
+if exist "%ROOT%mods\registry.json" set REG_ARG=--mod-registry "%ROOT%mods\registry.json" --mod-data-dir "%ROOT%mods"
 pushd "%ROOT%runtime"
 "%ROOT%runtime\nds_runner.exe" "%ROOT%run\bios" ^
     --interactive ^
@@ -25,6 +27,7 @@ pushd "%ROOT%runtime"
     %DEF_EN_ARG% ^
     %DEF_PT_ARG% ^
     %INTRO_ARG% ^
+    %REG_ARG% ^
     --config "%ROOT%game.toml" ^
     --freebios ^
     --generated-firmware ^

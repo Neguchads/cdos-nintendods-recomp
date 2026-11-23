@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""ModRegistry, ConflictEngine (3 estados) e sanitizacao segura de perfis/saves para CDOS Recomp."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+CompatState = Literal["verified", "unverified", "incompatible"]
+
+SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}$")
+SAFE_VERSION_RE = re.compile(r"^[a-zA-Z0-9._-]{1,24}$")
+SAFE_SEED_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
+
+
+def sanitize_safe_id(value: str, *, fallback: str = "") -> str:
+    """Valida/normaliza um identificador para impedir path traversal."""
+    cleaned = value.strip().lower()
+    if not cleaned or ".." in cleaned or "/" in cleaned or "\\" in cleaned or ":" in cleaned:
+        return fallback
+    if not SAFE_ID_RE.match(cleaned):
+        return fallback
+    return cleaned
+
+
+def sanitize_seed(value: str) -> str:
+    """Normaliza seed de randomizer para caracteres seguros [A-Za-z0-9_-]."""
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "", value.strip())
+    return cleaned[:32]
+
+
+def safe_join_under(base_dir: Path, *parts: str) -> Path:
+    """Garante que o caminho final permanece estritamente dentro de base_dir."""
+    root = base_dir.resolve()
+    target = root.joinpath(*parts).resolve()
+    if target != root and root not in target.parents:
+        raise ValueError(f"Path traversal detectado: {parts!r} escapou de {root}")
+    return target
+
+
+def atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Escreve arquivo de forma atomica (arquivo temporario no mesmo diretorio + os.replace)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    try:
+        with tmp.open("wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    atomic_write_bytes(path, text.encode("utf-8"))
+
+
+def profile_save_namespace(profile_id: str, version: str, modset_hash: str) -> str:
+    """Constroi namespace deterministico <profile_id>-v<version>-<hash8> para saves/savestates."""
+    sid = sanitize_safe_id(profile_id)
+    if not sid:
+        raise ValueError(f"profile_id invalido: {profile_id!r}")
+    ver = re.sub(r"[^a-zA-Z0-9._-]+", "", version.strip()) or "1.0"
+    if not SAFE_VERSION_RE.match(ver) or ".." in ver:
+        ver = "1.0"
+    h8 = re.sub(r"[^a-f0-9]+", "", modset_hash.strip().lower())[:8] or "00000000"
+    return f"{sid}-v{ver}-{h8}"
+
+
+@dataclass(frozen=True)
+class SelectionRequest:
+    campaign_id: str = "dawn-of-sorrow"
+    character_pack_id: str = "default"
+    baseline_id: str = "definitive"
+    language: str = "en"
+    allow_unverified: bool = False
+    base_rom_sha1: str = "47530ff87e608f88105a314fdf36dc385f8dec94"
+    runtime_compat: str = "cdos-recomp-v1"
+
+
+@dataclass(frozen=True)
+class ConflictDecision:
+    state: CompatState
+    allowed: bool
+    reason: str
+    active_profile_id: str
+    active_version: str
+    patch_file: str | None
+    validation_level: str
+
+
+class ModRegistry:
+    def __init__(self, data: dict[str, object], *, data_mods_dir: Path | None = None) -> None:
+        self.raw = data
+        self.base_rom_sha1 = str(data.get("base_rom_sha1", "")).lower()
+        self.runtime_compat = str(data.get("runtime_compat", ""))
+        self.data_mods_dir = data_mods_dir
+        self.baselines = {str(x["id"]): x for x in data.get("baselines", [])}  # type: ignore[index]
+        self.campaigns = {str(x["id"]): x for x in data.get("campaigns", [])}  # type: ignore[index]
+        self.character_packs = {str(x["id"]): x for x in data.get("character_packs", [])}  # type: ignore[index]
+        self.verified_combinations = list(data.get("verified_combinations", []))  # type: ignore[arg-type]
+
+    @classmethod
+    def load(cls, registry_path: Path, *, data_mods_dir: Path | None = None) -> "ModRegistry":
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
+        if data.get("schema") != "cdos.mod-registry.v1":
+            raise ValueError(f"Schema de registry inesperado: {data.get('schema')!r}")
+        return cls(data, data_mods_dir=data_mods_dir)
+
+    def _profile_installed(self, entry: dict[str, object]) -> tuple[bool, Path | None]:
+        if entry.get("builtin"):
+            return True, None
+        rel = str(entry.get("profile_file", "")).strip()
+        if not rel or self.data_mods_dir is None:
+            return False, None
+        if "/" in rel or "\\" in rel or ".." in rel:
+            return False, None
+        candidate = safe_join_under(self.data_mods_dir, "profiles", rel)
+        return candidate.is_file(), candidate
+
+    def is_verified_combination(self, req: SelectionRequest) -> tuple[bool, str]:
+        if req.base_rom_sha1.lower() != self.base_rom_sha1:
+            return False, "none"
+        if req.runtime_compat != self.runtime_compat:
+            return False, "none"
+        for combo in self.verified_combinations:
+            if (
+                combo.get("campaign") == req.campaign_id
+                and combo.get("character_pack") == req.character_pack_id
+                and combo.get("baseline") == req.baseline_id
+                and combo.get("language") == req.language
+            ):
+                level = str(combo.get("validation_level", "none"))
+                return level == "full", level
+        return False, "none"
+
+    def resolve(self, req: SelectionRequest) -> ConflictDecision:
+        """Aplica as regras do ConflictEngine (verified / unverified / incompatible)."""
+        if req.base_rom_sha1.lower() != self.base_rom_sha1:
+            return ConflictDecision(
+                state="incompatible",
+                allowed=False,
+                reason="ROM base SHA-1 nao confere com o registro verificado (USA ACVE).",
+                active_profile_id="invalid",
+                active_version="0",
+                patch_file=None,
+                validation_level="none",
+            )
+        if req.runtime_compat != self.runtime_compat:
+            return ConflictDecision(
+                state="incompatible",
+                allowed=False,
+                reason=f"Runtime '{req.runtime_compat}' incompativel com '{self.runtime_compat}'.",
+                active_profile_id="invalid",
+                active_version="0",
+                patch_file=None,
+                validation_level="none",
+            )
+
+        camp = self.campaigns.get(req.campaign_id)
+        if camp is None:
+            return ConflictDecision("incompatible", False, f"Campanha desconhecida: {req.campaign_id}", "invalid", "0", None, "none")
+        pack = self.character_packs.get(req.character_pack_id)
+        if pack is None:
+            return ConflictDecision("incompatible", False, f"Pack de personagem desconhecido: {req.character_pack_id}", "invalid", "0", None, "none")
+        base = self.baselines.get(req.baseline_id)
+        if base is None:
+            return ConflictDecision("incompatible", False, f"Base QoL desconhecida: {req.baseline_id}", "invalid", "0", None, "none")
+
+        # 1. Exclusividade e compatibilidade de campanha vs pack de personagem
+        allowed_packs = list(camp.get("allowed_character_packs", []))
+        compat_camps = list(pack.get("compatible_campaigns", []))
+        if req.character_pack_id not in allowed_packs or req.campaign_id not in compat_camps:
+            return ConflictDecision(
+                state="incompatible",
+                allowed=False,
+                reason=(
+                    f"Pack '{pack['name']}' nao e compativel com a campanha '{camp['name']}' "
+                    "(packs de Julius Mode modificam overlays e slots especificos)."
+                ),
+                active_profile_id=req.campaign_id,
+                active_version=str(camp.get("version", "1.0")),
+                patch_file=None,
+                validation_level="none",
+            )
+
+        # 2. Campanha overhaul nao pode ser empilhada cegamente com Definitive/Definitive+
+        if not camp.get("definitive_compatible", False) and req.baseline_id != "original":
+            return ConflictDecision(
+                state="incompatible",
+                allowed=False,
+                reason=(
+                    f"A campanha '{camp['name']}' e independente e altera overlays proprios; "
+                    "nao empilhe com Definitive Edition sem composicao verificada."
+                ),
+                active_profile_id=req.campaign_id,
+                active_version=str(camp.get("version", "1.0")),
+                patch_file=None,
+                validation_level="none",
+            )
+
+        # 3. Pack de personagem custom nao pode empilhar com Definitive+ nao composto
+        if not pack.get("builtin", False) and req.baseline_id != "original":
+            return ConflictDecision(
+                state="incompatible",
+                allowed=False,
+                reason=(
+                    f"O pack '{pack['name']}' foi gerado sobre a ROM USA limpa; "
+                    "selecione base Original USA ou gere uma composicao auditada."
+                ),
+                active_profile_id=req.character_pack_id,
+                active_version=str(pack.get("version", "1.0")),
+                patch_file=None,
+                validation_level="none",
+            )
+
+        # 4. Compatibilidade de idioma PT-BR
+        if req.language == "ptbr":
+            if not camp.get("supports_ptbr", False) or not pack.get("supports_ptbr", False) or not base.get("supports_ptbr", False):
+                return ConflictDecision(
+                    state="incompatible",
+                    allowed=False,
+                    reason="A combinacao selecionada nao possui traducao PT-BR validada; use English (en).",
+                    active_profile_id=req.campaign_id,
+                    active_version=str(camp.get("version", "1.0")),
+                    patch_file=None,
+                    validation_level="none",
+                )
+
+        # 5. Determinar o perfil ativo e verificar presenca fisica em {data}/mods/profiles/
+        active_entry: dict[str, object]
+        if not camp.get("builtin", False):
+            active_entry = camp
+        elif not pack.get("builtin", False):
+            active_entry = pack
+        elif not base.get("builtin", False):
+            active_entry = base
+        else:
+            active_entry = base
+
+        installed, patch_path = self._profile_installed(active_entry)
+        if not installed:
+            return ConflictDecision(
+                state="incompatible",
+                allowed=False,
+                reason=(
+                    f"Mod '{active_entry['name']}' ainda nao esta instalado em "
+                    "{data}/mods/profiles/ (use import_mod_bundle.py ou fetch_community_mods.py)."
+                ),
+                active_profile_id=str(active_entry["id"]),
+                active_version=str(active_entry.get("version", "1.0")),
+                patch_file=None,
+                validation_level="none",
+            )
+
+        # 6. Estado final: verified SOMENTE se estiver na allowlist com validation_level == "full"
+        is_ver, val_level = self.is_verified_combination(req)
+        entry_state = str(active_entry.get("state", "unverified"))
+        if is_ver and entry_state == "verified":
+            return ConflictDecision(
+                state="verified",
+                allowed=True,
+                reason="Combinacao verificada para esta ROM base e runtime.",
+                active_profile_id=str(active_entry["id"]),
+                active_version=str(active_entry.get("version", "1.0")),
+                patch_file=str(patch_path) if patch_path else None,
+                validation_level=val_level,
+            )
+
+        return ConflictDecision(
+            state="unverified",
+            allowed=req.allow_unverified,
+            reason=(
+                f"Perfil '{active_entry['name']}' esta em estado 'unverified' "
+                f"(validacao='{active_entry.get('validation_level', 'none')}'). "
+                "Habilite modo Dev/Audit para testar."
+            ),
+            active_profile_id=str(active_entry["id"]),
+            active_version=str(active_entry.get("version", "1.0")),
+            patch_file=str(patch_path) if patch_path else None,
+            validation_level=str(active_entry.get("validation_level", "none")),
+        )

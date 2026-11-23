@@ -387,6 +387,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const fs::path def_en_patch = root / L"mods" / L"definitive" / L"dos-definitive-en.dospatch";
     const fs::path def_ptbr_patch = root / L"mods" / L"definitive" / L"dos-definitive-ptbr.dospatch";
     const fs::path intro_video = root / L"mods" / L"intro" / L"opening.mp4";
+    const fs::path mod_registry = root / L"mods" / L"registry.json";
+    const fs::path mod_data_dir = root / L"mods";
 
     if (!is_existing_file(runner_exe)) {
         const std::wstring msg =
@@ -501,6 +503,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (is_existing_file(intro_video)) {
         cmd_args.push_back(L"--intro-video");
         cmd_args.push_back(intro_video.wstring());
+    }
+    if (is_existing_file(mod_registry)) {
+        cmd_args.push_back(L"--mod-registry");
+        cmd_args.push_back(mod_registry.wstring());
+        cmd_args.push_back(L"--mod-data-dir");
+        cmd_args.push_back(mod_data_dir.wstring());
     }
     cmd_args.push_back(L"--config");
     cmd_args.push_back(game_toml.wstring());

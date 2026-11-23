@@ -129,6 +129,8 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
         ("--definitive-en-patch", "{install}/mods/definitive/dos-definitive-en.dospatch"),
         ("--definitive-ptbr-patch", "{install}/mods/definitive/dos-definitive-ptbr.dospatch"),
         ("--intro-video", "{install}/mods/intro/opening.mp4"),
+        ("--mod-registry", "{install}/mods/registry.json"),
+        ("--mod-data-dir", "{data}/mods"),
     ):
         if flag in start_args:
             idx = start_args.index(flag)
@@ -209,6 +211,7 @@ def stage_release_tree(
         root / "mods" / "ptbr" / "dos-ptbr.dospatch",
         root / "mods" / "definitive" / "dos-definitive-en.dospatch",
         root / "mods" / "definitive" / "dos-definitive-ptbr.dospatch",
+        root / "mods" / "registry.json",
         root / "docs" / "RECOMPLAUNCHER.md",
         runtime_dir / "nds_runner.exe",
         runtime_dir / "SDL3.dll",
@@ -231,6 +234,7 @@ def stage_release_tree(
         ("mods/ptbr/dos-ptbr.dospatch", False),
         ("mods/definitive/dos-definitive-en.dospatch", False),
         ("mods/definitive/dos-definitive-ptbr.dospatch", False),
+        ("mods/registry.json", False),
         ("mods/catalog.json", True),
         ("mods/intro/opening.mp4", True),
         ("docs/RECOMPLAUNCHER.md", False),

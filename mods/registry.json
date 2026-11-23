@@ -1,0 +1,201 @@
+{
+  "schema": "cdos.mod-registry.v1",
+  "base_rom_sha1": "47530ff87e608f88105a314fdf36dc385f8dec94",
+  "base_rom_size": 67108864,
+  "runtime_compat": "cdos-recomp-v1",
+  "baselines": [
+    {
+      "id": "definitive",
+      "name": "Definitive Edition (Integrated Default)",
+      "version": "1.0",
+      "builtin": true,
+      "state": "verified",
+      "validation_level": "full",
+      "supports_ptbr": true,
+      "author": "Thirteen 1355, ShadowOne333, acediez, LagoLunatic",
+      "summary": "Integrated permanent baseline: Dawn of Dignity portraits, Fixed Luck, No Required Touch Screen, 100% Boss Souls fix, Black Panther, and Alucard Sword."
+    },
+    {
+      "id": "original",
+      "name": "Original USA (Advanced Compatibility Mode)",
+      "version": "1.0",
+      "builtin": true,
+      "state": "verified",
+      "validation_level": "full",
+      "supports_ptbr": true,
+      "author": "Konami (Retail USA ACVE)",
+      "summary": "Unmodified USA retail baseline for comparison and compatibility testing."
+    },
+    {
+      "id": "definitive-plus",
+      "name": "Definitive Edition+",
+      "version": "2.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "none",
+      "profile_file": "definitive-plus.dospatch",
+      "supports_ptbr": false,
+      "source_url": "https://www.romhacking.net/hacks/5610/",
+      "author": "Masked Dedede, DevAnj",
+      "summary": "Extended Definitive Edition+ rebalance (manual browser download; note: legacy XDELTA1 patches require conversion to VCDIFF/DOSPATCH)."
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "dawn-of-sorrow",
+      "name": "Dawn of Sorrow (Main Campaign)",
+      "version": "1.0",
+      "builtin": true,
+      "state": "verified",
+      "validation_level": "full",
+      "supports_ptbr": true,
+      "definitive_compatible": true,
+      "allowed_character_packs": ["default", "albus-mode", "zx-omega"],
+      "author": "Konami / Definitive Edition Baseline",
+      "summary": "Standard Dawn of Sorrow adventure with integrated Definitive Edition improvements (or Original USA compatibility mode)."
+    },
+    {
+      "id": "eternity-of-sorrow",
+      "name": "Eternity of Sorrow",
+      "version": "1.2",
+      "builtin": false,
+      "manual_import": false,
+      "state": "unverified",
+      "validation_level": "none",
+      "profile_file": "eternity-of-sorrow.dospatch",
+      "expected_patch_sha256": "",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "source_url": "https://github.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow",
+      "author": "WetBandAid",
+      "summary": "Full-game sequel campaign continuing from the bad ending (includes author No Touch build; independent campaign)."
+    },
+    {
+      "id": "alucards-requiem-sotn",
+      "name": "Alucard's Requiem (SOTN Variant)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "none",
+      "profile_file": "alucards-requiem-sotn.dospatch",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "source_url": "https://castlevaniamodding.boards.net/thread/1001/castlevania-alucards-requiem",
+      "author": "DarkPrinceAlucard, Drameloch",
+      "summary": "Alucard campaign overhaul using Symphony of the Night appearance variant (manual import)."
+    },
+    {
+      "id": "alucards-requiem-cv3",
+      "name": "Alucard's Requiem (CV3 Variant)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "none",
+      "profile_file": "alucards-requiem-cv3.dospatch",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "source_url": "https://castlevaniamodding.boards.net/thread/1001/castlevania-alucards-requiem",
+      "author": "DarkPrinceAlucard, I am Me",
+      "summary": "Alucard campaign overhaul using Castlevania III appearance variant (manual import)."
+    },
+    {
+      "id": "draculas-curse",
+      "name": "Dracula's Curse (Trevor Mode)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "none",
+      "profile_file": "draculas-curse.dospatch",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "source_url": "https://www.romhacking.net/hacks/7884/",
+      "author": "Fat T-800 (Albert Edvard)",
+      "summary": "Julius Mode overhaul starring Trevor Belmont, Sypha Belnades, Grant Danasty, and Alucard (manual import)."
+    }
+  ],
+  "character_packs": [
+    {
+      "id": "default",
+      "name": "Native Cast (Soma / Julius / Yoko / Alucard)",
+      "version": "1.0",
+      "builtin": true,
+      "state": "verified",
+      "validation_level": "full",
+      "exclusive_group": "julius-pack",
+      "compatible_campaigns": ["dawn-of-sorrow", "eternity-of-sorrow", "alucards-requiem-sotn", "alucards-requiem-cv3", "draculas-curse"],
+      "supports_ptbr": true,
+      "author": "Native",
+      "summary": "Uses the active campaign's native playable characters."
+    },
+    {
+      "id": "albus-mode",
+      "name": "Albus Mode (Julius Mode Pack)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": false,
+      "state": "unverified",
+      "validation_level": "none",
+      "exclusive_group": "julius-pack",
+      "profile_file": "albus-mode.dospatch",
+      "compatible_campaigns": ["dawn-of-sorrow"],
+      "supports_ptbr": false,
+      "source_url": "https://gamebanana.com/mods/435925",
+      "author": "Oersted",
+      "summary": "Replaces Julius Mode with Order of Ecclesia's Albus (mutually exclusive with ZX/Omega)."
+    },
+    {
+      "id": "zx-omega",
+      "name": "Playable Model ZX & OX (Julius Mode Pack)",
+      "version": "1.0.1",
+      "builtin": false,
+      "manual_import": false,
+      "state": "unverified",
+      "validation_level": "none",
+      "exclusive_group": "julius-pack",
+      "profile_file": "zx-omega.dospatch",
+      "compatible_campaigns": ["dawn-of-sorrow"],
+      "supports_ptbr": false,
+      "source_url": "https://gamebanana.com/mods/430348",
+      "author": "Oersted",
+      "summary": "Playable Model ZX and Model Omega in Julius Mode (mutually exclusive with Albus Mode)."
+    }
+  ],
+  "verified_combinations": [
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "definitive",
+      "language": "en",
+      "validation_level": "full"
+    },
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "definitive",
+      "language": "ptbr",
+      "validation_level": "full"
+    },
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "original",
+      "language": "en",
+      "validation_level": "full"
+    },
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "original",
+      "language": "ptbr",
+      "validation_level": "full"
+    }
+  ]
+}
