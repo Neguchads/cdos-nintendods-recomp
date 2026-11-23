@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
+import import_dsvrandom as idsv  # noqa: E402
 import import_mod_bundle as imb  # noqa: E402
 import mod_resolver as mr  # noqa: E402
 import vcdiff_ips as vi  # noqa: E402
@@ -179,6 +180,111 @@ class TestCampaignsAndCharacterPacks16BC(unittest.TestCase):
                 reg.resolve(mr.SelectionRequest(baseline_id="definitive-plus", allow_unverified=True)).state,
                 "incompatible",
             )
+
+
+class TestRandomizer16D(unittest.TestCase):
+    def test_dsvrandom_importer_rejects_unmodified_and_imports_synthetic_delta(self) -> None:
+        # Testa dsvrandom importer com ROM sintetica de 16 MiB (quando nao ha ROM real, ou usando ROM sintetica).
+        with tempfile.TemporaryDirectory() as tmp:
+            t = Path(tmp)
+            data_mods = t / "data_mods"
+            usa_rom = bytearray(16 * 1024 * 1024)
+            usa_rom[0x0C:0x10] = b"ACVE"
+            # Ajusta sha1 esperado temporariamente para teste sintetico puro (sem precisar de ROM comercial em CI)
+            import hashlib
+
+            fake_sha1 = hashlib.sha1(usa_rom).hexdigest()
+            orig_sha1 = idsv.USA_SHA1
+            try:
+                idsv.USA_SHA1 = fake_sha1
+
+                # 1. ROM identica a limpa deve ser rejeitada
+                same_rom = t / "same.nds"
+                same_rom.write_bytes(usa_rom)
+                with self.assertRaises(ValueError):
+                    idsv.import_dsvrandom_output(same_rom, "DEMO2026", bytes(usa_rom), data_mods_dir=data_mods)
+
+                # 2. ROM com game code errado deve ser rejeitada
+                bad_gc = bytearray(usa_rom)
+                bad_gc[0x0C:0x10] = b"XXXX"
+                bad_rom = t / "bad.nds"
+                bad_rom.write_bytes(bad_gc)
+                with self.assertRaises(ValueError):
+                    idsv.import_dsvrandom_output(bad_rom, "DEMO2026", bytes(usa_rom), data_mods_dir=data_mods)
+
+                # 3. ROM randomizada valida vira DOSPATCH + JSON atomico e e descoberta pelo ModRegistry
+                rand_rom = bytearray(usa_rom)
+                rand_rom[0x1000:0x1010] = b"DSVRANDOM_DEMO!!"
+                rand_path = t / "randomized.nds"
+                rand_path.write_bytes(rand_rom)
+
+                rep = idsv.import_dsvrandom_output(
+                    rand_path,
+                    "DEMO-2026",
+                    bytes(usa_rom),
+                    data_mods_dir=data_mods,
+                    preset="standard",
+                )
+                self.assertEqual(rep["profile_id"], "dsvrandom-demo-2026")
+                self.assertEqual(rep["validation_state"], "unverified")
+                self.assertEqual(rep["validation_level"], "external_randomizer")
+                self.assertTrue((data_mods / "profiles" / "dsvrandom-demo-2026.dospatch").is_file())
+                self.assertTrue((data_mods / "cache" / "dsvrandom-demo-2026.json").is_file())
+                # Nunca copia .nds para dentro de {data}/mods
+                self.assertEqual(list(data_mods.rglob("*.nds")), [])
+
+                # Descoberta automatica no ModRegistry Python
+                reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
+                self.assertIn("dsvrandom-demo-2026", reg.campaigns)
+                dec = reg.resolve(
+                    mr.SelectionRequest(
+                        campaign_id="dsvrandom-demo-2026",
+                        baseline_id="original",
+                        allow_unverified=True,
+                    )
+                )
+                self.assertEqual(dec.state, "unverified")
+                self.assertTrue(dec.allowed)
+                self.assertEqual(dec.validation_level, "external_randomizer")
+
+                # Rejeita empilhar dsvrandom com Definitive ou com Seed Mutator nativo
+                self.assertEqual(
+                    reg.resolve(
+                        mr.SelectionRequest(
+                            campaign_id="dsvrandom-demo-2026",
+                            baseline_id="definitive",
+                            allow_unverified=True,
+                        )
+                    ).state,
+                    "incompatible",
+                )
+                self.assertEqual(
+                    reg.resolve(
+                        mr.SelectionRequest(
+                            campaign_id="dsvrandom-demo-2026",
+                            baseline_id="original",
+                            allow_unverified=True,
+                            randomizer_seed="CASTLE2026",
+                        )
+                    ).state,
+                    "incompatible",
+                )
+
+                # Seed Mutator nativo sobre Definitive: Unverified, exige opt-in
+                dec_seed_off = reg.resolve(
+                    mr.SelectionRequest(randomizer_seed="CASTLE2026", randomizer_preset="hard", allow_unverified=False)
+                )
+                self.assertEqual(dec_seed_off.state, "unverified")
+                self.assertFalse(dec_seed_off.allowed)
+                dec_seed_on = reg.resolve(
+                    mr.SelectionRequest(randomizer_seed="CASTLE2026", randomizer_preset="hard", allow_unverified=True)
+                )
+                self.assertEqual(dec_seed_on.state, "unverified")
+                self.assertTrue(dec_seed_on.allowed)
+                self.assertEqual(dec_seed_on.active_profile_id, "seed-castle2026")
+                self.assertEqual(dec_seed_on.active_version, "hard")
+            finally:
+                idsv.USA_SHA1 = orig_sha1
 
 
 if __name__ == "__main__":

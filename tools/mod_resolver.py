@@ -85,6 +85,8 @@ class SelectionRequest:
     allow_unverified: bool = False
     base_rom_sha1: str = "47530ff87e608f88105a314fdf36dc385f8dec94"
     runtime_compat: str = "cdos-recomp-v1"
+    randomizer_seed: str = ""
+    randomizer_preset: str = "standard"
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,39 @@ class ModRegistry:
         self.campaigns = {str(x["id"]): x for x in data.get("campaigns", [])}  # type: ignore[index]
         self.character_packs = {str(x["id"]): x for x in data.get("character_packs", [])}  # type: ignore[index]
         self.verified_combinations = list(data.get("verified_combinations", []))  # type: ignore[arg-type]
+        self.rescan_external_randomizers()
+
+    def rescan_external_randomizers(self) -> None:
+        """Descobre automaticamente seeds dsvrandom-*.dospatch em {data}/mods/profiles/."""
+        for cid in [k for k, v in self.campaigns.items() if v.get("validation_level") == "external_randomizer"]:
+            self.campaigns.pop(cid, None)
+        if self.data_mods_dir is None:
+            return
+        prof_dir = self.data_mods_dir / "profiles"
+        if not prof_dir.is_dir():
+            return
+        for p in sorted(prof_dir.glob("dsvrandom-*.dospatch")):
+            if not p.is_file():
+                continue
+            cid = sanitize_safe_id(p.stem)
+            if not cid or cid in self.campaigns:
+                continue
+            seed_lbl = cid[len("dsvrandom-") :] if cid.startswith("dsvrandom-") else cid
+            self.campaigns[cid] = {
+                "id": cid,
+                "name": f"DSVania Randomizer ({seed_lbl})",
+                "version": "1.0",
+                "builtin": False,
+                "manual_import": True,
+                "state": "unverified",
+                "validation_level": "external_randomizer",
+                "profile_file": p.name,
+                "supports_ptbr": False,
+                "definitive_compatible": False,
+                "allowed_character_packs": ["default"],
+                "source_url": "https://github.com/LagoLunatic/dsvrandom",
+                "author": "LagoLunatic (DSVania Randomizer external output)",
+            }
 
     @classmethod
     def load(cls, registry_path: Path, *, data_mods_dir: Path | None = None) -> "ModRegistry":
@@ -179,7 +214,10 @@ class ModRegistry:
         # 1. Exclusividade e compatibilidade de campanha vs pack de personagem
         allowed_packs = list(camp.get("allowed_character_packs", []))
         compat_camps = list(pack.get("compatible_campaigns", []))
-        if req.character_pack_id not in allowed_packs or req.campaign_id not in compat_camps:
+        pack_compat = bool(pack.get("builtin") and req.character_pack_id == "default") or (
+            req.campaign_id in compat_camps
+        )
+        if req.character_pack_id not in allowed_packs or not pack_compat:
             return ConflictDecision(
                 state="incompatible",
                 allowed=False,
@@ -260,6 +298,33 @@ class ModRegistry:
                 active_version=str(active_entry.get("version", "1.0")),
                 patch_file=None,
                 validation_level="none",
+            )
+
+        # 5.5. Seed Mutator nativo (somente sobre bases USA Original/Definitive verificadas)
+        clean_seed = sanitize_seed(req.randomizer_seed)
+        if clean_seed:
+            if not (camp.get("builtin") and pack.get("builtin") and base.get("builtin")):
+                return ConflictDecision(
+                    state="incompatible",
+                    allowed=False,
+                    reason=(
+                        "Seed Mutator nativo so opera sobre Dawn of Sorrow Original/Definitive verificados; "
+                        "limpe a seed para jogar campanhas overhaul ou packs de personagem."
+                    ),
+                    active_profile_id=f"seed-{clean_seed.lower()}",
+                    active_version=req.randomizer_preset or "standard",
+                    patch_file=None,
+                    validation_level="none",
+                )
+            preset = req.randomizer_preset if req.randomizer_preset in ("casual", "standard", "hard") else "standard"
+            return ConflictDecision(
+                state="unverified",
+                allowed=req.allow_unverified,
+                reason="Seed Mutator nativo (tabelas nao-progressao de inimigos/drops). Ative opt-in para jogar.",
+                active_profile_id=f"seed-{clean_seed.lower()}",
+                active_version=preset,
+                patch_file=None,
+                validation_level="seed_mutator_non_progression",
             )
 
         # 6. Estado final: verified SOMENTE se estiver na allowlist com validation_level == "full"

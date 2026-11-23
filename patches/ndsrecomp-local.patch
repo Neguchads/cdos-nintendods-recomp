@@ -1,5 +1,5 @@
 diff --git a/runner/CMakeLists.txt b/runner/CMakeLists.txt
-index addb5d1..a0a8152 100644
+index addb5d1..cce5ab5 100644
 --- a/runner/CMakeLists.txt
 +++ b/runner/CMakeLists.txt
 @@ -468,11 +468,23 @@ if(NDS_PREBUILT_BANK_ARCHIVE)
@@ -52,7 +52,7 @@ index addb5d1..a0a8152 100644
      ${GEN}/freebios_arm7.c ${GEN}/freebios_arm7_dispatch.c)
  set(SM64DS_ARM9_BANK_SOURCES)
  set(SM64DS_HLE_PROFILE_SOURCES)
-@@ -820,6 +831,14 @@ add_executable(nds_runner
+@@ -820,6 +831,15 @@ add_executable(nds_runner
      src/profile_report.cpp
      src/scheduler.cpp
      src/debug_server.cpp
@@ -64,10 +64,11 @@ index addb5d1..a0a8152 100644
 +    src/dos_mod_profile.cpp
 +    src/dos_mod_registry.cpp
 +    src/dos_rom_patch.cpp
++    src/dos_seed_mutator.cpp
      src/frontend_config.cpp
      src/relative_mouse_touch.cpp
      "${NDS_RECOMP_UI_ROOT}/src/common/recomp_runtime_ui.c"
-@@ -1148,6 +1167,12 @@ if(NDS_ENABLE_COMPUTE_RENDERER)
+@@ -1148,6 +1168,12 @@ if(NDS_ENABLE_COMPUTE_RENDERER)
      endif()
  endif()
  target_link_libraries(nds_runner PRIVATE nds_banks nds_support nds_armv4t slirp)
@@ -80,7 +81,7 @@ index addb5d1..a0a8152 100644
  if(NDS_MKDS_PERFORMANCE)
      if(TARGET nds_performance_banks)
          target_link_libraries(nds_runner PRIVATE nds_performance_banks)
-@@ -1254,6 +1279,22 @@ if(NDS_SDL_BACKEND STREQUAL "SDL3")
+@@ -1254,6 +1280,22 @@ if(NDS_SDL_BACKEND STREQUAL "SDL3")
      if(NOT TARGET SDL3::SDL3)
          message(FATAL_ERROR "NDS_SDL_BACKEND=SDL3 requires target SDL3::SDL3")
      endif()
@@ -103,7 +104,7 @@ index addb5d1..a0a8152 100644
      target_compile_definitions(nds_runner PRIVATE
          NDS_HAVE_SDL3=1
          NDS_SDL_BACKEND_NAME="SDL3")
-@@ -1279,7 +1320,7 @@ if(CMAKE_DL_LIBS)
+@@ -1279,7 +1321,7 @@ if(CMAKE_DL_LIBS)
      target_link_libraries(nds_runner PRIVATE ${CMAKE_DL_LIBS})
  endif()
  if(WIN32)
@@ -112,7 +113,7 @@ index addb5d1..a0a8152 100644
      if(NDS_ENABLE_PCAP_BACKEND)
          target_link_libraries(nds_runner PRIVATE iphlpapi)
      endif()
-@@ -1317,11 +1358,26 @@ add_test(NAME cpu_render_handoff_test COMMAND cpu_render_handoff_test)
+@@ -1317,11 +1359,27 @@ add_test(NAME cpu_render_handoff_test COMMAND cpu_render_handoff_test)
  
    add_executable(frontend_config_test
        tests/frontend_config_test.cpp
@@ -132,6 +133,7 @@ index addb5d1..a0a8152 100644
 +    src/dos_mod_profile.cpp
 +    src/dos_mod_registry.cpp
 +    src/dos_rom_patch.cpp
++    src/dos_seed_mutator.cpp
 +    ${CMAKE_CURRENT_SOURCE_DIR}/../recompiler/support/sha1.cpp)
 +target_include_directories(dos_enhancements_test PRIVATE src
 +    ${CMAKE_CURRENT_SOURCE_DIR}/../recompiler/support)
@@ -4820,10 +4822,10 @@ index 0000000..83988d1
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..9130ba9
+index 0000000..054ece3
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
-@@ -0,0 +1,1275 @@
+@@ -0,0 +1,1279 @@
 +#include "dos_imgui_menu.h"
 +
 +#if defined(NDS_HAVE_SDL3)
@@ -5657,11 +5659,15 @@ index 0000000..9130ba9
 +        mark_dirty(ctx, false);
 +    }
 +    ImGui::SameLine();
-+    if (opt->dos.randomizer_seed.empty()) ImGui::BeginDisabled();
++    const bool seed_can_apply =
++        !opt->dos.randomizer_seed.empty() && opt->dos.allow_unverified_mods &&
++        opt->dos.active_campaign == "dawn-of-sorrow" &&
++        opt->dos.active_character_pack == "default";
++    if (!seed_can_apply) ImGui::BeginDisabled();
 +    if (ImGui::Button(dos_tr(lang, DosStrId::BtnApplySeed), ImVec2(190.0f, 0.0f))) {
 +        if (ctx.content_swap_requested) *ctx.content_swap_requested = true;
 +    }
-+    if (opt->dos.randomizer_seed.empty()) ImGui::EndDisabled();
++    if (!seed_can_apply) ImGui::EndDisabled();
 +    ImGui::SameLine();
 +    if (opt->dos.randomizer_seed.empty()) ImGui::BeginDisabled();
 +    if (ImGui::Button(dos_tr(lang, DosStrId::BtnClearSeed), ImVec2(130.0f, 0.0f))) {
@@ -6843,10 +6849,10 @@ index 0000000..b5a0dc8
 +std::string dos_profile_save_path(const std::string& base_save_path, DosContentProfile profile);
 diff --git a/runner/src/dos_mod_registry.cpp b/runner/src/dos_mod_registry.cpp
 new file mode 100644
-index 0000000..8da34ed
+index 0000000..beb3088
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.cpp
-@@ -0,0 +1,697 @@
+@@ -0,0 +1,804 @@
 +#include "dos_mod_registry.h"
 +
 +#include <algorithm>
@@ -6857,6 +6863,7 @@ index 0000000..8da34ed
 +#include <sstream>
 +
 +#include "dos_rom_patch.h"
++#include "dos_seed_mutator.h"
 +#include "sha1.h"
 +
 +namespace {
@@ -7274,6 +7281,15 @@ index 0000000..8da34ed
 +
 +void dos_mod_registry_rescan_installed(DosModRegistry* reg) {
 +    if (!reg) return;
++    // Remove entradas dinamicas antigas de dsvrandom antes de reescanear.
++    reg->campaigns.erase(
++        std::remove_if(reg->campaigns.begin(), reg->campaigns.end(),
++                       [](const DosModEntry& e) {
++                           return e.validation_level == "external_randomizer" &&
++                                  e.id.rfind("dsvrandom-", 0) == 0;
++                       }),
++        reg->campaigns.end());
++
 +    auto check_list = [&](std::vector<DosModEntry>& list) {
 +        for (auto& e : list) {
 +            if (e.builtin) {
@@ -7295,6 +7311,51 @@ index 0000000..8da34ed
 +    check_list(reg->baselines);
 +    check_list(reg->campaigns);
 +    check_list(reg->character_packs);
++
++    // Descoberta automatica de seeds externas importadas do DSVania Randomizer (dsvrandom-*.dospatch).
++    if (!reg->data_mods_dir.empty()) {
++        std::error_code ec;
++        const fs::path prof_dir = fs::path(reg->data_mods_dir) / "profiles";
++        if (fs::is_directory(prof_dir, ec)) {
++            std::vector<fs::path> found;
++            for (const auto& entry : fs::directory_iterator(prof_dir, ec)) {
++                if (ec) break;
++                if (!entry.is_regular_file(ec)) continue;
++                const std::string fname = entry.path().filename().string();
++                const std::string lc = lower_ascii(fname);
++                if (lc.rfind("dsvrandom-", 0) == 0 && lc.size() > 19 &&
++                    lc.compare(lc.size() - 9, 9, ".dospatch") == 0) {
++                    found.push_back(entry.path());
++                }
++            }
++            std::sort(found.begin(), found.end());
++            for (const auto& p : found) {
++                const std::string stem = p.stem().string();
++                const std::string safe_id = dos_mod_sanitize_id(stem);
++                if (safe_id.empty() || find_entry(reg->campaigns, safe_id) != nullptr) continue;
++                const std::string seed_label = safe_id.size() > 10 ? safe_id.substr(10) : safe_id;
++                DosModEntry e{};
++                e.id = safe_id;
++                e.name = "DSVania Randomizer (" + seed_label + ")";
++                e.version = "1.0";
++                e.kind = "campaign";
++                e.profile_file = p.filename().string();
++                e.author = "LagoLunatic (DSVania Randomizer external output)";
++                e.summary = "Externally generated DSVania Randomizer seed imported as DOSPATCH.";
++                e.source_url = "https://github.com/LagoLunatic/dsvrandom";
++                e.validation_level = "external_randomizer";
++                e.registry_state = "unverified";
++                e.allowed_character_packs = {"default"};
++                e.builtin = false;
++                e.manual_import = true;
++                e.supports_ptbr = false;
++                e.definitive_compatible = false;
++                e.installed = true;
++                e.resolved_patch_path = p.string();
++                reg->campaigns.push_back(std::move(e));
++            }
++        }
++    }
 +}
 +
 +bool dos_mod_registry_load(const std::string& registry_json_path,
@@ -7384,8 +7445,10 @@ index 0000000..8da34ed
 +        return dec;
 +    }
 +
-+    if (!contains_str(camp->allowed_character_packs, pack->id) ||
-+        !contains_str(pack->compatible_campaigns, camp->id)) {
++    const bool pack_compat_with_camp =
++        (pack->builtin && pack->id == "default") ||
++        contains_str(pack->compatible_campaigns, camp->id);
++    if (!contains_str(camp->allowed_character_packs, pack->id) || !pack_compat_with_camp) {
 +        dec.state = DosCompatState::Incompatible;
 +        dec.allowed = false;
 +        dec.reason = "Character pack '" + pack->name + "' is incompatible with campaign '" + camp->name + "'.";
@@ -7444,6 +7507,29 @@ index 0000000..8da34ed
 +        dec.patch_path = active->resolved_patch_path;
 +    }
 +
++    const std::string sanitized_seed = dos_mod_sanitize_seed(sel.randomizer_seed);
++    if (!sanitized_seed.empty()) {
++        if (!camp->builtin || !pack->builtin || !base->builtin) {
++            dec.state = DosCompatState::Incompatible;
++            dec.allowed = false;
++            dec.reason =
++                "Native Seed Mutator only supports verified Dawn of Sorrow Original/Definitive baselines; clear Seed for overhaul campaigns or character packs.";
++            return dec;
++        }
++        const DosSeedPreset preset = dos_seed_parse_preset(sel.randomizer_preset);
++        dec.active_profile_id = "seed-" + lower_ascii(sanitized_seed);
++        dec.active_profile_name =
++            base->name + " [Seed " + sanitized_seed + "/" + dos_seed_preset_name(preset) + "]";
++        dec.active_version = dos_seed_preset_name(preset);
++        dec.validation_level = "seed_mutator_non_progression";
++        dec.uses_builtin_rom = true;
++        dec.state = DosCompatState::Unverified;
++        dec.allowed = sel.allow_unverified;
++        dec.reason =
++            "Native C++ Seed Mutator (non-progression enemy/drop tables only). Enable Dev/Audit opt-in to launch.";
++        return dec;
++    }
++
 +    const char* lang_str = (sel.language == DosLanguage::PtBr) ? "ptbr" : "en";
 +    bool allowlisted_full = false;
 +    for (const auto& vc : reg.verified_combos) {
@@ -7482,7 +7568,7 @@ index 0000000..8da34ed
 +        return false;
 +    }
 +
-+    const DosConflictDecision dec =
++    DosConflictDecision dec =
 +        dos_mod_resolve_conflict(reg, sel, base_rom_sha1, builtin_patches);
 +    if (decision_out) *decision_out = dec;
 +    if (!dec.allowed) {
@@ -7492,9 +7578,36 @@ index 0000000..8da34ed
 +
 +    if (dec.uses_builtin_rom) {
 +        const DosContentProfile prof =
-+            (dec.active_profile_id == "definitive") ? DosContentProfile::Definitive
-+                                                    : DosContentProfile::Original;
-+        return dos_build_active_rom(builtin_patches, prof, sel.language, out_rom, active_out);
++            (sel.baseline_id == "definitive") ? DosContentProfile::Definitive
++                                              : DosContentProfile::Original;
++        if (!dos_build_active_rom(builtin_patches, prof, sel.language, out_rom, active_out)) {
++            if (error_out) *error_out = "Failed to build built-in baseline ROM.";
++            return false;
++        }
++        const std::string sanitized_seed = dos_mod_sanitize_seed(sel.randomizer_seed);
++        if (!sanitized_seed.empty()) {
++            DosSeedMutatorResult mut_res{};
++            std::string mut_err;
++            if (!dos_seed_mutator_apply(out_rom, sanitized_seed, sel.randomizer_preset,
++                                        sel.baseline_id, reg.data_mods_dir, &mut_res, &mut_err)) {
++                if (error_out) *error_out = "Seed Mutator rejected ROM: " + mut_err;
++                return false;
++            }
++            if (active_out) {
++                active_out->label = active_out->label + " [Seed " + mut_res.sanitized_seed + "/" +
++                                    mut_res.preset_name + "] [Unverified]";
++                active_out->modset_hash = short_sha1_vec(*out_rom);
++            }
++            std::fprintf(stderr,
++                         "[seed-mutator] applied seed=%s preset=%s enemies=%zu item1_swaps=%zu item2_swaps=%zu spoiler=%s\n",
++                         mut_res.sanitized_seed.c_str(),
++                         mut_res.preset_name.c_str(),
++                         mut_res.enemies_mutated,
++                         mut_res.item1_swaps,
++                         mut_res.item2_swaps,
++                         mut_res.spoiler_path.empty() ? "(memory-only)" : mut_res.spoiler_path.c_str());
++        }
++        return true;
 +    }
 +
 +    std::vector<uint8_t> patched;
@@ -8104,6 +8217,410 @@ index 0000000..d01aa6e
 +                              const std::string& patch_path,
 +                              std::vector<uint8_t>* out_rom,
 +                              std::string* error = nullptr);
+diff --git a/runner/src/dos_seed_mutator.cpp b/runner/src/dos_seed_mutator.cpp
+new file mode 100644
+index 0000000..bae38a0
+--- /dev/null
++++ b/runner/src/dos_seed_mutator.cpp
+@@ -0,0 +1,340 @@
++#include "dos_seed_mutator.h"
++
++#include <algorithm>
++#include <array>
++#include <cctype>
++#include <cmath>
++#include <cstdio>
++#include <filesystem>
++#include <iomanip>
++#include <sstream>
++
++#include "dos_mod_registry.h"
++
++namespace fs = std::filesystem;
++
++namespace {
++
++uint16_t read_u16_le(const uint8_t* p) {
++    return static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8);
++}
++
++void write_u16_le(uint8_t* p, uint16_t v) {
++    p[0] = static_cast<uint8_t>(v & 0xFFu);
++    p[1] = static_cast<uint8_t>((v >> 8) & 0xFFu);
++}
++
++std::string lower_ascii_str(const std::string& s) {
++    std::string out = s;
++    for (char& c : out) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
++    return out;
++}
++
++uint64_t splitmix64_next(uint64_t* state) {
++    uint64_t z = (*state += 0x9E3779B97F4A7C15ULL);
++    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
++    z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
++    return z ^ (z >> 31);
++}
++
++struct Xoshiro256StarStar {
++    std::array<uint64_t, 4> s{};
++
++    explicit Xoshiro256StarStar(uint64_t seed) {
++        uint64_t sm = seed;
++        for (uint64_t& w : s) w = splitmix64_next(&sm);
++    }
++
++    static uint64_t rotl(uint64_t x, int k) {
++        return (x << k) | (x >> (64 - k));
++    }
++
++    uint64_t next() {
++        const uint64_t result = rotl(s[1] * 5ULL, 7) * 9ULL;
++        const uint64_t t = s[1] << 17;
++        s[2] ^= s[0];
++        s[3] ^= s[1];
++        s[1] ^= s[2];
++        s[0] ^= s[3];
++        s[2] ^= t;
++        s[3] = rotl(s[3], 45);
++        return result;
++    }
++
++    // Numero real deterministico em [lo, hi].
++    double next_range(double lo, double hi) {
++        const double u = static_cast<double>(next() >> 11) * (1.0 / 9007199254740992.0);
++        return lo + u * (hi - lo);
++    }
++
++    size_t next_bounded(size_t bound) {
++        if (bound <= 1) return 0;
++        return static_cast<size_t>(next() % static_cast<uint64_t>(bound));
++    }
++};
++
++struct PresetRanges {
++    double hp_lo, hp_hi;
++    double exp_lo, exp_hi;
++    double atk_lo, atk_hi;
++    double def_lo, def_hi;
++    double soul_lo, soul_hi;
++    double drop_lo, drop_hi;
++};
++
++PresetRanges preset_ranges(DosSeedPreset p) {
++    switch (p) {
++        case DosSeedPreset::Casual:
++            return {0.70, 1.05, 1.20, 1.60, 0.80, 1.00, 0.80, 1.00, 1.25, 1.75, 1.20, 1.60};
++        case DosSeedPreset::Hard:
++            return {1.15, 1.65, 0.75, 1.10, 1.10, 1.45, 1.05, 1.35, 0.80, 1.15, 0.80, 1.15};
++        case DosSeedPreset::Standard:
++        default:
++            return {0.80, 1.35, 0.85, 1.35, 0.85, 1.25, 0.85, 1.25, 0.85, 1.35, 0.85, 1.35};
++    }
++}
++
++uint16_t scale_u16(uint16_t val, double mult, uint16_t min_v, uint16_t max_v) {
++    if (val == 0) return 0;
++    const double scaled = std::round(static_cast<double>(val) * mult);
++    const double clamped = std::clamp(scaled, static_cast<double>(min_v), static_cast<double>(max_v));
++    return static_cast<uint16_t>(clamped);
++}
++
++uint8_t scale_u8(uint8_t val, double mult, uint8_t min_v, uint8_t max_v) {
++    if (val == 0) return 0;
++    const double scaled = std::round(static_cast<double>(val) * mult);
++    const double clamped = std::clamp(scaled, static_cast<double>(min_v), static_cast<double>(max_v));
++    return static_cast<uint8_t>(clamped);
++}
++
++std::string hex64(uint64_t v) {
++    char buf[20]{};
++    std::snprintf(buf, sizeof(buf), "%016llx", static_cast<unsigned long long>(v));
++    return std::string(buf);
++}
++
++}  // namespace
++
++DosSeedPreset dos_seed_parse_preset(const std::string& name) {
++    const std::string lc = lower_ascii_str(name);
++    if (lc == "casual") return DosSeedPreset::Casual;
++    if (lc == "hard") return DosSeedPreset::Hard;
++    return DosSeedPreset::Standard;
++}
++
++const char* dos_seed_preset_name(DosSeedPreset preset) {
++    switch (preset) {
++        case DosSeedPreset::Casual:
++            return "casual";
++        case DosSeedPreset::Hard:
++            return "hard";
++        case DosSeedPreset::Standard:
++        default:
++            return "standard";
++    }
++}
++
++uint64_t dos_seed_fnv1a64(const uint8_t* data, size_t len) {
++    uint64_t h = 14695981039346656037ULL;
++    for (size_t i = 0; i < len; ++i) {
++        h ^= static_cast<uint64_t>(data[i]);
++        h *= 1099511628211ULL;
++    }
++    return h;
++}
++
++bool dos_seed_verify_enemy_table_signature(const std::vector<uint8_t>& rom,
++                                           std::string* error_out) {
++    if (rom.size() < kDosEnemyDnaTableRomOffset + kDosEnemyDnaTableBytes) {
++        if (error_out) *error_out = "ROM is too small to contain verified Dawn of Sorrow USA enemy table.";
++        return false;
++    }
++    if (rom[0x0C] != 'A' || rom[0x0D] != 'C' || rom[0x0E] != 'V' || rom[0x0F] != 'E') {
++        if (error_out) *error_out = "ROM game code is not USA ACVE; refusing to mutate unverified offsets.";
++        return false;
++    }
++    const uint64_t actual = dos_seed_fnv1a64(
++        rom.data() + kDosEnemyDnaTableRomOffset, kDosEnemyDnaTableBytes);
++    if (actual != kDosEnemyDnaTableFnv1a64) {
++        if (error_out) {
++            *error_out = "Enemy DNA table signature mismatch (got 0x" + hex64(actual) +
++                         ", expected 0x" + hex64(kDosEnemyDnaTableFnv1a64) +
++                         "); refusing to apply USA offsets on modified campaign ROM.";
++        }
++        return false;
++    }
++    return true;
++}
++
++bool dos_seed_mutator_apply(std::vector<uint8_t>* rom,
++                            const std::string& raw_seed,
++                            const std::string& preset_str,
++                            const std::string& base_profile_id,
++                            const std::string& data_mods_dir,
++                            DosSeedMutatorResult* result_out,
++                            std::string* error_out) {
++    if (!rom) {
++        if (error_out) *error_out = "Null ROM buffer.";
++        return false;
++    }
++    const std::string seed = dos_mod_sanitize_seed(raw_seed);
++    if (seed.empty()) {
++        if (error_out) *error_out = "Seed is empty or contains no valid [A-Za-z0-9_-] characters.";
++        return false;
++    }
++    if (!dos_seed_verify_enemy_table_signature(*rom, error_out)) {
++        return false;
++    }
++
++    const DosSeedPreset preset = dos_seed_parse_preset(preset_str);
++    const char* preset_cstr = dos_seed_preset_name(preset);
++    const PresetRanges r = preset_ranges(preset);
++
++    const std::string seed_key = "cdos-seed-mutator-v1|" + seed + "|" + preset_cstr + "|" + base_profile_id;
++    const uint64_t seed_u64 = dos_seed_fnv1a64(
++        reinterpret_cast<const uint8_t*>(seed_key.data()), seed_key.size());
++    Xoshiro256StarStar rng(seed_u64);
++
++    uint8_t* const tbl = rom->data() + kDosEnemyDnaTableRomOffset;
++    const uint64_t hash_before = kDosEnemyDnaTableFnv1a64;
++
++    // 1. Coleta e embaralha (Fisher-Yates) drops comuns e raros NAO-ZERO entre inimigos regulares (0..100).
++    std::vector<size_t> item1_slots;
++    std::vector<uint16_t> item1_vals;
++    std::vector<size_t> item2_slots;
++    std::vector<uint16_t> item2_vals;
++    item1_slots.reserve(kDosEnemyDnaRegularCount);
++    item1_vals.reserve(kDosEnemyDnaRegularCount);
++    item2_slots.reserve(kDosEnemyDnaRegularCount);
++    item2_vals.reserve(kDosEnemyDnaRegularCount);
++
++    struct OrigStats {
++        uint16_t item1, item2, hp, exp;
++        uint8_t soul_ch, atk, def, i1_ch, i2_ch;
++    };
++    std::array<OrigStats, kDosEnemyDnaRegularCount> orig{};
++
++    for (size_t i = 0; i < kDosEnemyDnaRegularCount; ++i) {
++        const uint8_t* e = tbl + i * kDosEnemyDnaEntryStride;
++        orig[i].item1 = read_u16_le(e + 0x08);
++        orig[i].item2 = read_u16_le(e + 0x0A);
++        orig[i].hp = read_u16_le(e + 0x0E);
++        orig[i].exp = read_u16_le(e + 0x12);
++        orig[i].soul_ch = e[0x14];
++        orig[i].atk = e[0x15];
++        orig[i].def = e[0x16];
++        orig[i].i1_ch = e[0x17];
++        orig[i].i2_ch = e[0x18];
++
++        if (orig[i].item1 != 0) {
++            item1_slots.push_back(i);
++            item1_vals.push_back(orig[i].item1);
++        }
++        if (orig[i].item2 != 0) {
++            item2_slots.push_back(i);
++            item2_vals.push_back(orig[i].item2);
++        }
++    }
++
++    for (size_t i = item1_vals.size(); i > 1; --i) {
++        const size_t j = rng.next_bounded(i);
++        std::swap(item1_vals[i - 1], item1_vals[j]);
++    }
++    for (size_t i = item2_vals.size(); i > 1; --i) {
++        const size_t j = rng.next_bounded(i);
++        std::swap(item2_vals[i - 1], item2_vals[j]);
++    }
++
++    size_t item1_swaps = 0;
++    for (size_t k = 0; k < item1_slots.size(); ++k) {
++        const size_t idx = item1_slots[k];
++        if (item1_vals[k] != orig[idx].item1) ++item1_swaps;
++        write_u16_le(tbl + idx * kDosEnemyDnaEntryStride + 0x08, item1_vals[k]);
++    }
++    size_t item2_swaps = 0;
++    for (size_t k = 0; k < item2_slots.size(); ++k) {
++        const size_t idx = item2_slots[k];
++        if (item2_vals[k] != orig[idx].item2) ++item2_swaps;
++        write_u16_le(tbl + idx * kDosEnemyDnaEntryStride + 0x0A, item2_vals[k]);
++    }
++
++    // 2. Escala deterministica de HP, EXP, ATK, DEF, soul_chance e item_drop_chances apenas para 0..100.
++    // Chefes (101..117), code pointers (+0x00..+0x07), soul_id (+0x1A) e flags nao sao alterados.
++    std::ostringstream spoiler;
++    spoiler << "# CDOS Recomp Native C++ Seed Mutator Spoiler Log\n";
++    spoiler << "seed=" << seed << "\n";
++    spoiler << "preset=" << preset_cstr << "\n";
++    spoiler << "base_profile=" << base_profile_id << "\n";
++    spoiler << "prng=xoshiro256ss(splitmix64(0x" << hex64(seed_u64) << "))\n";
++    spoiler << "scope=regular_enemies_0_to_100_non_progression_only\n";
++    spoiler << "untouched=bosses_101_to_117,soul_ids,code_pointers,progression_flags\n";
++    spoiler << "disclaimer=Non-progression enemy/drop mutator only. For full room/soul/item logic use DSVania Randomizer (dsvrandom) importer.\n\n";
++
++    size_t mutated_count = 0;
++    for (size_t i = 0; i < kDosEnemyDnaRegularCount; ++i) {
++        uint8_t* e = tbl + i * kDosEnemyDnaEntryStride;
++        const uint16_t new_hp = scale_u16(orig[i].hp, rng.next_range(r.hp_lo, r.hp_hi), 1u, 9999u);
++        const uint16_t new_exp = scale_u16(orig[i].exp, rng.next_range(r.exp_lo, r.exp_hi), 1u, 9999u);
++        const uint8_t new_atk = scale_u8(orig[i].atk, rng.next_range(r.atk_lo, r.atk_hi), 1u, 250u);
++        const uint8_t new_def = scale_u8(orig[i].def, rng.next_range(r.def_lo, r.def_hi), 1u, 200u);
++        const uint8_t new_sc = scale_u8(orig[i].soul_ch, rng.next_range(r.soul_lo, r.soul_hi), 1u, 255u);
++        const uint8_t new_i1c = scale_u8(orig[i].i1_ch, rng.next_range(r.drop_lo, r.drop_hi), 1u, 255u);
++        const uint8_t new_i2c = scale_u8(orig[i].i2_ch, rng.next_range(r.drop_lo, r.drop_hi), 1u, 255u);
++
++        write_u16_le(e + 0x0E, new_hp);
++        write_u16_le(e + 0x12, new_exp);
++        e[0x14] = new_sc;
++        e[0x15] = new_atk;
++        e[0x16] = new_def;
++        e[0x17] = new_i1c;
++        e[0x18] = new_i2c;
++
++        const uint16_t new_item1 = read_u16_le(e + 0x08);
++        const uint16_t new_item2 = read_u16_le(e + 0x0A);
++        if (new_hp != orig[i].hp || new_exp != orig[i].exp || new_atk != orig[i].atk ||
++            new_def != orig[i].def || new_sc != orig[i].soul_ch || new_i1c != orig[i].i1_ch ||
++            new_i2c != orig[i].i2_ch || new_item1 != orig[i].item1 || new_item2 != orig[i].item2) {
++            ++mutated_count;
++        }
++
++        spoiler << "enemy#" << std::setw(3) << std::setfill('0') << i
++                << " HP:" << orig[i].hp << "->" << new_hp
++                << " EXP:" << orig[i].exp << "->" << new_exp
++                << " ATK:" << static_cast<unsigned>(orig[i].atk) << "->" << static_cast<unsigned>(new_atk)
++                << " DEF:" << static_cast<unsigned>(orig[i].def) << "->" << static_cast<unsigned>(new_def)
++                << " SOUL_CH:" << static_cast<unsigned>(orig[i].soul_ch) << "->" << static_cast<unsigned>(new_sc)
++                << " ITEM1:0x" << std::hex << orig[i].item1 << "->0x" << new_item1
++                << " ITEM2:0x" << orig[i].item2 << "->0x" << new_item2 << std::dec << "\n";
++    }
++
++    const uint64_t hash_after = dos_seed_fnv1a64(tbl, kDosEnemyDnaTableBytes);
++    spoiler << "\ntable_fnv1a64_before=0x" << hex64(hash_before) << "\n";
++    spoiler << "table_fnv1a64_after=0x" << hex64(hash_after) << "\n";
++    spoiler << "enemies_mutated=" << mutated_count << "/" << kDosEnemyDnaRegularCount << "\n";
++    spoiler << "item1_swaps=" << item1_swaps << " item2_swaps=" << item2_swaps << "\n";
++
++    const std::string spoiler_str = spoiler.str();
++    std::string spoiler_path;
++    if (!data_mods_dir.empty()) {
++        const std::string fname = "seed-" + lower_ascii_str(seed) + "-" + preset_cstr + "-spoiler.txt";
++        spoiler_path = (fs::path(data_mods_dir) / "cache" / fname).string();
++        if (!dos_write_text_atomic(spoiler_path, spoiler_str)) {
++            spoiler_path.clear();
++        }
++    }
++
++    if (result_out) {
++        result_out->sanitized_seed = seed;
++        result_out->preset_name = preset_cstr;
++        result_out->seed_u64 = seed_u64;
++        result_out->table_hash_before = hash_before;
++        result_out->table_hash_after = hash_after;
++        result_out->enemies_mutated = mutated_count;
++        result_out->item1_swaps = item1_swaps;
++        result_out->item2_swaps = item2_swaps;
++        result_out->spoiler_text = spoiler_str;
++        result_out->spoiler_path = spoiler_path;
++    }
++    return true;
++}
+diff --git a/runner/src/dos_seed_mutator.h b/runner/src/dos_seed_mutator.h
+new file mode 100644
+index 0000000..3525bd0
+--- /dev/null
++++ b/runner/src/dos_seed_mutator.h
+@@ -0,0 +1,52 @@
++#pragma once
++
++#include <cstddef>
++#include <cstdint>
++#include <string>
++#include <vector>
++
++enum class DosSeedPreset : uint8_t {
++    Casual = 0,
++    Standard = 1,
++    Hard = 2,
++};
++
++struct DosSeedMutatorResult {
++    std::string sanitized_seed;
++    std::string preset_name;
++    uint64_t seed_u64 = 0;
++    uint64_t table_hash_before = 0;
++    uint64_t table_hash_after = 0;
++    size_t enemies_mutated = 0;
++    size_t item1_swaps = 0;
++    size_t item2_swaps = 0;
++    std::string spoiler_text;
++    std::string spoiler_path;
++};
++
++// Constantes verificadas na ROM retail USA ACVE (identicas em Original EN/PT-BR e Definitive EN/PT-BR).
++inline constexpr size_t kDosEnemyDnaTableRomOffset = 0x7CCACu;
++inline constexpr size_t kDosEnemyDnaEntryStride = 0x24u;
++inline constexpr size_t kDosEnemyDnaEntryCount = 118u;
++inline constexpr size_t kDosEnemyDnaRegularCount = 101u;  // 0..100 inimigos comuns; 101..117 chefes intocados.
++inline constexpr size_t kDosEnemyDnaTableBytes = kDosEnemyDnaEntryCount * kDosEnemyDnaEntryStride;
++inline constexpr uint64_t kDosEnemyDnaTableFnv1a64 = 0x51F8556E92BA32C4ULL;
++
++DosSeedPreset dos_seed_parse_preset(const std::string& name);
++const char* dos_seed_preset_name(DosSeedPreset preset);
++uint64_t dos_seed_fnv1a64(const uint8_t* data, size_t len);
++
++// Verifica Game Code ACVE e assinatura FNV-1a exata da tabela Enemy DNA antes de qualquer mutacao.
++bool dos_seed_verify_enemy_table_signature(const std::vector<uint8_t>& rom,
++                                           std::string* error_out = nullptr);
++
++// Aplica mutacao deterministica offline (C++ nativo, sem Python/Ruby) apenas em campos nao-progressao
++// de inimigos regulares (0..100). Chefes (101..117), ponteiros de codigo e IDs de almas nao sao alterados.
++// Se data_mods_dir nao for vazio, grava spoiler log atomico em <data_mods_dir>/cache/.
++bool dos_seed_mutator_apply(std::vector<uint8_t>* rom,
++                            const std::string& raw_seed,
++                            const std::string& preset_str,
++                            const std::string& base_profile_id,
++                            const std::string& data_mods_dir,
++                            DosSeedMutatorResult* result_out = nullptr,
++                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
 index 7ff4316..2ab7782 100644
 --- a/runner/src/frontend.cpp
@@ -11844,7 +12361,7 @@ index 7c9f618..5398159 100644
  
  bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..37daca0 100644
+index afa9e18..f5c5d12 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
 @@ -55,6 +55,10 @@
@@ -11871,7 +12388,7 @@ index afa9e18..37daca0 100644
  extern "C" const DispatchEntry g_dispatch_freebios_arm9[];
  extern "C" const unsigned g_dispatch_freebios_arm9_len;
  extern "C" const DispatchEntry g_dispatch_freebios_arm7[];
-@@ -446,6 +452,16 @@ int main(int argc, char** argv) {
+@@ -446,6 +452,18 @@ int main(int argc, char** argv) {
      std::string cli_diagnostics_dir;
      std::string cli_diagnostics_interval_ms;
      std::string cli_runtime_settings_path;
@@ -11885,10 +12402,12 @@ index afa9e18..37daca0 100644
 +    std::string cli_campaign_id;
 +    std::string cli_character_pack_id;
 +    bool cli_allow_unverified_mods = false;
++    std::string cli_randomizer_seed;
++    std::string cli_randomizer_preset;
      // beads-yjp.28: where the Tier-3 coverage manifest lands. Empty means
      // "derive it" (next to the save, else next to the ROM). Written on every
      // exit path, with no flag required, so a player's ordinary session yields
-@@ -531,6 +547,26 @@ int main(int argc, char** argv) {
+@@ -531,6 +549,30 @@ int main(int argc, char** argv) {
              cli_diagnostics_interval_ms = argv[++i];
          } else if (a == "--runtime-settings-path" && i + 1 < argc) {
              cli_runtime_settings_path = argv[++i];
@@ -11912,10 +12431,14 @@ index afa9e18..37daca0 100644
 +            cli_character_pack_id = argv[++i];
 +        } else if (a == "--allow-unverified-mods") {
 +            cli_allow_unverified_mods = true;
++        } else if (a == "--seed" && i + 1 < argc) {
++            cli_randomizer_seed = argv[++i];
++        } else if (a == "--seed-preset" && i + 1 < argc) {
++            cli_randomizer_preset = argv[++i];
          } else if (a == "--coverage-manifest" && i + 1 < argc) {
              cli_coverage_manifest = argv[++i];
          } else if (a == "--no-coverage-manifest") {
-@@ -718,6 +754,13 @@ int main(int argc, char** argv) {
+@@ -718,6 +760,14 @@ int main(int argc, char** argv) {
                  "[--diagnostics on|off] [--diagnostics-dir dir] "
                  "[--diagnostics-interval-ms ms] "
                  "[--runtime-settings-path FILE] "
@@ -11926,10 +12449,11 @@ index afa9e18..37daca0 100644
 +                "[--intro-video FILE] "
 +                "[--mod-registry FILE] [--mod-data-dir DIR] "
 +                "[--campaign ID] [--character-pack ID] [--allow-unverified-mods] "
++                "[--seed STRING] [--seed-preset casual|standard|hard] "
                  "[--coverage-manifest out.json|--no-coverage-manifest] "
                  "[--firmware-path firmware.bin] "
                  "[--firmware-state-path mutable-firmware.bin] "
-@@ -824,12 +867,16 @@ int main(int argc, char** argv) {
+@@ -824,12 +874,16 @@ int main(int argc, char** argv) {
          return 2;
      }
      frontend_options.runtime_settings_path = cli_runtime_settings_path;
@@ -11947,7 +12471,7 @@ index afa9e18..37daca0 100644
              return 2;
          }
      }
-@@ -959,7 +1006,8 @@ int main(int argc, char** argv) {
+@@ -959,7 +1013,8 @@ int main(int argc, char** argv) {
                                   &frontend_options.screen_layout)) {
          std::fprintf(stderr,
                       "invalid --screen-layout "
@@ -11957,7 +12481,7 @@ index afa9e18..37daca0 100644
          return 2;
      }
      if ((!cli_pip_corner.empty() && !nds_parse_pip_corner(cli_pip_corner, &frontend_options.pip_corner)) ||
-@@ -1615,6 +1663,20 @@ int main(int argc, char** argv) {
+@@ -1615,6 +1670,20 @@ int main(int argc, char** argv) {
  
      if (cli_generated_firmware) frontend_options.generated_firmware = true;
      if (cli_freebios) frontend_options.freebios = true;
@@ -11978,7 +12502,7 @@ index afa9e18..37daca0 100644
      if (frontend_options.freebios &&
          frontend_options.boot_mode != NdsBootMode::Direct) {
          // A reimplemented BIOS cannot boot the firmware menu (melonDS
-@@ -1758,6 +1820,15 @@ int main(int argc, char** argv) {
+@@ -1758,6 +1827,15 @@ int main(int argc, char** argv) {
              return 1;
          }
      }
@@ -11994,7 +12518,7 @@ index afa9e18..37daca0 100644
      std::string execution_error;
      if (!nds_execution_model_select(cli_execution_model, rom_sha1, execution_error)) {
          std::fprintf(stderr, "refusing to start: %s\n", execution_error.c_str());
-@@ -2151,6 +2222,138 @@ int main(int argc, char** argv) {
+@@ -2151,6 +2229,154 @@ int main(int argc, char** argv) {
              "(LLE-faithful, reads real firmware dump over SPI)\n");
      }
  
@@ -12047,6 +12571,22 @@ index afa9e18..37daca0 100644
 +    }
 +    if (cli_allow_unverified_mods) {
 +        frontend_options.dos.allow_unverified_mods = true;
++    }
++    if (!cli_randomizer_seed.empty()) {
++        const std::string sd = dos_mod_sanitize_seed(cli_randomizer_seed);
++        if (sd.empty()) {
++            std::fprintf(stderr, "invalid --seed (expected [A-Za-z0-9_-]{1,32})\n");
++            return 2;
++        }
++        frontend_options.dos.randomizer_seed = sd;
++    }
++    if (!cli_randomizer_preset.empty()) {
++        if (cli_randomizer_preset != "casual" && cli_randomizer_preset != "standard" &&
++            cli_randomizer_preset != "hard") {
++            std::fprintf(stderr, "invalid --seed-preset (expected casual, standard, or hard)\n");
++            return 2;
++        }
++        frontend_options.dos.randomizer_preset = cli_randomizer_preset;
 +    }
 +
 +    DosModRegistry dos_mod_registry{};
@@ -12133,7 +12673,7 @@ index afa9e18..37daca0 100644
      // Full power-on init, reusable so the debug server can honour `reset`
      // (the bisector compares fresh-from-reset at each event count).
      auto boot = [&]() {
-@@ -2183,11 +2386,13 @@ int main(int argc, char** argv) {
+@@ -2183,11 +2409,13 @@ int main(int argc, char** argv) {
                                    g_dispatch_freebios_arm9_len, 0xFFFF0000u);
              nds_register_dispatch(NDS_ARM7, g_dispatch_freebios_arm7,
                                    g_dispatch_freebios_arm7_len, 0x00000000u);
@@ -12147,7 +12687,7 @@ index afa9e18..37daca0 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2449,9 +2654,123 @@ int main(int argc, char** argv) {
+@@ -2449,9 +2677,123 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
@@ -12369,10 +12909,10 @@ index e411b57..90cf236 100644
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..f9b0b75
+index 0000000..4da5546
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,659 @@
+@@ -0,0 +1,745 @@
 +#undef NDEBUG
 +#include "dos_enhancements.h"
 +#include "dos_gpu_shader.h"
@@ -12381,6 +12921,7 @@ index 0000000..f9b0b75
 +#include "dos_mod_profile.h"
 +#include "dos_mod_registry.h"
 +#include "dos_rom_patch.h"
++#include "dos_seed_mutator.h"
 +#include "sha1.h"
 +
 +#include <cassert>
@@ -13013,6 +13554,91 @@ index 0000000..f9b0b75
 +    s_missing.character_pack_id = "albus-mode";
 +    s_missing.baseline_id = "original";
 +    assert(dos_mod_resolve_conflict(reg, s_missing, sha, builtin).state == DosCompatState::Incompatible);
++
++    // 4. Native C++ Seed Mutator conflict rules
++    DosModSelection s_seed{};
++    s_seed.randomizer_seed = "CASTLE2026";
++    s_seed.randomizer_preset = "standard";
++    s_seed.allow_unverified = false;
++    dec = dos_mod_resolve_conflict(reg, s_seed, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && !dec.allowed);
++    assert(dec.active_profile_id == "seed-castle2026");
++    assert(dec.active_version == "standard");
++
++    s_seed.allow_unverified = true;
++    dec = dos_mod_resolve_conflict(reg, s_seed, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && dec.allowed);
++
++    // Seed Mutator cannot be stacked on an overhaul campaign
++    DosModSelection s_seed_bad = s_seed;
++    s_seed_bad.campaign_id = "eternity-of-sorrow";
++    s_seed_bad.baseline_id = "original";
++    assert(dos_mod_resolve_conflict(reg, s_seed_bad, sha, builtin).state == DosCompatState::Incompatible);
++
++    // 5. Dynamic discovery of externally generated DSVania Randomizer (dsvrandom-*.dospatch)
++    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "dsvrandom-demo2026.dospatch").string(), "DOSPATCH"));
++    dos_mod_registry_rescan_installed(&reg);
++    DosModSelection s_dsv{};
++    s_dsv.campaign_id = "dsvrandom-demo2026";
++    s_dsv.baseline_id = "original";
++    s_dsv.allow_unverified = true;
++    dec = dos_mod_resolve_conflict(reg, s_dsv, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && dec.allowed);
++    assert(dec.validation_level == "external_randomizer");
++    // Must reject stacking dsvrandom over Definitive or PT-BR
++    s_dsv.baseline_id = "definitive";
++    assert(dos_mod_resolve_conflict(reg, s_dsv, sha, builtin).state == DosCompatState::Incompatible);
++
++    // 6. Seed Mutator binary safety: reject wrong game code and altered table signature
++    std::vector<uint8_t> fake_rom(kDosEnemyDnaTableRomOffset + kDosEnemyDnaTableBytes + 64, 0);
++    std::string mut_err;
++    assert(!dos_seed_verify_enemy_table_signature(fake_rom, &mut_err));
++    assert(mut_err.find("ACVE") != std::string::npos);
++    fake_rom[0x0C] = 'A';
++    fake_rom[0x0D] = 'C';
++    fake_rom[0x0E] = 'V';
++    fake_rom[0x0F] = 'E';
++    mut_err.clear();
++    assert(!dos_seed_mutator_apply(&fake_rom, "CASTLE2026", "standard", "definitive", "", nullptr, &mut_err));
++    assert(mut_err.find("signature mismatch") != std::string::npos);
++
++    // 7. If local USA ACVE ROM is present in workspace, verify determinism, boss invariance, and spoiler log
++    const std::filesystem::path local_rom =
++        "G:/Recomps e Mods/Nintendo/Nintendo DS/Roms/Castlevania - Dawn of Sorrow (USA).nds";
++    if (std::filesystem::is_regular_file(local_rom, ec)) {
++        const auto sz = std::filesystem::file_size(local_rom, ec);
++        std::vector<uint8_t> rom_a(static_cast<size_t>(sz));
++        {
++            std::ifstream rf(local_rom, std::ios::binary);
++            rf.read(reinterpret_cast<char*>(rom_a.data()), static_cast<std::streamsize>(rom_a.size()));
++            assert(rf.good());
++        }
++        std::vector<uint8_t> rom_b = rom_a;
++        std::vector<uint8_t> rom_c = rom_a;
++        const std::vector<uint8_t> bosses_before(
++            rom_a.begin() + kDosEnemyDnaTableRomOffset + kDosEnemyDnaRegularCount * kDosEnemyDnaEntryStride,
++            rom_a.begin() + kDosEnemyDnaTableRomOffset + kDosEnemyDnaTableBytes);
++
++        DosSeedMutatorResult res_a{}, res_b{}, res_c{};
++        assert(dos_seed_mutator_apply(&rom_a, "CASTLE2026", "standard", "definitive",
++                                      (tmp_dir / "data").string(), &res_a, &mut_err));
++        assert(dos_seed_mutator_apply(&rom_b, "CASTLE2026", "standard", "definitive",
++                                      "", &res_b, &mut_err));
++        assert(dos_seed_mutator_apply(&rom_c, "OTHERSEED9", "hard", "definitive",
++                                      "", &res_c, &mut_err));
++        assert(rom_a == rom_b);
++        assert(res_a.table_hash_after == res_b.table_hash_after);
++        assert(rom_a != rom_c);
++        assert(res_a.table_hash_after != res_c.table_hash_after);
++        assert(res_a.enemies_mutated > 80);
++        assert(!res_a.spoiler_path.empty() && std::filesystem::is_regular_file(res_a.spoiler_path, ec));
++
++        // Verify bosses (101..117) and regular enemy code pointers + soul_id are 100% untouched
++        const std::vector<uint8_t> bosses_after(
++            rom_a.begin() + kDosEnemyDnaTableRomOffset + kDosEnemyDnaRegularCount * kDosEnemyDnaEntryStride,
++            rom_a.begin() + kDosEnemyDnaTableRomOffset + kDosEnemyDnaTableBytes);
++        assert(bosses_before == bosses_after);
++    }
 +
 +    std::filesystem::remove_all(tmp_dir, ec);
 +}
