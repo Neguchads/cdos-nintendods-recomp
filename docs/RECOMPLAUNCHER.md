@@ -15,7 +15,7 @@ This project follows the **RecompLauncher SDK, format 1** ([guide](https://githu
 | `$schema`, `format`, `name`, `repo` | official schema URL, `1`, *Castlevania: Dawn of Sorrow: Recompiled*, `Neguchads/cdos-nintendods-recomp` |
 | `inputs[game]` | one file, `.nds` only; `check.ids = ["ACVE"]`; `dumps`: USA (ACVE), 67,108,864 bytes, CRC32 `135737f6` (verified badge) |
 | `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, PT-BR patch `{install}/mods/ptbr/dos-ptbr.dospatch`; BIOS identity, settings, saves and savestates under `{data}` |
-| `config` | INI at `{data}/saves/dos-settings.ini`; `new` writes all defaults the first time |
+| `config` | INI at `{data}/saves/dos-settings.ini`; `new` writes all 30 defaults on first start (`en` for menu & game language, PT-BR selectable as secondary) |
 | `settings` | 30 options in groups Language, General, Display, Graphics, Performance, Audio, Controls (choices and sliders) |
 | `saves`, `folders`, `actions` | EEPROM `.sav`, INI and savestates; buttons to open Saves, Screenshots and Logs |
 | `looks` | `graphics_key = dos_render_driver`, `lines = 192` (DS screen height) for the launcher's ReShade looks |
@@ -60,7 +60,7 @@ Regenerate or check the kit: `python tools/prepare_media_assets.py` (needs Pillo
 python tools/package_recomplauncher.py
 ```
 
-This validates the manifest (including that every media file exists) and builds `dist/castlevania-dos-recomp-win64.zip` plus `SHA256SUMS.txt`, with no `.nds` inside. Put `recomplauncher.json` at the top of the zip; name release files with the system and architecture (for example `...-windows-x64.zip`).
+This validates the manifest (including that every media file exists) and builds `dist/castlevania-dos-recomp-win64.zip` plus `SHA256SUMS.txt` (including `CastlevaniaDawnOfSorrow.exe` and `runtime/nds_runner.exe` with embedded icons, and zero `.nds` inside). Put `recomplauncher.json` at the top of the zip; name release files with the system and architecture (for example `...-Windows-x64.zip`).
 
 ### Check it inside the launcher
 
@@ -85,7 +85,7 @@ Este projeto segue o **SDK do RecompLauncher, formato 1** ([guia](https://github
 | `$schema`, `format`, `name`, `repo` | URL oficial do schema, `1`, *Castlevania: Dawn of Sorrow: Recompiled*, `Neguchads/cdos-nintendods-recomp` |
 | `inputs[game]` | um arquivo, só `.nds`; `check.ids = ["ACVE"]`; `dumps`: USA (ACVE), 67.108.864 bytes, CRC32 `135737f6` (selo de verificado) |
 | `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, patch PT-BR `{install}/mods/ptbr/dos-ptbr.dospatch`; identidade de BIOS, configurações, saves e savestates em `{data}` |
-| `config` | INI em `{data}/saves/dos-settings.ini`; `new` grava todos os padrões na primeira vez |
+| `config` | INI em `{data}/saves/dos-settings.ini`; `new` grava todos os 30 padrões na primeira vez (`en` para menu e jogo, com PT-BR como opção secundária) |
 | `settings` | 30 opções nos grupos Language, General, Display, Graphics, Performance, Audio, Controls (escolhas e sliders) |
 | `saves`, `folders`, `actions` | `.sav` EEPROM, INI e savestates; botões para abrir Saves, Screenshots e Logs |
 | `looks` | `graphics_key = dos_render_driver`, `lines = 192` (altura da tela do DS) para os looks (ReShade) do launcher |
@@ -130,7 +130,7 @@ Para regerar ou conferir o kit: `python tools/prepare_media_assets.py` (precisa 
 python tools/package_recomplauncher.py
 ```
 
-Valida o manifesto (inclusive se todos os arquivos de mídia existem) e gera `dist/castlevania-dos-recomp-win64.zip` mais `SHA256SUMS.txt`, sem nenhum `.nds`. Deixe o `recomplauncher.json` no topo do zip; nomeie os arquivos da release com sistema e arquitetura (por exemplo `...-windows-x64.zip`).
+Valida o manifesto (inclusive se todos os arquivos de mídia existem) e gera `dist/castlevania-dos-recomp-win64.zip` mais `SHA256SUMS.txt` (incluindo `CastlevaniaDawnOfSorrow.exe` e `runtime/nds_runner.exe` com ícones embutidos e nenhum `.nds`). Deixe o `recomplauncher.json` no topo do zip; nomeie os arquivos da release com sistema e arquitetura (por exemplo `...-Windows-x64.zip`).
 
 ### Conferir dentro do launcher
 
