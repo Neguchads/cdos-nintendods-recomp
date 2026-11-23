@@ -8,7 +8,15 @@
 
 ## English
 
-### Current Technical State (Branch `development`)
+### Current Technical State (Branch `feat/campaigns-randomizer-v1` — PR #16 over `development`)
+Branch `feat/campaigns-randomizer-v1` extends `development` (PR #15, `b367ba3`, kept intact and green) with **PR #16 Stages 16A–16D**:
+- **16A (Foundation):** Declarative [`mods/registry.json`](mods/registry.json), 3-state `ConflictEngine` (`verified` / `unverified` / `incompatible`), XDELTA1 vs VCDIFF/IPS magic detection, hardened ZIP limits + path-traversal rejection + atomic writes, `{install}` read-only vs `{data}` writable separation, isolated saves/savestates by `profile_id + version + modset_hash`, and the 7th `F1` ImGui tab (`Mods & Campaigns`) keeping **Definitive Edition** as integrated default and **Original USA** as advanced compatibility mode.
+- **16B (Eternity of Sorrow 1.2):** Fixed expanded non-power-of-two cartridge masking in `runner/src/io.cpp` (`68.6 MB -> 128 MiB` `0xFF` padding + dynamic `g_card_chip_id`), added SHA-256 verified community mod fetcher (`tools/fetch_community_mods.py`), and verified *Eternity of Sorrow 1.2* live at **`59.98 FPS`**, `emu_ms=2.37 ms`, `0` dispatch misses, isolated `profiles/eternity-of-sorrow-v1.2-59644e04/dos.sav`, and soft reset OK (kept honestly as `state: "unverified"`, `validation_level: "boot_and_perf_probe"`).
+- **16C (Character Packs & Manual Slots):** Split GameBanana's ZX/Omega package into mutually exclusive `model-zx` and `model-omega` packs alongside `albus-mode` (`exclusive_group: "julius-pack"`, pinned SHA-256, `unverified` / `boot_and_perf_probe`, `0` dispatch misses, isolated saves), while keeping absent manual-import slots (`alucards-requiem-sotn`, `alucards-requiem-cv3`, `draculas-curse`, `definitive-plus`) cleanly disabled (`Not Installed`).
+- **16D (Native C++ Seed Mutator & DSVania Randomizer Importer):** Added zero-dependency C++17 `runner/src/dos_seed_mutator.{h,cpp}` (`xoshiro256**/SplitMix64`, `--seed`, `--seed-preset casual|standard|hard`, verified FNV-1a signature `0x51F8556E92BA32C4` of the `118 × 36 B` USA Enemy DNA table at `ROM 0x7CCAC`, non-progression regular enemies `0..100` only, bosses `101..117` and soul IDs untouched, atomic spoiler logs in `{data}/mods/cache/`), plus `tools/import_dsvrandom.py` and automatic `{data}/mods/profiles/dsvrandom-*.dospatch` discovery.
+- **Verifications on `feat/campaigns-randomizer-v1`:** `ctest` **3/3 PASSED** (`0.41s`), Python `unittest` **39/39 PASSED** (`5.35s`), `patches/ndsrecomp-local.patch` (`734.8 KiB`, `< 2 MiB`, `31` files), live DX12 E2E on all 4 PR #15 base modes + *Eternity of Sorrow 1.2* + *Albus Mode* + *Model ZX* + *Model Omega* + *Native Seed Mutator* determinism/rejection (`0` dispatch misses).
+
+### Previous State (Branch `development` — PR #15)
 Branch `development` extends `v1.0.1` (`main` `332b293`) with **P0 (Mod Bundle Importer & Semantic NDS Diff)**, **P1 (Definitive Edition + PT-BR Semantic Composition, Isolated Profile Saves/Savestates & `F1` Content/Mods UI)**, **P2 (Native Windows Media Foundation + SDL3 Opening Video Player)**, and **full researched author credits** in [`docs/CREDITS.md`](docs/CREDITS.md).
 
 ### Newly Added / Updated on `development`
@@ -77,7 +85,15 @@ Branch `development` extends `v1.0.1` (`main` `332b293`) with **P0 (Mod Bundle I
 
 ## Português (BR)
 
-### Estado Técnico Atual (Branch `development`)
+### Estado Técnico Atual (Branch `feat/campaigns-randomizer-v1` — PR #16 sobre `development`)
+A branch `feat/campaigns-randomizer-v1` estende `development` (PR #15, `b367ba3`, mantido intacto e verde) com as **Etapas 16A–16D do PR #16**:
+- **16A (Fundação):** [`mods/registry.json`](mods/registry.json) declarativo, `ConflictEngine` de 3 estados (`verified` / `unverified` / `incompatible`), detecção binária XDELTA1 vs VCDIFF/IPS, limites ZIP + proteção contra path traversal + escrita atômica, separação `{install}` somente leitura vs `{data}` gravável, isolamento de saves/savestates por `profile_id + version + modset_hash` e 7ª aba `Mods & Campanhas` no `F1` mantendo **Definitive Edition** como padrão integrado e **Original USA** como modo avançado de compatibilidade.
+- **16B (Eternity of Sorrow 1.2):** Corrigido mascaramento de cartucho expandido fora de potência de 2 em `runner/src/io.cpp` (padding `0xFF` `68,6 MB -> 128 MiB` + `g_card_chip_id` dinâmico), adicionado fetcher verificado por SHA-256 (`tools/fetch_community_mods.py`) e verificado *Eternity of Sorrow 1.2* ao vivo em **`59,98 FPS`**, `emu_ms=2,37 ms`, `0` dispatch misses, save isolado `profiles/eternity-of-sorrow-v1.2-59644e04/dos.sav` e soft reset OK (mantido honestamente como `state: "unverified"`, `validation_level: "boot_and_perf_probe"`).
+- **16C (Packs de Personagens & Slots Manuais):** Pacote ZX/Omega da GameBanana separado em `model-zx` e `model-omega` ao lado de `albus-mode` (`exclusive_group: "julius-pack"`, SHA-256 travado, `unverified` / `boot_and_perf_probe`, `0` dispatch misses, saves isolados), mantendo slots manuais ausentes (`alucards-requiem-sotn`, `alucards-requiem-cv3`, `draculas-curse`, `definitive-plus`) desabilitados (`Não instalado`).
+- **16D (Seed Mutator C++ Nativo & Importador DSVania Randomizer):** Adicionado `runner/src/dos_seed_mutator.{h,cpp}` em C++17 sem dependências externas (`xoshiro256**/SplitMix64`, `--seed`, `--seed-preset casual|standard|hard`, assinatura FNV-1a verificada `0x51F8556E92BA32C4` da tabela Enemy DNA `118 × 36 B` em `ROM 0x7CCAC`, apenas inimigos regulares `0..100` não-progressão, chefes `101..117` e `soul_id`s intactos, spoiler logs atômicos em `{data}/mods/cache/`), além de `tools/import_dsvrandom.py` e descoberta automática de `{data}/mods/profiles/dsvrandom-*.dospatch`.
+- **Verificações em `feat/campaigns-randomizer-v1`:** `ctest` **3/3 PASSARAM** (`0,41s`), Python `unittest` **39/39 PASSARAM** (`5,35s`), `patches/ndsrecomp-local.patch` (`734,8 KiB`, `< 2 MiB`, `31` arquivos), E2E ao vivo em DX12 nos 4 modos base do PR #15 + *Eternity of Sorrow 1.2* + *Albus Mode* + *Model ZX* + *Model Omega* + determinismo/rejeição do *Seed Mutator Nativo* (`0` dispatch misses).
+
+### Estado Anterior (Branch `development` — PR #15)
 A branch `development` estende a `v1.0.1` (`main` `332b293`) com **P0 (Importador de Pacote de Mods & Diff Semântico NDS)**, **P1 (Composição Semântica Definitive Edition + PT-BR, Isolamento de Saves/Savestates por Perfil e UI de Conteúdo/Mods no `F1`)**, **P2 (Player Nativo de Abertura Windows Media Foundation + SDL3)** e **créditos completos pesquisados** em [`docs/CREDITS.md`](docs/CREDITS.md).
 
 ### Adicionado / Atualizado em `development`
