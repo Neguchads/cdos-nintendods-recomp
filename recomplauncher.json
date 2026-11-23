@@ -119,6 +119,7 @@
         "dos_pip_size": "37",
         "dos_pip_opacity": "90",
         "dos_aspect_mode": "stretch",
+        "dos_widescreen_crop_y": "0",
         "dos_render_driver": "direct3d12",
         "dos_vsync": "false",
         "dos_hd_filter": "xbr2x",
@@ -137,6 +138,8 @@
         "dos_audio_mode": "warm-stereo",
         "dos_audio_volume": "100",
         "dos_audio_fx": "100",
+        "dos_custom_music": "true",
+        "dos_custom_music_volume": "100",
         "dos_mute_unfocused": "false",
         "dos_button_prompts": "auto",
         "dos_stick_deadzone": "20"
@@ -297,6 +300,12 @@
           }
         },
         {
+          "label": "Widescreen Theatre (16:9 Focus + Sidebar)",
+          "set": {
+            "dos_layout": "widescreen-theatre"
+          }
+        },
+        {
           "label": "Side-by-Side (Equal)",
           "set": {
             "dos_layout": "side-by-side"
@@ -435,6 +444,18 @@
           }
         },
         {
+          "label": "16:9 Smart Crop (1:1 Pixels, No Stretch)",
+          "set": {
+            "dos_aspect_mode": "smart-crop-16x9"
+          }
+        },
+        {
+          "label": "16:10 Balanced Widescreen",
+          "set": {
+            "dos_aspect_mode": "balanced-16x10"
+          }
+        },
+        {
           "label": "Integer Scale",
           "set": {
             "dos_aspect_mode": "integer"
@@ -449,6 +470,21 @@
       ],
       "defaults": {
         "dos_aspect_mode": "stretch"
+      }
+    },
+    {
+      "id": "widescreen_crop_y",
+      "label": "16:9 Vertical Crop Offset (px)",
+      "group": "Display",
+      "slider": {
+        "key": "dos_widescreen_crop_y",
+        "min": -24,
+        "max": 24,
+        "step": 2,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_widescreen_crop_y": "0"
       }
     },
     {
@@ -863,6 +899,44 @@
       },
       "defaults": {
         "dos_audio_fx": "100"
+      }
+    },
+    {
+      "id": "custom_music",
+      "label": "Custom Music Replacement (.wav/.mp3/.ogg)",
+      "group": "Audio",
+      "help": "Replaces DS BGM with files in {data}/mods/music/ while keeping original DS sound effects and voices.",
+      "choices": [
+        {
+          "label": "Enabled",
+          "set": {
+            "dos_custom_music": "true"
+          }
+        },
+        {
+          "label": "Disabled (Original DS BGM)",
+          "set": {
+            "dos_custom_music": "false"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_custom_music": "true"
+      }
+    },
+    {
+      "id": "custom_music_volume",
+      "label": "Custom Music Volume (%)",
+      "group": "Audio",
+      "slider": {
+        "key": "dos_custom_music_volume",
+        "min": 0,
+        "max": 150,
+        "step": 5,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_custom_music_volume": "100"
       }
     },
     {

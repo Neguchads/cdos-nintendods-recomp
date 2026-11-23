@@ -56,6 +56,10 @@ mods/profiles/
 mods/cache/
 mods/intro/*.mp4
 mods/intro/*.webm
+mods/music/*.wav
+mods/music/*.mp3
+mods/music/*.ogg
+mods/music/music.json
 
 # Cache e build local Android Gradle/NDK
 android/.gradle/
