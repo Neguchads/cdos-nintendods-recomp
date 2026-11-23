@@ -207,6 +207,25 @@ class TestRecompLauncher(unittest.TestCase):
             self.assertTrue((stage / "CastlevaniaDawnOfSorrow.exe").is_file())
             self.assertTrue((stage / "assets" / "recomplauncher" / "icon.png").is_file())
 
+    def test_english_is_primary_default_language_with_ptbr_secondary(self) -> None:
+        game_cfg = tomllib.loads((ROOT / "game.toml").read_text(encoding="utf-8"))
+        self.assertEqual(game_cfg["display"]["ui_language"], "en")
+        self.assertEqual(game_cfg["display"]["game_language"], "en")
+
+        data = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
+        cfg_new = data["config"][0]["new"]
+        self.assertEqual(cfg_new["dos_ui_language"], "en")
+        self.assertEqual(cfg_new["dos_game_language"], "en")
+
+        settings_by_id = {s["id"]: s for s in data["settings"]}
+        ui = settings_by_id["ui_language"]
+        self.assertEqual(ui["defaults"], {"dos_ui_language": "en"})
+        self.assertEqual([c["set"]["dos_ui_language"] for c in ui["choices"]], ["en", "ptbr"])
+
+        game = settings_by_id["game_language"]
+        self.assertEqual(game["defaults"], {"dos_game_language": "en"})
+        self.assertEqual([c["set"]["dos_game_language"] for c in game["choices"]], ["en", "ptbr"])
+
 
 if __name__ == "__main__":
     unittest.main()
