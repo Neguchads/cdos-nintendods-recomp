@@ -78,6 +78,16 @@
 - **Why:** Achieves zero warnings in RecompLauncher's `devtools.rs` validator, displays the verified USA dump badge (`CRC32: 135737f6`), avoids third-party artwork copyright issues, and makes the repository accessible to both international and Brazilian players.
 - **Reversal:** If a windowless pre-caching step (e.g., offline shader cache warmup) is added later, re-introduce `prepare` with a dedicated `--prepare` CLI flag and `prepare.done`. If commissioned artwork replaces the procedural kit, keep the exact slot filenames/resolutions and validate with `python tools/prepare_media_assets.py --check-only`.
 
+### ADR-011: RecompLauncher `cwd = runtime/` path anchoring, standalone Win32 launcher `.exe`, EN-first defaults & mappable mouse combat buttons
+- **Context:** On `v1.0.0`, RecompLauncher spawned `runtime/nds_runner.exe` with `cwd = {install}/runtime`, causing bare relative paths (`game.toml`, `mods/ptbr/dos-ptbr.dospatch`, `run/bios`) to fail at startup. Standalone Windows users also needed a double-click `.exe` with an embedded game icon (matching other PC recomps), English as primary default with PT-BR secondary, and native mouse combat bindings (`Left` = Attack, `Right` = Special, `Middle` = Dash) with per-key clearing while keeping DS bottom-screen touch intact.
+- **Decision:**
+  1. Anchor every `start.args` path in [`recomplauncher.json`](../recomplauncher.json) to `{install}` or `{data}` and enforce this in `tools/package_recomplauncher.py` (`validate_manifest`).
+  2. Build a zero-DLL static Win32 GUI launcher (`launcher/launcher_win32.cpp` -> `CastlevaniaDawnOfSorrow.exe`) at the end of `tools/build.py build`, embedding `assets/recomplauncher/icon.ico` (`launcher/app_icon.rc`) into both `CastlevaniaDawnOfSorrow.exe` and `runtime/nds_runner.exe`. On first standalone launch, it verifies the user's USA `.nds` (`67,108,864` B, `ACVE`, CRC32 `135737f6`), installs it locally into `game/`, and offers to create a Desktop `.lnk` shortcut via COM `IShellLinkW`.
+  3. Set `en` as the default `ui_language` and `game_language` in `game.toml` and `recomplauncher.json`, keeping `dos-ptbr.dospatch` loaded in RAM as the secondary option in `F1`.
+  4. Encode mappable mouse buttons as virtual codes `501..505` (`< 512`, accepted natively by `nds_valid_binding` / TOML / INI), track `mouse_buttons_held` alongside bottom-screen touch in `frontend.cpp`, default Key 1/2 to `Mouse Left = Y`, `Mouse Right = A`, `Q = L`, `R = R`, `Mouse Mid = L`, and add per-cell `X` clear buttons, **Clear All Mappings**, and **Restore Default Controls** in `dos_imgui_menu.cpp`.
+- **Why:** Fixes RecompLauncher startup across all Windows machines, provides 1-click PC recomp UX without violating clean-room rules, aligns international defaults, and makes mouse+keyboard combat effortless without losing touchscreen support.
+- **Reversal:** If a future `ndsrecomp` update reserves scancode values above `500`, move mouse binding codes into a dedicated `dos_mouse_bindings` INI/TOML key. If RecompLauncher ever changes its `cwd` policy, explicit `{install}`/`{data}` paths remain valid regardless of `cwd`.
+
 ### Third-Party Licenses (Informational Only)
 - `RetroPortingToolKit/ndsrecomp`:
   - Recompiler, finder, and tools (`LICENSE`): PolyForm Noncommercial License 1.0.0 + additional permissions in `PERMISSIONS.md` (donations/sponsorship/ads permitted provided access to software/updates remains free).
@@ -168,6 +178,16 @@
   3. Estruturar toda a documentação de forma bilíngue com **Inglês (`EN`) primeiro** e **Português (BR) (`PT-BR`) depois**.
 - **Por quê:** Elimina avisos no verificador `devtools.rs` do RecompLauncher, exibe o selo de dump USA verificado (`CRC32: 135737f6`), evita risco de direitos autorais em artes de terceiros e torna o repositório acessível internacionalmente e em português.
 - **Reversal:** Se o runner ganhar um modo `--prepare` sem janela (por exemplo, para aquecer cache de shaders), adicionar `prepare` com `done`. Se arte comissionada substituir a procedural, manter os tamanhos exatos e validar com `python tools/prepare_media_assets.py --check-only`.
+
+### ADR-011: Caminhos ancorados em `{install}`/`{data}`, executável Win32 standalone, padrão EN principal e mouse em combate
+- **Contexto:** Na `v1.0.0`, o RecompLauncher iniciava `runtime/nds_runner.exe` com `cwd = {install}/runtime`, quebrando caminhos relativos (`game.toml`, `mods/ptbr/dos-ptbr.dospatch`, `run/bios`). Jogadores Windows fora do launcher também precisavam de um `.exe` de duplo clique com ícone embutido, idioma padrão em Inglês (`en`) com PT-BR secundário e cliques do mouse mapeáveis em combate (`Esquerdo` = Ataque, `Direito` = Especial, `Meio` = Dash) com limpeza por tecla e toque na tela inferior intacto.
+- **Decisão:**
+  1. Ancorar todos os caminhos de `start.args` em [`recomplauncher.json`](../recomplauncher.json) com `{install}` ou `{data}` e travar isso no `validate_manifest` de `tools/package_recomplauncher.py`.
+  2. Compilar um launcher Win32 GUI estático sem DLLs extras (`launcher/launcher_win32.cpp` -> `CastlevaniaDawnOfSorrow.exe`) no final de `tools/build.py build`, embutindo `assets/recomplauncher/icon.ico` (`launcher/app_icon.rc`) tanto em `CastlevaniaDawnOfSorrow.exe` quanto em `runtime/nds_runner.exe`. Na primeira execução standalone, valida a ROM USA (`67.108.864` B, `ACVE`, CRC32 `135737f6`), instala em `game/` e oferece criar o atalho `.lnk` na Área de Trabalho via COM `IShellLinkW`.
+  3. Definir `en` como padrão de `ui_language` e `game_language` em `game.toml` e `recomplauncher.json`, mantendo `dos-ptbr.dospatch` pronto em RAM como opção secundária no `F1`.
+  4. Codificar botões do mouse em `501..505` (`< 512`, aceitos nativamente por `nds_valid_binding` / TOML / INI), acompanhar `mouse_buttons_held` em paralelo ao toque da tela inferior em `frontend.cpp`, definir o padrão (`Mouse Left = Y`, `Mouse Right = A`, `Q = L`, `R = R`, `Mouse Mid = L`) e adicionar botão `X` por célula, **Limpar Mapeamento** e **Restaurar Padrão** em `dos_imgui_menu.cpp`.
+- **Por quê:** Elimina a falha de inicialização no RecompLauncher em qualquer PC Windows, entrega experiência de port nativo com 1 clique mantendo regras clean-room, alinha o idioma padrão internacional e torna o combate com mouse + teclado natural sem perder os cliques de toque em menus e selos mágicos.
+- **Reversal:** Se uma versão futura do `ndsrecomp` reservar códigos de scancode acima de `500`, mover o mapeamento do mouse para uma chave INI/TOML dedicada (`dos_mouse_bindings`). Os caminhos `{install}`/`{data}` continuam válidos mesmo que o RecompLauncher altere seu `cwd`.
 
 ### Licenças de Terceiros (Apenas Informativo)
 - `RetroPortingToolKit/ndsrecomp`:

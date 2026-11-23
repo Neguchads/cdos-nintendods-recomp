@@ -42,8 +42,8 @@ Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) over
 - User `saves/dos.sav` and `saves/dos-settings.ini` remain untouched.
 
 ### Next Steps
-1. Run `.\play.bat` to play directly in PT-BR or EN with the **`F1`** Dear ImGui menu.
-2. In **RecompLauncher**, import `recomplauncher.json` (or `dist/castlevania-dos-recomp-win64.zip`) and use the artwork in `assets/recomplauncher/` via **Customize** or [`recompstore.com/hub`](https://recompstore.com/hub).
+1. Run `.\CastlevaniaDawnOfSorrow.exe` (or `.\play.bat` fallback) to play in **English (`en`)** by default or switch to **PT-BR** live inside the **`F1`** Dear ImGui menu.
+2. Publish GitHub Release **`v1.0.1`** (`--latest`) with `dist/CastlevaniaDawnOfSorrowRecomp-v1.0.1-Windows-x64.zip` + `.sha256` so RecompLauncher updates players automatically.
 
 [Back to top / Voltar ao topo](#handoff--castlevania-dawn-of-sorrow-recompiled-acve)
 
@@ -87,7 +87,7 @@ Port nativo de recompilação estática AOT atualizado com **menu gráfico Dear 
 - `saves/dos.sav` e `saves/dos-settings.ini` do usuário foram preservados sem alteração.
 
 ### Próximos Passos
-1. Executar `.\play.bat` para jogar diretamente em PT-BR ou EN com o menu Dear ImGui no **`F1`**.
-2. No **RecompLauncher**, importar `recomplauncher.json` (ou `dist/castlevania-dos-recomp-win64.zip`) e aplicar as artes de `assets/recomplauncher/` via **Customize** ou [`recompstore.com/hub`](https://recompstore.com/hub).
+1. Executar `.\CastlevaniaDawnOfSorrow.exe` (ou `.\play.bat` como alternativa) para jogar em **Inglês (`en`)** por padrão ou alternar para **PT-BR** ao vivo no menu Dear ImGui (**`F1`**).
+2. Publicar a GitHub Release **`v1.0.1`** (`--latest`) com `dist/CastlevaniaDawnOfSorrowRecomp-v1.0.1-Windows-x64.zip` + `.sha256` para o RecompLauncher atualizar os jogadores automaticamente.
 
 [Voltar ao topo / Back to top](#handoff--castlevania-dawn-of-sorrow-recompiled-acve)

@@ -23,13 +23,19 @@ Native PC port of *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, game code `AC
 
 > **Legal notice:** this repository contains no ROMs, commercial BIOS or other copyrighted game data. You must provide your own legally dumped copy of `Castlevania - Dawn of Sorrow (USA).nds`: 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`. The PT-BR patch ([`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch)) is a binary delta, not a ROM; it only works on top of that exact USA dump.
 
-### How to play (RecompLauncher)
+### How to play
 
+**Option A — RecompLauncher (recommended):**
 1. Install **RecompLauncher** and add this recomp (or a release `.zip` that contains `recomplauncher.json`).
 2. When Easy Setup asks for the game, pick your USA `.nds`. The launcher checks the game code (`ACVE`) and the dump (CRC32 `135737f6`) and shows the verified badge.
-3. Press **Play**. The game opens full screen; press **`F1`** at any time for the settings menu. Menu language and game language (EN / PT-BR) are available both in RecompLauncher and in `F1`.
+3. Press **Play**. The game starts in **English (`en`)** by default; press **`F1`** at any time to open the settings menu or switch the menu/game language to **Português (BR)** in memory (also configurable inside RecompLauncher).
 
 Saves, settings, savestates and screenshots live in RecompLauncher's `{data}` folder (`recompdata/`), so they move, back up and uninstall with the game.
+
+**Option B — Standalone Windows (`CastlevaniaDawnOfSorrow.exe`):**
+1. Extract the release `.zip` and double-click **`CastlevaniaDawnOfSorrow.exe`** (with embedded Soma Cruz icon).
+2. On first run, select your legal USA `.nds` file (`64 MiB`, `ACVE`, CRC32 `135737f6`). The launcher verifies it, installs a local copy inside `game/`, offers to create a **Desktop shortcut**, and launches the game.
+3. On every subsequent run, double-clicking the Desktop shortcut or `CastlevaniaDawnOfSorrow.exe` opens the game directly with one click.
 
 ### Media kit (RecompLauncher artwork)
 
@@ -58,25 +64,27 @@ Real captures from `nds_runner.exe` (1920 x 1080), in [`assets/screenshots/`](as
 ### Highlights
 
 - **Static AOT execution at about 60 FPS:** `34` promoted banks (`49,059` functions) plus `dos_arm9` / `dos_arm7` banks built with `--validate-live-bytes`, so code changed by a translation falls back safely. Clean PT-BR measurement in a visible DX12 window: **59.86 FPS** (`emu=3.72 ms`, `pres=0.78 ms`, `readback=0.00 ms`, `underruns=0`). Vulkan SPIR-V was checked visually at 60.0 FPS.
-- **`F1` menu (Dear ImGui v1.92.9b, also `Esc` / controller `Guide`):** 6 tabs (Home, Screen & Layout, HD Graphics, Audio, Controls, Performance & Dev), full PT-BR / EN, drawn over the two real screens (the old "third screen" bug is fixed). Live brightness, contrast, saturation and vignette, PiP size (`20..50%`), VSync, stick deadzone, pause/mute when unfocused, 5 savestate slots, `.sav` backup, `F12` screenshot.
-- **PT-BR translation in memory:** [`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch) (`DOSPATCH`, SHA-1 + CRC32 checked), based on the *romsportugues.com* T1.0 translation. Switch EN / PT-BR from the menu without touching your `.nds`.
-- **RecompLauncher SDK:** [`recomplauncher.json`](recomplauncher.json) with named `inputs`, verified `dumps`, 30 settings (`config.new` defaults), `looks`, `actions`, `system` and `exit_codes`, plus the media kit above.
+- **`F1` menu (Dear ImGui v1.92.9b, also `Esc` / controller `Guide`):** 6 tabs (Home, Screen & Layout, HD Graphics, Audio, Controls, Performance & Dev), **English (`en`) default** with **Português (BR)** selectable live, drawn over the two real screens (the old "third screen" bug is fixed). Live brightness, contrast, saturation and vignette, PiP size (`20..50%`), VSync, stick deadzone, mouse/keyboard/gamepad remapping with per-key **`X`** clear, **Clear All Mappings**, and **Restore Default Controls**, pause/mute when unfocused, 5 savestate slots, `.sav` backup, `F12` screenshot.
+- **PT-BR translation in memory:** [`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch) (`DOSPATCH`, SHA-1 + CRC32 checked), based on the *romsportugues.com* T1.0 translation. Starts in English (USA) by default; switch to PT-BR inside `F1` or RecompLauncher without touching your `.nds`.
+- **RecompLauncher SDK & Standalone `.exe`:** [`recomplauncher.json`](recomplauncher.json) with named `inputs`, verified `dumps`, `{install}`/`{data}` path resolution, 30 settings (`config.new` defaults), `looks`, `actions`, `system` and `exit_codes`, plus [`CastlevaniaDawnOfSorrow.exe`](launcher/launcher_win32.cpp) with embedded icon for one-click standalone play.
 - **Multiplatform:** [`CMakePresets.json`](CMakePresets.json), [`tools/build_linux.sh`](tools/build_linux.sh) and an Android ARM64 skeleton in [`android/`](android). Only Windows is built and tested here; see [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md).
 
 ### Controls and hotkeys
 
-| DS action | Keyboard (WASD) | Keyboard (alt) | Controller (Xbox / PS) |
+| DS action | Key / Mouse 1 (Default) | Key / Mouse 2 (Alt) | Controller (Xbox / PS) |
 |---|---|---|---|
 | Move | `W` `A` `S` `D` | Arrow keys | Left stick / D-pad |
 | **Jump (`B`)** | **`Space`** | **`Space`** | **`A` / Cross** |
-| Attack (`Y`) | `J` | `Z` | `X` / Square |
-| Dodge (`L`) | `Left Shift` | `X` | `LB` / `L1` |
-| Guardian Soul (`R`) | `K` | `C` | `RB` / `R1` |
-| Action / Confirm (`A`) | `E` | `V` | `B` / Circle |
-| Switch soul (`X`) | `Q` | `F` | `Y` / Triangle |
+| **Primary Attack (`Y`)** | **`Mouse Left`** | `J` | `X` / Square |
+| **Special Attack / Confirm (`A`)** | **`Mouse Right`** | `E` | `B` / Circle |
+| **Dash / Backdash (`L`)** | **`Q`** | **`Mouse Middle` (Wheel Click)** | `LB` / `L1` |
+| **Guardian Soul (`R`)** | **`R`** | `K` | `RB` / `R1` |
+| Switch Set / Doppelganger (`X`) | `F` | `C` | `Y` / Triangle |
 | Start / Select | `Enter` / `Tab` | `Enter` / `Backspace` | `Start` / `Back` |
 
-Global: `F1` or `Guide` opens the menu, `F2` cycles layouts, `F3` swaps main screen and thumbnail, `F4` toggles the HUD, `F5` / `F8` save / load slot 1, `F6` or `` ` `` toggles turbo, `F11` or `Alt+Enter` toggles full screen, `F12` takes a screenshot. The mouse works on the bottom (touch) screen.
+Everything above is fully customizable in **`F1` -> Controls**: click any cell to bind a keyboard key or mouse button (`Left`, `Middle`, `Right`, `X1`, `X2`), click **`X`** next to any cell (or press `Delete` while binding) to clear a single mapping, or use **Clear All Mappings** / **Restore Default Controls**. Bottom-screen touch clicks (menus, items, Magic Seals, ice blocks) remain active alongside combat mouse buttons.
+
+Global: `F1` or `Guide` opens the menu, `F2` cycles layouts, `F3` swaps main screen and thumbnail, `F4` toggles the HUD, `F5` / `F8` save / load slot 1, `F6` or `` ` `` toggles turbo, `F11` or `Alt+Enter` toggles full screen, `F12` takes a screenshot.
 
 ### Clone and dependencies
 
@@ -135,13 +143,19 @@ Port nativo para PC de *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, código 
 
 > **Aviso legal:** este repositório não contém ROMs, BIOS comerciais nem outros dados protegidos do jogo. Use a sua própria cópia legal de `Castlevania - Dawn of Sorrow (USA).nds`: 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`. O patch PT-BR ([`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch)) é um delta binário, não uma ROM; só funciona sobre esse dump USA exato.
 
-### Como jogar (RecompLauncher)
+### Como jogar
 
+**Opção A — RecompLauncher (recomendado):**
 1. Instale o **RecompLauncher** e adicione este recomp (ou um `.zip` de release que contenha `recomplauncher.json`).
 2. Quando o Easy Setup pedir o jogo, escolha o seu `.nds` USA. O launcher confere o código do jogo (`ACVE`) e o dump (CRC32 `135737f6`) e mostra o selo de verificado.
-3. Aperte **Play**. O jogo abre em tela cheia; aperte **`F1`** a qualquer momento para o menu de opções. O idioma do menu e o idioma do jogo (EN / PT-BR) ficam tanto no RecompLauncher quanto no `F1`.
+3. Aperte **Play**. O jogo e o menu **`F1`** começam em **Inglês (`en`)** por padrão; você pode alternar para **Português (BR)** em memória a qualquer momento pelo menu `F1` ou nas opções do RecompLauncher.
 
 Saves, configurações, savestates e capturas ficam na pasta `{data}` do RecompLauncher (`recompdata/`), então acompanham o jogo ao mover, fazer backup e desinstalar.
+
+**Opção B — Windows standalone (`CastlevaniaDawnOfSorrow.exe`):**
+1. Extraia o `.zip` da release e dê duplo clique em **`CastlevaniaDawnOfSorrow.exe`** (com o ícone do Soma Cruz embutido).
+2. Na primeira execução, selecione a sua cópia legal `.nds` USA (`64 MiB`, `ACVE`, CRC32 `135737f6`). O launcher valida a ROM, instala uma cópia local em `game/`, oferece criar o **atalho na Área de Trabalho** e já abre o jogo.
+3. Nas próximas vezes, basta dar duplo clique no atalho da Área de Trabalho ou em `CastlevaniaDawnOfSorrow.exe` para abrir direto com 1 clique.
 
 ### Kit de mídia (artes do RecompLauncher)
 
@@ -170,25 +184,27 @@ Capturas reais do `nds_runner.exe` (1920 x 1080), em [`assets/screenshots/`](ass
 ### Destaques
 
 - **Execução estática AOT a cerca de 60 FPS:** `34` bancos promovidos (`49.059` funções) e bancos `dos_arm9` / `dos_arm7` gerados com `--validate-live-bytes`, para que código alterado por uma tradução caia em fallback seguro. Medição limpa em PT-BR, janela visível DX12: **59,86 FPS** (`emu=3,72 ms`, `pres=0,78 ms`, `readback=0,00 ms`, `underruns=0`). O Vulkan SPIR-V foi conferido visualmente a 60,0 FPS.
-- **Menu `F1` (Dear ImGui v1.92.9b, também `Esc` / botão `Guide`):** 6 abas (Início, Tela & Layout, Gráficos HD, Áudio, Controles, Desempenho & Dev), PT-BR / EN completo, desenhado sobre as duas telas reais (o bug da "terceira tela" foi corrigido). Brilho, contraste, saturação e vinheta ao vivo, tamanho do PiP (`20..50%`), VSync, zona morta do analógico, pausar/silenciar fora de foco, 5 slots de savestate, backup do `.sav`, captura `F12`.
-- **Tradução PT-BR em memória:** [`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch) (`DOSPATCH`, SHA-1 + CRC32 verificados), baseada na tradução T1.0 do *romsportugues.com*. Troque EN / PT-BR pelo menu sem tocar no seu `.nds`.
-- **SDK do RecompLauncher:** [`recomplauncher.json`](recomplauncher.json) com `inputs` nomeados, `dumps` verificados, 30 opções (defaults em `config.new`), `looks`, `actions`, `system` e `exit_codes`, mais o kit de mídia acima.
+- **Menu `F1` (Dear ImGui v1.92.9b, também `Esc` / botão `Guide`):** 6 abas (Início, Tela & Layout, Gráficos HD, Áudio, Controles, Desempenho & Dev), **Inglês (`en`) como padrão** com **Português (BR)** selecionável ao vivo, desenhado sobre as duas telas reais (o bug da "terceira tela" foi corrigido). Brilho, contraste, saturação e vinheta ao vivo, tamanho do PiP (`20..50%`), VSync, zona morta do analógico, remapeamento de teclado/mouse/controle com **`X`** para limpar por tecla, **Limpar Mapeamento** e **Restaurar Padrão**, pausar/silenciar fora de foco, 5 slots de savestate, backup do `.sav`, captura `F12`.
+- **Tradução PT-BR em memória:** [`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch) (`DOSPATCH`, SHA-1 + CRC32 verificados), baseada na tradução T1.0 do *romsportugues.com*. Inicia em Inglês (USA) por padrão; alterne para PT-BR pelo menu `F1` ou RecompLauncher sem tocar no seu `.nds`.
+- **SDK do RecompLauncher & `.exe` standalone:** [`recomplauncher.json`](recomplauncher.json) com `inputs` nomeados, `dumps` verificados, caminhos resolvidos via `{install}`/`{data}`, 30 opções (defaults em `config.new`), `looks`, `actions`, `system` e `exit_codes`, mais o executável [`CastlevaniaDawnOfSorrow.exe`](launcher/launcher_win32.cpp) com ícone embutido para execução direta.
 - **Multiplataforma:** [`CMakePresets.json`](CMakePresets.json), [`tools/build_linux.sh`](tools/build_linux.sh) e esqueleto Android ARM64 em [`android/`](android). Só o Windows é compilado e testado aqui; veja [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md).
 
 ### Controles e atalhos
 
-| Ação (DS) | Teclado (WASD) | Teclado (alt.) | Controle (Xbox / PS) |
+| Ação (DS) | Tecla / Mouse 1 (Padrão) | Tecla / Mouse 2 (Alt.) | Controle (Xbox / PS) |
 |---|---|---|---|
 | Mover | `W` `A` `S` `D` | Setas | Analógico esq. / D-Pad |
 | **Pular (`B`)** | **`Espaço`** | **`Espaço`** | **`A` / Cruz** |
-| Atacar (`Y`) | `J` | `Z` | `X` / Quadrado |
-| Esquiva (`L`) | `Shift Esq.` | `X` | `LB` / `L1` |
-| Alma Guardiã (`R`) | `K` | `C` | `RB` / `R1` |
-| Ação / Confirmar (`A`) | `E` | `V` | `B` / Círculo |
-| Trocar alma (`X`) | `Q` | `F` | `Y` / Triângulo |
+| **Ataque Padrão (`Y`)** | **`Clique Esquerdo`** | `J` | `X` / Quadrado |
+| **Ataque Especial / Confirmar (`A`)** | **`Clique Direito`** | `E` | `B` / Círculo |
+| **Dash / Esquiva (`L`)** | **`Q`** | **`Clique da Roda` (Mouse Meio)** | `LB` / `L1` |
+| **Alma Guardiã (`R`)** | **`R`** | `K` | `RB` / `R1` |
+| Trocar Set / Doppelganger (`X`) | `F` | `C` | `Y` / Triângulo |
 | Start / Select | `Enter` / `Tab` | `Enter` / `Backspace` | `Start` / `Back` |
 
-Globais: `F1` ou `Guide` abre o menu, `F2` alterna o layout, `F3` troca tela principal e miniatura, `F4` liga/desliga o HUD, `F5` / `F8` salva / carrega o slot 1, `F6` ou `` ` `` alterna o turbo, `F11` ou `Alt+Enter` alterna tela cheia, `F12` captura a tela. O mouse funciona na tela inferior (toque).
+Tudo pode ser personalizado em **`F1` -> Controles**: clique na célula para mapear qualquer tecla ou botão do mouse (`Esquerdo`, `Meio`, `Direito`, `X1`, `X2`), clique no **`X`** ao lado da célula (ou aperte `Delete` durante a captura) para limpar só aquela tecla, ou use **Limpar Mapeamento** / **Restaurar Padrão**. Os cliques na tela inferior (itens, menus, selos mágicos e blocos de gelo) continuam funcionando normalmente junto com os botões do mouse em combate.
+
+Globais: `F1` ou `Guide` abre o menu, `F2` alterna o layout, `F3` troca tela principal e miniatura, `F4` liga/desliga o HUD, `F5` / `F8` salva / carrega o slot 1, `F6` ou `` ` `` alterna o turbo, `F11` ou `Alt+Enter` alterna tela cheia, `F12` captura a tela.
 
 ### Clone e dependências
 
