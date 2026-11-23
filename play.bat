@@ -11,11 +11,20 @@ if not exist "%ROOT%saves" mkdir "%ROOT%saves"
 set "NDS_HOSTPROF=off"
 set "PTBR_ARG="
 if exist "%ROOT%mods\ptbr\dos-ptbr.dospatch" set PTBR_ARG=--ptbr-patch "%ROOT%mods\ptbr\dos-ptbr.dospatch"
+set "DEF_EN_ARG="
+if exist "%ROOT%mods\definitive\dos-definitive-en.dospatch" set DEF_EN_ARG=--definitive-en-patch "%ROOT%mods\definitive\dos-definitive-en.dospatch"
+set "DEF_PT_ARG="
+if exist "%ROOT%mods\definitive\dos-definitive-ptbr.dospatch" set DEF_PT_ARG=--definitive-ptbr-patch "%ROOT%mods\definitive\dos-definitive-ptbr.dospatch"
+set "INTRO_ARG="
+if exist "%ROOT%mods\intro\opening.mp4" set INTRO_ARG=--intro-video "%ROOT%mods\intro\opening.mp4"
 pushd "%ROOT%runtime"
 "%ROOT%runtime\nds_runner.exe" "%ROOT%run\bios" ^
     --interactive ^
     --rom "%ROOT%..\Roms\Castlevania - Dawn of Sorrow (USA).nds" ^
     %PTBR_ARG% ^
+    %DEF_EN_ARG% ^
+    %DEF_PT_ARG% ^
+    %INTRO_ARG% ^
     --config "%ROOT%game.toml" ^
     --freebios ^
     --generated-firmware ^

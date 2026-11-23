@@ -17,6 +17,8 @@ MANIFEST_PATH = ROOT / "recomplauncher.json"
 REQUIRED_INI_KEYS = {
     "dos_ui_language",
     "dos_game_language",
+    "dos_content_profile",
+    "dos_enhanced_intro",
     "dos_skip_launcher",
     "dos_fullscreen",
     "dos_layout",
@@ -124,6 +126,9 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
     for flag, expected in (
         ("--config", "{install}/game.toml"),
         ("--ptbr-patch", "{install}/mods/ptbr/dos-ptbr.dospatch"),
+        ("--definitive-en-patch", "{install}/mods/definitive/dos-definitive-en.dospatch"),
+        ("--definitive-ptbr-patch", "{install}/mods/definitive/dos-definitive-ptbr.dospatch"),
+        ("--intro-video", "{install}/mods/intro/opening.mp4"),
     ):
         if flag in start_args:
             idx = start_args.index(flag)
@@ -202,6 +207,8 @@ def stage_release_tree(
         root / "play.bat",
         root / "README.md",
         root / "mods" / "ptbr" / "dos-ptbr.dospatch",
+        root / "mods" / "definitive" / "dos-definitive-en.dospatch",
+        root / "mods" / "definitive" / "dos-definitive-ptbr.dospatch",
         root / "docs" / "RECOMPLAUNCHER.md",
         runtime_dir / "nds_runner.exe",
         runtime_dir / "SDL3.dll",
@@ -222,7 +229,12 @@ def stage_release_tree(
         ("play.bat", False),
         ("README.md", False),
         ("mods/ptbr/dos-ptbr.dospatch", False),
+        ("mods/definitive/dos-definitive-en.dospatch", False),
+        ("mods/definitive/dos-definitive-ptbr.dospatch", False),
+        ("mods/catalog.json", True),
+        ("mods/intro/opening.mp4", True),
         ("docs/RECOMPLAUNCHER.md", False),
+        ("docs/CREDITS.md", True),
         ("docs/MULTIPLATFORM.md", True),
         ("assets/recomplauncher", False),
         ("runtime", False),

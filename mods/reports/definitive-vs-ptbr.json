@@ -1,0 +1,827 @@
+{
+  "schema": "cdos.semantic-diff.v1",
+  "rom_sha1": {
+    "usa": "47530ff87e608f88105a314fdf36dc385f8dec94",
+    "definitive": "2333f02b22dc141f06a2d9d00824b0d3c33dc309",
+    "ptbr": "c9a1552bcdcd8fdf3c052d975e6838da7ead08d1"
+  },
+  "regions": {
+    "header_def_changed": 5,
+    "header_ptbr_changed": 7,
+    "arm9_def_changed": 199,
+    "arm9_ptbr_changed": 120,
+    "arm9_true_conflicts": 0,
+    "arm7_def_changed": 0,
+    "arm7_ptbr_changed": 0,
+    "relocated_fat_entries": 4
+  },
+  "arm9_conflict_details": [],
+  "relocated_fat": [
+    {
+      "file_id": 7,
+      "name": "overlay_007",
+      "usa": [
+        "0x229800",
+        139168
+      ],
+      "definitive": [
+        "0x2f6dc00",
+        139360
+      ],
+      "ptbr": [
+        "0x229800",
+        139168
+      ]
+    },
+    {
+      "file_id": 10,
+      "name": "overlay_010",
+      "usa": [
+        "0x284a00",
+        116256
+      ],
+      "definitive": [
+        "0x2fa8600",
+        116304
+      ],
+      "ptbr": [
+        "0x284a00",
+        116256
+      ]
+    },
+    {
+      "file_id": 13,
+      "name": "overlay_013",
+      "usa": [
+        "0x2ca400",
+        100032
+      ],
+      "definitive": [
+        "0x2f8fe00",
+        100116
+      ],
+      "ptbr": [
+        "0x2ca400",
+        100032
+      ]
+    },
+    {
+      "file_id": 1364,
+      "name": "so/p_roll.dat",
+      "usa": [
+        "0x176f600",
+        3616
+      ],
+      "definitive": [
+        "0x176f600",
+        3616
+      ],
+      "ptbr": [
+        "0x176f600",
+        3136
+      ]
+    }
+  ],
+  "summary_counts": {
+    "def_only_files": 0,
+    "ptbr_only_files": 45,
+    "identical_overlap_files": 42,
+    "true_conflict_files": 3
+  },
+  "files_def_only": [],
+  "files_ptbr_only": [
+    {
+      "file_id": 5,
+      "name": "overlay_005",
+      "is_overlay": true,
+      "rom_offset": "0x203e00",
+      "size": 13856,
+      "changed_bytes": 89
+    },
+    {
+      "file_id": 42,
+      "name": "bc/f_abil.dat",
+      "is_overlay": false,
+      "rom_offset": "0x179ee00",
+      "size": 8192,
+      "changed_bytes": 144
+    },
+    {
+      "file_id": 139,
+      "name": "bc/f_conf.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1864e00",
+      "size": 8192,
+      "changed_bytes": 217
+    },
+    {
+      "file_id": 201,
+      "name": "bc/f_ene0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x18f0e00",
+      "size": 8192,
+      "changed_bytes": 149
+    },
+    {
+      "file_id": 283,
+      "name": "bc/f_itemu.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1998e00",
+      "size": 8192,
+      "changed_bytes": 164
+    },
+    {
+      "file_id": 284,
+      "name": "bc/f_libr.dat",
+      "is_overlay": false,
+      "rom_offset": "0x199ae00",
+      "size": 8192,
+      "changed_bytes": 164
+    },
+    {
+      "file_id": 288,
+      "name": "bc/f_mgs.dat",
+      "is_overlay": false,
+      "rom_offset": "0x19a2e00",
+      "size": 8192,
+      "changed_bytes": 215
+    },
+    {
+      "file_id": 329,
+      "name": "bc/f_pal0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x19f8e00",
+      "size": 8192,
+      "changed_bytes": 514
+    },
+    {
+      "file_id": 343,
+      "name": "bc/f_sd_e.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1a14e00",
+      "size": 8192,
+      "changed_bytes": 867
+    },
+    {
+      "file_id": 405,
+      "name": "font/LD_font_u12.DAT",
+      "is_overlay": false,
+      "rom_offset": "0x1abf400",
+      "size": 5824,
+      "changed_bytes": 268
+    },
+    {
+      "file_id": 406,
+      "name": "font/LD_font_u8.DAT",
+      "is_overlay": false,
+      "rom_offset": "0x1ac0c00",
+      "size": 2256,
+      "changed_bytes": 11
+    },
+    {
+      "file_id": 425,
+      "name": "sc/f_area_e00.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1072000",
+      "size": 8192,
+      "changed_bytes": 3803
+    },
+    {
+      "file_id": 426,
+      "name": "sc/f_area_e01.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1074000",
+      "size": 8192,
+      "changed_bytes": 3760
+    },
+    {
+      "file_id": 427,
+      "name": "sc/f_area_e02.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1076000",
+      "size": 8192,
+      "changed_bytes": 4067
+    },
+    {
+      "file_id": 428,
+      "name": "sc/f_area_e03.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1078000",
+      "size": 8192,
+      "changed_bytes": 4454
+    },
+    {
+      "file_id": 429,
+      "name": "sc/f_area_e04.dat",
+      "is_overlay": false,
+      "rom_offset": "0x107a000",
+      "size": 8192,
+      "changed_bytes": 3918
+    },
+    {
+      "file_id": 430,
+      "name": "sc/f_area_e05.dat",
+      "is_overlay": false,
+      "rom_offset": "0x107c000",
+      "size": 8192,
+      "changed_bytes": 1893
+    },
+    {
+      "file_id": 492,
+      "name": "sc/f_com05.dat",
+      "is_overlay": false,
+      "rom_offset": "0x10f8000",
+      "size": 8192,
+      "changed_bytes": 604
+    },
+    {
+      "file_id": 584,
+      "name": "sc/f_eset.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11b0000",
+      "size": 8192,
+      "changed_bytes": 892
+    },
+    {
+      "file_id": 677,
+      "name": "sc/f_gover3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x126e000",
+      "size": 16384,
+      "changed_bytes": 2067
+    },
+    {
+      "file_id": 713,
+      "name": "sc/f_hai.dat",
+      "is_overlay": false,
+      "rom_offset": "0x12ba000",
+      "size": 8192,
+      "changed_bytes": 863
+    },
+    {
+      "file_id": 787,
+      "name": "sc/f_lice.dat",
+      "is_overlay": false,
+      "rom_offset": "0x134e000",
+      "size": 8192,
+      "changed_bytes": 655
+    },
+    {
+      "file_id": 798,
+      "name": "sc/f_mainob.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1382000",
+      "size": 8192,
+      "changed_bytes": 1166
+    },
+    {
+      "file_id": 810,
+      "name": "sc/f_mark_e.dat",
+      "is_overlay": false,
+      "rom_offset": "0x139a000",
+      "size": 8192,
+      "changed_bytes": 3335
+    },
+    {
+      "file_id": 823,
+      "name": "sc/f_mix_e.dat",
+      "is_overlay": false,
+      "rom_offset": "0x13b4000",
+      "size": 8192,
+      "changed_bytes": 1108
+    },
+    {
+      "file_id": 831,
+      "name": "sc/f_name0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x13c4000",
+      "size": 8192,
+      "changed_bytes": 942
+    },
+    {
+      "file_id": 833,
+      "name": "sc/f_net.dat",
+      "is_overlay": false,
+      "rom_offset": "0x13c8000",
+      "size": 8192,
+      "changed_bytes": 646
+    },
+    {
+      "file_id": 865,
+      "name": "sc/f_res_e0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1408000",
+      "size": 8192,
+      "changed_bytes": 4921
+    },
+    {
+      "file_id": 866,
+      "name": "sc/f_retry.dat",
+      "is_overlay": false,
+      "rom_offset": "0x140a000",
+      "size": 8192,
+      "changed_bytes": 822
+    },
+    {
+      "file_id": 897,
+      "name": "sc/f_roll0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1448000",
+      "size": 8192,
+      "changed_bytes": 5377
+    },
+    {
+      "file_id": 898,
+      "name": "sc/f_roll1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x144a000",
+      "size": 8192,
+      "changed_bytes": 5581
+    },
+    {
+      "file_id": 899,
+      "name": "sc/f_roll2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x144c000",
+      "size": 8192,
+      "changed_bytes": 4352
+    },
+    {
+      "file_id": 900,
+      "name": "sc/f_roll3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x144e000",
+      "size": 8192,
+      "changed_bytes": 5212
+    },
+    {
+      "file_id": 901,
+      "name": "sc/f_roll4.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1450000",
+      "size": 8192,
+      "changed_bytes": 4826
+    },
+    {
+      "file_id": 902,
+      "name": "sc/f_roll5.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1452000",
+      "size": 8192,
+      "changed_bytes": 5003
+    },
+    {
+      "file_id": 903,
+      "name": "sc/f_roll6.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1454000",
+      "size": 8192,
+      "changed_bytes": 4866
+    },
+    {
+      "file_id": 904,
+      "name": "sc/f_roll7.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1456000",
+      "size": 8192,
+      "changed_bytes": 4261
+    },
+    {
+      "file_id": 905,
+      "name": "sc/f_roll8.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1458000",
+      "size": 8192,
+      "changed_bytes": 2619
+    },
+    {
+      "file_id": 912,
+      "name": "sc/f_scrap.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1466000",
+      "size": 8192,
+      "changed_bytes": 1411
+    },
+    {
+      "file_id": 914,
+      "name": "sc/f_shop.dat",
+      "is_overlay": false,
+      "rom_offset": "0x146a000",
+      "size": 8192,
+      "changed_bytes": 561
+    },
+    {
+      "file_id": 993,
+      "name": "sc/f_tiobj1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1508000",
+      "size": 8192,
+      "changed_bytes": 1751
+    },
+    {
+      "file_id": 996,
+      "name": "sc/f_tit_e2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x151e000",
+      "size": 16384,
+      "changed_bytes": 1636
+    },
+    {
+      "file_id": 1000,
+      "name": "sc/f_top0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1522000",
+      "size": 8192,
+      "changed_bytes": 1609
+    },
+    {
+      "file_id": 1001,
+      "name": "sc/f_top1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1524000",
+      "size": 8192,
+      "changed_bytes": 688
+    },
+    {
+      "file_id": 1003,
+      "name": "sc/f_trade.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1528000",
+      "size": 8192,
+      "changed_bytes": 715
+    }
+  ],
+  "files_identical_overlap": [
+    {
+      "file_id": 603,
+      "name": "sc/f_farik0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11d6000",
+      "size": 8192,
+      "changed_bytes": 3958
+    },
+    {
+      "file_id": 604,
+      "name": "sc/f_farik1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11d8000",
+      "size": 8192,
+      "changed_bytes": 3931
+    },
+    {
+      "file_id": 605,
+      "name": "sc/f_farik2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11da000",
+      "size": 8192,
+      "changed_bytes": 4932
+    },
+    {
+      "file_id": 610,
+      "name": "sc/f_fdari0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11e4000",
+      "size": 8192,
+      "changed_bytes": 4516
+    },
+    {
+      "file_id": 611,
+      "name": "sc/f_fdari1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11e6000",
+      "size": 8192,
+      "changed_bytes": 4565
+    },
+    {
+      "file_id": 612,
+      "name": "sc/f_fdari2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11e8000",
+      "size": 8192,
+      "changed_bytes": 4940
+    },
+    {
+      "file_id": 613,
+      "name": "sc/f_fdari3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11ea000",
+      "size": 8192,
+      "changed_bytes": 4859
+    },
+    {
+      "file_id": 614,
+      "name": "sc/f_fdomi0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11ec000",
+      "size": 8192,
+      "changed_bytes": 3590
+    },
+    {
+      "file_id": 615,
+      "name": "sc/f_fdomi1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11ee000",
+      "size": 8192,
+      "changed_bytes": 3592
+    },
+    {
+      "file_id": 616,
+      "name": "sc/f_fdomi2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11f0000",
+      "size": 8192,
+      "changed_bytes": 4358
+    },
+    {
+      "file_id": 617,
+      "name": "sc/f_fdomi3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x11f2000",
+      "size": 8192,
+      "changed_bytes": 4091
+    },
+    {
+      "file_id": 624,
+      "name": "sc/f_fhume0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1200000",
+      "size": 8192,
+      "changed_bytes": 3644
+    },
+    {
+      "file_id": 625,
+      "name": "sc/f_fhume1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1202000",
+      "size": 8192,
+      "changed_bytes": 3938
+    },
+    {
+      "file_id": 626,
+      "name": "sc/f_fhume2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1204000",
+      "size": 8192,
+      "changed_bytes": 4101
+    },
+    {
+      "file_id": 629,
+      "name": "sc/f_fjuli0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x120a000",
+      "size": 8192,
+      "changed_bytes": 4782
+    },
+    {
+      "file_id": 630,
+      "name": "sc/f_fjuli1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x120c000",
+      "size": 8192,
+      "changed_bytes": 5121
+    },
+    {
+      "file_id": 631,
+      "name": "sc/f_fjuli2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x120e000",
+      "size": 8192,
+      "changed_bytes": 5031
+    },
+    {
+      "file_id": 641,
+      "name": "sc/f_fmina0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1222000",
+      "size": 8192,
+      "changed_bytes": 3390
+    },
+    {
+      "file_id": 642,
+      "name": "sc/f_fmina1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1224000",
+      "size": 8192,
+      "changed_bytes": 3524
+    },
+    {
+      "file_id": 643,
+      "name": "sc/f_fmina2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1226000",
+      "size": 8192,
+      "changed_bytes": 3568
+    },
+    {
+      "file_id": 644,
+      "name": "sc/f_fmina3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1228000",
+      "size": 8192,
+      "changed_bytes": 4710
+    },
+    {
+      "file_id": 645,
+      "name": "sc/f_fmina4.dat",
+      "is_overlay": false,
+      "rom_offset": "0x122a000",
+      "size": 8192,
+      "changed_bytes": 4623
+    },
+    {
+      "file_id": 646,
+      "name": "sc/f_fmina5.dat",
+      "is_overlay": false,
+      "rom_offset": "0x122c000",
+      "size": 8192,
+      "changed_bytes": 3595
+    },
+    {
+      "file_id": 649,
+      "name": "sc/f_fseri0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1232000",
+      "size": 8192,
+      "changed_bytes": 4532
+    },
+    {
+      "file_id": 650,
+      "name": "sc/f_fseri1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1234000",
+      "size": 8192,
+      "changed_bytes": 4531
+    },
+    {
+      "file_id": 651,
+      "name": "sc/f_fseri2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1236000",
+      "size": 8192,
+      "changed_bytes": 4534
+    },
+    {
+      "file_id": 652,
+      "name": "sc/f_fseri3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1238000",
+      "size": 8192,
+      "changed_bytes": 4973
+    },
+    {
+      "file_id": 653,
+      "name": "sc/f_fsoma0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x123a000",
+      "size": 8192,
+      "changed_bytes": 4503
+    },
+    {
+      "file_id": 654,
+      "name": "sc/f_fsoma1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x123c000",
+      "size": 8192,
+      "changed_bytes": 4503
+    },
+    {
+      "file_id": 655,
+      "name": "sc/f_fsoma2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x123e000",
+      "size": 8192,
+      "changed_bytes": 4557
+    },
+    {
+      "file_id": 656,
+      "name": "sc/f_fsoma3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1240000",
+      "size": 8192,
+      "changed_bytes": 5011
+    },
+    {
+      "file_id": 657,
+      "name": "sc/f_fsoma4.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1242000",
+      "size": 8192,
+      "changed_bytes": 4804
+    },
+    {
+      "file_id": 658,
+      "name": "sc/f_fsoma5.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1244000",
+      "size": 8192,
+      "changed_bytes": 5070
+    },
+    {
+      "file_id": 659,
+      "name": "sc/f_fsoma6.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1246000",
+      "size": 8192,
+      "changed_bytes": 4634
+    },
+    {
+      "file_id": 660,
+      "name": "sc/f_fsoma7.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1248000",
+      "size": 8192,
+      "changed_bytes": 4790
+    },
+    {
+      "file_id": 661,
+      "name": "sc/f_fsoma8.dat",
+      "is_overlay": false,
+      "rom_offset": "0x124a000",
+      "size": 8192,
+      "changed_bytes": 4797
+    },
+    {
+      "file_id": 663,
+      "name": "sc/f_fyoko0.dat",
+      "is_overlay": false,
+      "rom_offset": "0x124e000",
+      "size": 8192,
+      "changed_bytes": 4449
+    },
+    {
+      "file_id": 664,
+      "name": "sc/f_fyoko1.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1250000",
+      "size": 8192,
+      "changed_bytes": 4446
+    },
+    {
+      "file_id": 665,
+      "name": "sc/f_fyoko2.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1252000",
+      "size": 8192,
+      "changed_bytes": 4449
+    },
+    {
+      "file_id": 666,
+      "name": "sc/f_fyoko3.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1254000",
+      "size": 8192,
+      "changed_bytes": 4344
+    },
+    {
+      "file_id": 667,
+      "name": "sc/f_fyoko4.dat",
+      "is_overlay": false,
+      "rom_offset": "0x1256000",
+      "size": 8192,
+      "changed_bytes": 4542
+    },
+    {
+      "file_id": 753,
+      "name": "sc/f_kaisou6.dat",
+      "is_overlay": false,
+      "rom_offset": "0x130a000",
+      "size": 8192,
+      "changed_bytes": 3337
+    }
+  ],
+  "files_true_conflict": [
+    {
+      "file_id": 0,
+      "name": "overlay_000",
+      "is_overlay": true,
+      "rom_offset": "0xcb200",
+      "size": 598880,
+      "same_overlap_bytes": 4050,
+      "true_conflict_bytes": 69559,
+      "def_only_bytes": 3795,
+      "ptbr_only_bytes": 5369
+    },
+    {
+      "file_id": 4,
+      "name": "overlay_004",
+      "is_overlay": true,
+      "rom_offset": "0x1e6800",
+      "size": 120192,
+      "same_overlap_bytes": 1915,
+      "true_conflict_bytes": 0,
+      "def_only_bytes": 0,
+      "ptbr_only_bytes": 72
+    },
+    {
+      "file_id": 488,
+      "name": "sc/f_com01.dat",
+      "is_overlay": false,
+      "rom_offset": "0x10f0000",
+      "size": 8192,
+      "same_overlap_bytes": 357,
+      "true_conflict_bytes": 0,
+      "def_only_bytes": 0,
+      "ptbr_only_bytes": 68
+    }
+  ]
+}
