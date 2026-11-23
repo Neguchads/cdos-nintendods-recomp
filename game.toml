@@ -49,8 +49,8 @@ mute_unfocused = false
 
 [controls]
 preset = "modern-wasd"
-keyboard = "26,22,4,7,8,44,20,13,225,14,40,43"
-secondary_keyboard = "82,81,80,79,25,44,9,29,27,6,40,42"
+keyboard = "26,22,4,7,503,44,9,501,20,21,40,43"
+secondary_keyboard = "82,81,80,79,8,44,6,13,502,14,40,42"
 gamepad = "12,13,14,15,2,1,4,3,10,11,7,5"
 button_prompts = "auto"
 stick_deadzone = 20
