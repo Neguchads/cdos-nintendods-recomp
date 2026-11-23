@@ -7024,7 +7024,7 @@ index 0000000..d01aa6e
 +                              std::vector<uint8_t>* out_rom,
 +                              std::string* error = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..7701964 100644
+index 7ff4316..6a86910 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,6 +14,7 @@
@@ -7928,7 +7928,7 @@ index 7ff4316..7701964 100644
  #else
 -    return SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest) == 0;
 +        SDL_QueryTexture(presentation.hud_texture, nullptr, nullptr, &tw, &th);
- #endif
++#endif
 +        if (tw != w || th != h) {
 +            SDL_DestroyTexture(presentation.hud_texture);
 +            presentation.hud_texture = nullptr;
@@ -8062,7 +8062,7 @@ index 7ff4316..7701964 100644
 +            SDL_SetRenderVSync(presentation.renderers[s], want_vsync);
 +        }
 +    }
-+#endif
+ #endif
 +    if (!presentation.separate && !presentation.gl_top) {
 +        if (options.screen_layout != NdsScreenLayout::Separate) {
 +            presentation.layout = options.screen_layout;
@@ -9802,7 +9802,7 @@ index 7ff4316..7701964 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5526,196 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5526,205 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -9912,7 +9912,7 @@ index 7ff4316..7701964 100644
 +                std::string new_label;
 +                std::string new_hash;
 +                swapped = g_content_reset_fn(
-+                    options.dos.content_profile, options.dos.game_language,
++                    &options.dos.content_profile, &options.dos.game_language,
 +                    &new_savestate_dir, &new_label, &new_hash);
 +                if (swapped) {
 +                    if (!new_savestate_dir.empty()) {
@@ -9968,7 +9968,12 @@ index 7ff4316..7701964 100644
 +        }
 +        if (imgui_defaults_reset_requested) {
 +            imgui_defaults_reset_requested = false;
++            const DosContentProfile prev_profile = options.dos.content_profile;
++            const DosLanguage prev_game_lang = options.dos.game_language;
 +            options.dos = DosEnhancementSettings{};
++            if (!g_definitive_patch_available) {
++                options.dos.content_profile = DosContentProfile::Original;
++            }
 +            options.screen_layout = NdsScreenLayout::PictureInPicture;
 +            options.pip_main_screen = NdsPipMainScreen::Bottom;
 +            options.pip_corner = NdsPipCorner::TopRight;
@@ -9982,6 +9987,10 @@ index 7ff4316..7701964 100644
 +            save_all_runtime_settings(runtime_menu_state);
 +            imgui_settings_dirty = false;
 +            imgui_settings_dirty_at = 0;
++            if (prev_profile != options.dos.content_profile ||
++                prev_game_lang != options.dos.game_language) {
++                imgui_content_swap_requested = true;
++            }
 +            show_dos_toast(dos_tr(options.dos.ui_language, DosStrId::ToastDefaultsRestored), "");
 +        }
 +        if (runtime_menu_state.save_slot1_requested) {
@@ -9999,7 +10008,7 @@ index 7ff4316..7701964 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +5727,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +5736,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -10081,7 +10090,7 @@ index 7ff4316..7701964 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +5778,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +5787,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -10090,7 +10099,7 @@ index 7ff4316..7701964 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6014,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6023,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -10100,7 +10109,7 @@ index 7ff4316..7701964 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6026,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6035,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -10109,7 +10118,7 @@ index 7ff4316..7701964 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6040,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6049,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -10120,7 +10129,7 @@ index 7ff4316..7701964 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4218,11 +6066,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4218,11 +6075,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                              screen, &widths[screen]);
                  }
              }
@@ -10142,7 +10151,7 @@ index 7ff4316..7701964 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4417,12 +6273,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6282,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -10163,7 +10172,7 @@ index 7ff4316..7701964 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6302,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6311,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -10198,7 +10207,7 @@ index 7ff4316..7701964 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,7 +6408,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,7 +6417,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -10207,7 +10216,7 @@ index 7ff4316..7701964 100644
          if (audio_pace_floor > kAudioQueueFrames + kGlideStepFrames)
              audio_pace_floor -= kGlideStepFrames;
          else
-@@ -4542,12 +6418,20 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4542,12 +6427,20 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (turbo_active) {
              if (!cpu_handoff) discard_spu_output();
          } else {
@@ -10230,7 +10239,7 @@ index 7ff4316..7701964 100644
                  );
          }
          const uint64_t frame_drain_ticks =
-@@ -4620,17 +6504,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +6513,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -10288,7 +10297,7 @@ index 7ff4316..7701964 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,6 +6611,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,6 +6620,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -10299,7 +10308,7 @@ index 7ff4316..7701964 100644
      if (controller) SDL_GameControllerClose(controller);
      if (runtime_ui) {
          g_runtime_menu_ui = nullptr;
-@@ -5053,3 +6978,24 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +6987,24 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -10325,7 +10334,7 @@ index 7ff4316..7701964 100644
 +    g_soft_reset_fn = std::move(fn);
 +}
 diff --git a/runner/src/frontend.h b/runner/src/frontend.h
-index 41b6110..f8178f2 100644
+index 41b6110..fccd77c 100644
 --- a/runner/src/frontend.h
 +++ b/runner/src/frontend.h
 @@ -1,10 +1,12 @@
@@ -10357,7 +10366,7 @@ index 41b6110..f8178f2 100644
                                      NdsFrontendFrameDigest* out);
 +
 +using NdsLanguageResetFn = std::function<bool(DosLanguage)>;
-+using NdsContentResetFn = std::function<bool(DosContentProfile, DosLanguage,
++using NdsContentResetFn = std::function<bool(DosContentProfile*, DosLanguage*,
 +                                             std::string* savestate_dir_out,
 +                                             std::string* label_out,
 +                                             std::string* hash_out)>;
@@ -10635,8 +10644,28 @@ index 1762e25..a1ca1b9 100644
          if (const toml::table* virtual_stylus =
                  (*controls)["virtual_stylus"].as_table()) {
              if (const auto value =
+diff --git a/runner/src/io.cpp b/runner/src/io.cpp
+index 7c9f618..e654065 100644
+--- a/runner/src/io.cpp
++++ b/runner/src/io.cpp
+@@ -2267,7 +2267,14 @@ void nds_io_configure_cartridge_save(
+ }
+ 
+ void nds_io_set_cartridge_save_path(const char* path) {
+-    g_cart_save_path = path ? path : "";
++    const std::string next = path ? path : "";
++    if (next != g_cart_save_path) {
++        g_cart_backup.sram.clear();
++        g_cart_backup.dirty = false;
++        g_cart_persistence_detached = false;
++        g_cart_detached_warning_emitted = false;
++    }
++    g_cart_save_path = next;
+ }
+ 
+ bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..4814713 100644
+index afa9e18..cf0ca83 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
 @@ -55,6 +55,9 @@
@@ -10845,7 +10874,7 @@ index afa9e18..4814713 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2449,9 +2560,61 @@ int main(int argc, char** argv) {
+@@ -2449,9 +2560,64 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
@@ -10853,21 +10882,23 @@ index afa9e18..4814713 100644
 +            if (!save_disabled) nds_io_flush_cartridge_save();
 +            reset_machine();
 +        });
-+        auto apply_content_switch = [&](DosContentProfile profile,
-+                                        DosLanguage lang,
++        auto apply_content_switch = [&](DosContentProfile* profile_io,
++                                        DosLanguage* lang_io,
 +                                        std::string* savestate_dir_out,
 +                                        std::string* label_out,
 +                                        std::string* hash_out) -> bool {
-+            if (rom_base.empty()) return false;
++            if (rom_base.empty() || !profile_io || !lang_io) return false;
 +            std::vector<uint8_t> next_rom;
 +            DosActiveRomSelection next_sel{};
-+            if (!dos_build_active_rom(dos_patch_set, profile, lang,
++            if (!dos_build_active_rom(dos_patch_set, *profile_io, *lang_io,
 +                                      &next_rom, &next_sel)) {
 +                return false;
 +            }
 +            if (!save_disabled) nds_io_flush_cartridge_save();
 +            rom = std::move(next_rom);
 +            active_content = next_sel;
++            *profile_io = active_content.actual_profile;
++            *lang_io = active_content.actual_language;
 +            if (!base_save_path.empty() && !save_disabled) {
 +                save_path = dos_profile_save_path(base_save_path,
 +                                                  active_content.actual_profile);
@@ -10894,7 +10925,8 @@ index afa9e18..4814713 100644
 +            active_content.modset_hash);
 +        nds_frontend_set_language_reset_fn(
 +            [&](DosLanguage lang) -> bool {
-+                return apply_content_switch(active_content.actual_profile, lang,
++                DosContentProfile prof = active_content.actual_profile;
++                return apply_content_switch(&prof, &lang,
 +                                            nullptr, nullptr, nullptr);
 +            },
 +            dos_patch_set.has_ptbr());
