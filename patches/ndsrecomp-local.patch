@@ -15613,7 +15613,7 @@ index e411b57..7e17859 100644
          p.width = std::max(top_width, bottom_width);
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/src/title_patches.cpp b/runner/src/title_patches.cpp
-index fa8d947..05a70d4 100644
+index fa8d947..0001b37 100644
 --- a/runner/src/title_patches.cpp
 +++ b/runner/src/title_patches.cpp
 @@ -6,6 +6,7 @@
@@ -15624,7 +15624,7 @@ index fa8d947..05a70d4 100644
  #include "gpu3d.h"
  #include "runtime_arm.h"
  #include "state.h"
-@@ -93,6 +94,46 @@ uint64_t g_mph_wide_applied[kMphWideSiteCount] = {};
+@@ -93,6 +94,51 @@ uint64_t g_mph_wide_applied[kMphWideSiteCount] = {};
  uint64_t g_mph_wide_frames_active = 0;
  uint64_t g_mph_wide_frames_inactive = 0;
  
@@ -15657,6 +15657,9 @@ index fa8d947..05a70d4 100644
 +constexpr uint32_t kDosExpectedStatePtr = 0x020C07E0u;
 +constexpr uint32_t kDosGameModeAddr = 0x020C07E8u;  // 0x01=prologue, 0x02=live gameplay, 0x0A=pause/submenus
 +constexpr uint32_t kDosRoomHeaderPtrAddr = 0x020F75A8u;
++constexpr uint32_t kDosBgLayerStride = 0x70u;
++constexpr uint32_t kDosBgLayerWrapXOffset = 0x51u;
++constexpr uint32_t kDosBgLayerFlagsOffset = 0x60u;
 +constexpr uint32_t kDosCamMaxXAddr = 0x020F7098u;
 +constexpr uint16_t kDosWideWidth = 342u;
 +constexpr uint16_t kDosHudCenterWidth = 8u;  // center_left=124 keeps entire 116px HP/MP HUD bar unsplit at x=0
@@ -15667,11 +15670,13 @@ index fa8d947..05a70d4 100644
 +bool g_dos_adaptive_centered_native = false;
 +bool g_logged_dos_wide_active = false;
 +bool g_logged_dos_wide_preflight_fail = false;
++uint8_t g_dos_forced_wrap_mask = 0u;
++uint32_t g_dos_forced_wrap_room = 0u;
 +
  bool read_main_ram32(uint32_t addr, int32_t* out) {
      if (!out || addr < kMainRamBase) return false;
      BusRegion main_ram{};
-@@ -121,6 +162,17 @@ bool read_main_ram8(uint32_t addr, uint8_t* out) {
+@@ -121,6 +167,17 @@ bool read_main_ram8(uint32_t addr, uint8_t* out) {
      return true;
  }
  
@@ -15689,7 +15694,7 @@ index fa8d947..05a70d4 100644
  bool mph_local_player_position(uint8_t* out) {
      uint8_t player_position = 0;
      if (!read_main_ram8(kMphUs10PlayerPosition, &player_position) ||
-@@ -179,6 +231,89 @@ bool materialize_mph_width(uint32_t width, uint32_t* words, uint32_t* shift) {
+@@ -179,6 +236,119 @@ bool materialize_mph_width(uint32_t width, uint32_t* words, uint32_t* shift) {
      return true;
  }
  
@@ -15759,6 +15764,36 @@ index fa8d947..05a70d4 100644
 +                                   static_cast<uint16_t>(native_max_x));
 +            }
 +        }
++        // Camadas de fundo paralaxe 1xN (256 px, ex.: ceu/lua/pinheiros da Lost Village)
++        // com wrap_x=0 parariam em x=256 deixando faixa preta em 256..341. Ativar wrap_x=1
++        // roteia apenas essas camadas de fundo 3D (k=1..3) para func_02003b18 (wrap mod 16).
++        if (room_ptr != g_dos_forced_wrap_room) {
++            g_dos_forced_wrap_mask = 0u;
++            g_dos_forced_wrap_room = room_ptr;
++        }
++        for (uint32_t k = 1u; k < 4u; ++k) {
++            const uint32_t layer_base = kDosRoomHeaderPtrAddr + k * kDosBgLayerStride;
++            uint32_t layer_hdr = 0;
++            uint8_t layer_ws = 0;
++            int16_t layer_flags = 0;
++            uint8_t wrap_x = 0;
++            if (!read_main_ram_word(layer_base, &layer_hdr) ||
++                layer_hdr < kMainRamBase || layer_hdr >= 0x02400000u ||
++                !read_main_ram8(layer_hdr, &layer_ws) ||
++                !read_main_ram16(layer_base + kDosBgLayerFlagsOffset, &layer_flags) ||
++                !read_main_ram8(layer_base + kDosBgLayerWrapXOffset, &wrap_x)) {
++                continue;
++            }
++            const bool is_3d_narrow_backdrop =
++                layer_ws == 1u && ((static_cast<uint16_t>(layer_flags) & 0x80u) == 0u);
++            if (want_wide && is_3d_narrow_backdrop && wrap_x == 0u) {
++                bus_write_u8_slow(layer_base + kDosBgLayerWrapXOffset, 1u);
++                g_dos_forced_wrap_mask |= static_cast<uint8_t>(1u << k);
++            } else if (!want_wide && (g_dos_forced_wrap_mask & (1u << k)) != 0u && wrap_x == 1u) {
++                bus_write_u8_slow(layer_base + kDosBgLayerWrapXOffset, 0u);
++                g_dos_forced_wrap_mask &= static_cast<uint8_t>(~(1u << k));
++            }
++        }
 +    }
 +
 +    g_dos_wide_active = want_wide;
@@ -15779,7 +15814,7 @@ index fa8d947..05a70d4 100644
  void patch_mph_adventure_wide() {
      // The wide words bake the adaptive width into guest constants, so they
      // are only correct when the 3D engine actually renders at that width.
-@@ -571,6 +706,31 @@ bool nds_title_patches_mph_adaptive_centered_native() {
+@@ -571,6 +741,31 @@ bool nds_title_patches_mph_adaptive_centered_native() {
      return g_mph_adaptive_centered_native;
  }
  
@@ -15811,7 +15846,7 @@ index fa8d947..05a70d4 100644
  static_assert(kMphWideSiteCount ==
                sizeof(NdsTitlePatchDebugState::mph_adventure_wide_site_applied) /
                    sizeof(uint64_t));
-@@ -622,4 +782,5 @@ void nds_title_patches_start_frame() {
+@@ -622,4 +817,5 @@ void nds_title_patches_start_frame() {
      }
      if (g_sm64ds_adaptive) patch_sm64ds_clipper();
      if (g_mph_adventure_title) patch_mph_adventure_wide();
