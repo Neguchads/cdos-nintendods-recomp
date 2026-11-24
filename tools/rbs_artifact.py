@@ -11,7 +11,16 @@ import zipfile
 REQUIRED = {"CastlevaniaDawnOfSorrow.exe", "runtime/nds_runner.exe", "runtime/SDL3.dll",
             "runtime/libc++.dll", "runtime/libunwind.dll", "game.toml", "recomplauncher.json",
             "mods/ptbr/dos-ptbr.dospatch", "SHA256SUMS.txt"}
-EXACT = REQUIRED | {"README.md", "play.bat", "LICENSE", "mods/catalog.json", "mods/registry.json"}
+EXACT = REQUIRED | {
+    "README.md",
+    "play.bat",
+    "LICENSE",
+    "mods/catalog.json",
+    "mods/registry.json",
+    "mods/music/README.md",
+    "mods/music/configurar_musica.py",
+    "mods/music/Configurar_Musica.bat",
+}
 
 
 def allowed(name):

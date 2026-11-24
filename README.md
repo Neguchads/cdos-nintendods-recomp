@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://recomplauncher.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+  <a href="https://github.com/Neguchads/cdos-nintendods-recomp/releases/tag/v1.1.0"><img alt="Release v1.1.0" src="https://img.shields.io/badge/release-v1.1.0-8b2c43?style=for-the-badge"></a>
   <a href="https://github.com/Neguchads/cdos-nintendods-recomp/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Neguchads/cdos-nintendods-recomp/actions/workflows/ci.yml/badge.svg"></a>
 </p>
 
@@ -68,9 +69,24 @@ Real captures from `nds_runner.exe` (1920 x 1080), in [`assets/screenshots/`](as
 - **PT-BR translation & Definitive Edition in memory:** [`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch) (*romsportugues.com* T1.0) plus the composed Definitive deltas [`mods/definitive/dos-definitive-en.dospatch`](mods/definitive/dos-definitive-en.dospatch) and [`mods/definitive/dos-definitive-ptbr.dospatch`](mods/definitive/dos-definitive-ptbr.dospatch) (*Dawn of Dignity* portraits, *Fixed Luck*, *No Required Touch Screen*, Gergoth/Death/Abaddon 100% souls fix, Black Panther behind Throne Room, Alucard Sword) integrated as the default baseline, with **Original USA** available as an advanced compatibility mode inside `F1 -> Mods & Campaigns`.
 - **Campaigns, Character Packs & Randomizer (`F1 -> Mods & Campaigns`):** declarative [`mods/registry.json`](mods/registry.json) + 3-state `ConflictEngine` (`Verified` / `Unverified` / `Incompatible`), isolated saves/savestates by `profile + version + modset_hash`, power-of-two cartridge padding for expanded ROMs (*Eternity of Sorrow 1.2* measured at `59.98 FPS`, `emu_ms=2.37 ms`, `0` dispatch misses), mutually exclusive Julius Mode packs (*Albus Mode*, *Model ZX*, *Model Omega* via `python tools/fetch_community_mods.py`), manual-import slots (*Alucard's Requiem SOTN/CV3*, *Dracula's Curse*, *Definitive+*), an offline **Native C++ Seed Mutator** (`--seed`, `--seed-preset casual|standard|hard`, non-progression regular enemy stats/drops only with atomic spoiler log), and a local **DSVania Randomizer (`dsvrandom`)** importer (`python tools/import_dsvrandom.py`).
 - **Native Opening Video Player (Windows Media Foundation + SDL3):** drop or import the AI-upscaled opening (`python tools/import_mod_bundle.py --source "<folder-or-zip>"` -> `mods/intro/opening.mp4`) to play the enhanced 640x480 H.264/AAC intro natively on launch (zero FFmpeg/external DLLs, skippable with any key/click/button, toggleable and replayable in `F1`).
+- **Custom Music Support (`.wav` / `.mp3` / `.ogg`, Issue #16):** drop audio files with **any filename** into `{data}/mods/music/`, or double-click **`mods/music/Configurar_Musica.bat`** to pick files via Windows Explorer and assign them automatically. Inside **`F1 -> Audio`**, you can map any file to any of the 30 game stages (**Per-Stage Visual Track Mapper**), or enable **Global Jukebox / Playlist Mode** (mutes all 30 DS BGMs and plays your selected song(s) continuously with Shuffle/Prev/Next) while keeping **100% of original DS sound effects and voices** (see [`mods/music/README.md`](mods/music/README.md) and `python tools/list_bgm_tracks.py`).
+- **2D Widescreen Display Modes (Issue #7):** adds **Widescreen Theatre** (`342×192` 16:9 canvas with distortion-free 4:3 gameplay + docked Map/Status sidebar, *Dominus Collection* style), **16:9 Smart Crop** (1:1 square pixels filling 16:9 with `-24..+24 px` vertical crop offset and accurate touch mapping), and **16:10 Balanced Widescreen** in `F1 -> Screen & Layout`.
 - **Full Mod Author Credits:** every community mod author (*Thirteen 1355*, *Masked Dedede*, *DevAnj*, *ShadowOne333*, *acediez*, *JohannGralog*, *Justin3009*, *DarkSamus993*, *LagoLunatic*, *Joedu22256*, *WetBandAid*, *Oersted*, *DeadSkullzJr*, *DarkPrinceAlucard*, *Drameloch*, *I am Me*, *Fat T-800*, *romsportugues.com*) is credited in [`docs/CREDITS.md`](docs/CREDITS.md) and [`mods/catalog.json`](mods/catalog.json).
-- **RecompLauncher SDK & Standalone `.exe`:** [`recomplauncher.json`](recomplauncher.json) with named `inputs`, verified `dumps`, `{install}`/`{data}` path resolution, 30 settings (`config.new` defaults), `looks`, `actions`, `system` and `exit_codes`, plus [`CastlevaniaDawnOfSorrow.exe`](launcher/launcher_win32.cpp) with embedded icon for one-click standalone play.
+- **RecompLauncher SDK & Standalone `.exe`:** [`recomplauncher.json`](recomplauncher.json) with named `inputs`, verified `dumps`, `{install}`/`{data}` path resolution, `35` INI settings (`config.new` defaults), `looks`, `actions`, `system` and `exit_codes`, plus [`CastlevaniaDawnOfSorrow.exe`](launcher/launcher_win32.cpp) with embedded icon for one-click standalone play.
 - **Multiplatform:** [`CMakePresets.json`](CMakePresets.json), [`tools/build_linux.sh`](tools/build_linux.sh) and an Android ARM64 skeleton in [`android/`](android). Only Windows is built and tested here; see [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md).
+
+### `v1.1.0` Feature Status (Verified vs. Experimental)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Definitive Edition (EN & PT-BR) & Original USA (EN & PT-BR) | **Verified** | Default in-memory baseline at ~60 FPS with isolated saves |
+| Custom Music (`.wav`/`.mp3`/`.ogg`, F1 Mapper, Global Jukebox, Explorer Wizard) | **Verified** | Live-verified selective BGM mute (`DS BGM = 0`, `DS SFX = 100%`) |
+| 2D Widescreen Modes (`Theatre`, `Smart Crop 16:9`, `Balanced 16:10`) | **Verified (2D Presentation)** | True ARM9 2D camera wide-viewport decompilation remains future work (ADR-014) |
+| Native Opening Video Player (`mods/intro/opening.mp4`) | **Verified (Opt-in)** | Local user-supplied video only; never bundled in clean-room releases |
+| *Eternity of Sorrow 1.2* Campaign | **Experimental (`unverified`)** | Boots at ~60 FPS (`0` dispatch misses) with isolated save; full playthrough pending |
+| *Albus Mode* (Julius Mode Pack) | **Experimental (`unverified`)** | Known inverted movement bug tracked in [Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19) |
+| *Model ZX* / *Model Omega* (Julius Mode Packs) | **Experimental (`unverified`)** | Boot-tested with isolated saves; full playthrough pending |
+| Native C++ Seed Mutator (Offline Randomizer) | **Experimental (`unverified`)** | Non-progression regular enemy stats/drops only; full logic randomizer via `tools/import_dsvrandom.py` |
 
 ### Controls and hotkeys
 
@@ -134,7 +150,7 @@ python tools/prepare_media_assets.py --check-only
 
 ### Documentation
 
-[`docs/CREDITS.md`](docs/CREDITS.md) | [`docs/RECOMPLAUNCHER.md`](docs/RECOMPLAUNCHER.md) | [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md) | [`docs/DECISIONS.md`](docs/DECISIONS.md) | [`docs/rom-analysis.md`](docs/rom-analysis.md) | [`ROADMAP.md`](ROADMAP.md) | [`HANDOFF.md`](HANDOFF.md) | [`NOTAS.md`](NOTAS.md)
+[`CHANGELOG.md`](CHANGELOG.md) | [`docs/CREDITS.md`](docs/CREDITS.md) | [`docs/RECOMPLAUNCHER.md`](docs/RECOMPLAUNCHER.md) | [`docs/RBS.md`](docs/RBS.md) | [`docs/CI_AUTOMATION.md`](docs/CI_AUTOMATION.md) | [`docs/BUILD_CACHE.md`](docs/BUILD_CACHE.md) | [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md) | [`docs/DECISIONS.md`](docs/DECISIONS.md) | [`docs/rom-analysis.md`](docs/rom-analysis.md) | [`ROADMAP.md`](ROADMAP.md) | [`HANDOFF.md`](HANDOFF.md) | [`NOTAS.md`](NOTAS.md)
 
 [Back to top / Voltar ao topo](#castlevania-dawn-of-sorrow-recompiled)
 
@@ -191,9 +207,24 @@ Capturas reais do `nds_runner.exe` (1920 x 1080), em [`assets/screenshots/`](ass
 - **Tradução PT-BR & Definitive Edition em memória:** [`mods/ptbr/dos-ptbr.dospatch`](mods/ptbr/dos-ptbr.dospatch) (*romsportugues.com* T1.0) mais os deltas compostos [`mods/definitive/dos-definitive-en.dospatch`](mods/definitive/dos-definitive-en.dospatch) e [`mods/definitive/dos-definitive-ptbr.dospatch`](mods/definitive/dos-definitive-ptbr.dospatch) (retratos *Dawn of Dignity*, *Fixed Luck*, *No Required Touch Screen*, almas 100% de Gergoth/Death/Abaddon, Black Panther na sala do trono e Alucard Sword) integrados como base padrão, mantendo **Original USA** como modo avançado de compatibilidade em `F1 -> Mods & Campanhas`.
 - **Campanhas, Packs de Personagens & Randomizer (`F1 -> Mods & Campanhas`):** [`mods/registry.json`](mods/registry.json) declarativo + `ConflictEngine` de 3 estados (`Verificado` / `Não verificado` / `Incompatível`), saves/savestates isolados por `perfil + versão + modset_hash`, padding potência-de-2 para ROMs expandidas (*Eternity of Sorrow 1.2* medido a `59,98 FPS`, `emu_ms=2,37 ms`, `0` dispatch misses), packs mutuamente exclusivos de Julius Mode (*Albus Mode*, *Model ZX*, *Model Omega* via `python tools/fetch_community_mods.py`), slots de importação manual (*Alucard's Requiem SOTN/CV3*, *Dracula's Curse*, *Definitive+*), **Seed Mutator C++ Nativo** offline (`--seed`, `--seed-preset casual|standard|hard`, apenas stats/drops não-progressão de inimigos regulares com spoiler log atômico) e importador local de saídas do **DSVania Randomizer (`dsvrandom`)** (`python tools/import_dsvrandom.py`).
 - **Player Nativo de Vídeo de Abertura (Windows Media Foundation + SDL3):** importe a abertura aprimorada (`python tools/import_mod_bundle.py --source "<pasta-ou-zip>"` -> `mods/intro/opening.mp4`) para reproduzir o vídeo 640x480 H.264/AAC nativamente ao abrir o jogo (sem FFmpeg nem DLLs extras, pulável com qualquer tecla/clique/botão, configurável e reproduzível sob demanda no `F1`).
+- **Suporte a Música Customizada (`.wav` / `.mp3` / `.ogg`, Issue #16):** coloque arquivos de áudio com **qualquer nome** em `{data}/mods/music/`, ou dê duplo clique em **`mods/music/Configurar_Musica.bat`** para escolher pelo Windows Explorer e configurar automaticamente. No menu **`F1 -> Áudio`**, você escolhe qualquer arquivo para qualquer um dos 30 estágios (**Seletor Visual por Estágio**), ou ativa o **Modo Jukebox / Playlist Global** (muta todas as 30 BGMs do DS e toca só as suas músicas em sequência/aleatório com Anterior/Próxima) mantendo **100% dos efeitos sonoros e vozes originais do DS** (veja [`mods/music/README.md`](mods/music/README.md) e `python tools/list_bgm_tracks.py`).
+- **Modos Widescreen 2D (Issue #7):** adiciona **Widescreen Teatro** (canvas 16:9 `342×192` com gameplay 4:3 fiel sem esticar + lateral acoplada para Mapa/Status estilo *Dominus Collection*), **16:9 Smart Crop** (pixels 1:1 preenchendo 16:9 com ajuste vertical `-24..+24 px` e toque preciso) e **16:10 Widescreen Equilibrado** em `F1 -> Tela & Layout`.
 - **Créditos Completos dos Autores:** todos os autores dos mods da comunidade (*Thirteen 1355*, *Masked Dedede*, *DevAnj*, *ShadowOne333*, *acediez*, *JohannGralog*, *Justin3009*, *DarkSamus993*, *LagoLunatic*, *Joedu22256*, *WetBandAid*, *Oersted*, *DeadSkullzJr*, *DarkPrinceAlucard*, *Drameloch*, *I am Me*, *Fat T-800*, *romsportugues.com*) estão creditados em [`docs/CREDITS.md`](docs/CREDITS.md) e [`mods/catalog.json`](mods/catalog.json).
-- **SDK do RecompLauncher & `.exe` standalone:** [`recomplauncher.json`](recomplauncher.json) com `inputs` nomeados, `dumps` verificados, caminhos resolvidos via `{install}`/`{data}`, 30 opções (defaults em `config.new`), `looks`, `actions`, `system` e `exit_codes`, mais o executável [`CastlevaniaDawnOfSorrow.exe`](launcher/launcher_win32.cpp) com ícone embutido para execução direta.
+- **SDK do RecompLauncher & `.exe` standalone:** [`recomplauncher.json`](recomplauncher.json) com `inputs` nomeados, `dumps` verificados, caminhos resolvidos via `{install}`/`{data}`, `35` chaves INI (defaults em `config.new`), `looks`, `actions`, `system` e `exit_codes`, mais o executável [`CastlevaniaDawnOfSorrow.exe`](launcher/launcher_win32.cpp) com ícone embutido para execução direta.
 - **Multiplataforma:** [`CMakePresets.json`](CMakePresets.json), [`tools/build_linux.sh`](tools/build_linux.sh) e esqueleto Android ARM64 em [`android/`](android). Só o Windows é compilado e testado aqui; veja [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md).
+
+### Status dos Recursos na `v1.1.0` (Verificado vs. Experimental)
+
+| Recurso | Status | Observações |
+|---|---|---|
+| Definitive Edition (EN e PT-BR) & Original USA (EN e PT-BR) | **Verificado** | Base padrão em memória a ~60 FPS com saves isolados |
+| Música Customizada (`.wav`/`.mp3`/`.ogg`, Seletor F1, Jukebox Global, Assistente Explorer) | **Verificado** | Mute seletivo validado ao vivo (`BGM DS = 0`, `SFX DS = 100%`) |
+| Modos Widescreen 2D (`Teatro`, `Smart Crop 16:9`, `16:10 Equilibrado`) | **Verificado (Apresentação 2D)** | Descompilação de câmera 2D nativa ARM9 fica como marco futuro (ADR-014) |
+| Player Nativo de Abertura (`mods/intro/opening.mp4`) | **Verificado (Opt-in)** | Apenas vídeo fornecido localmente pelo usuário; nunca incluso no ZIP público |
+| Campanha *Eternity of Sorrow 1.2* | **Experimental (`unverified`)** | Boot e ~60 FPS validados (`0` dispatch misses) com save isolado; campanha completa pendente |
+| *Albus Mode* (Pack Julius Mode) | **Experimental (`unverified`)** | Bug conhecido de movimento invertido rastreado na [Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19) |
+| *Model ZX* / *Model Omega* (Packs Julius Mode) | **Experimental (`unverified`)** | Boot testado com saves isolados; campanha completa pendente |
+| Mutador Nativo por Seed C++ (Randomizer Offline) | **Experimental (`unverified`)** | Apenas stats/drops fora da progressão; randomizer completo com lógica via `tools/import_dsvrandom.py` |
 
 ### Controles e atalhos
 
@@ -257,14 +288,12 @@ python tools/prepare_media_assets.py --check-only
 
 ### Documentação
 
-[`docs/CREDITS.md`](docs/CREDITS.md) | [`docs/RECOMPLAUNCHER.md`](docs/RECOMPLAUNCHER.md) | [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md) | [`docs/DECISIONS.md`](docs/DECISIONS.md) | [`docs/rom-analysis.md`](docs/rom-analysis.md) | [`ROADMAP.md`](ROADMAP.md) | [`HANDOFF.md`](HANDOFF.md) | [`NOTAS.md`](NOTAS.md)
+[`CHANGELOG.md`](CHANGELOG.md) | [`docs/CREDITS.md`](docs/CREDITS.md) | [`docs/RECOMPLAUNCHER.md`](docs/RECOMPLAUNCHER.md) | [`docs/RBS.md`](docs/RBS.md) | [`docs/CI_AUTOMATION.md`](docs/CI_AUTOMATION.md) | [`docs/BUILD_CACHE.md`](docs/BUILD_CACHE.md) | [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md) | [`docs/DECISIONS.md`](docs/DECISIONS.md) | [`docs/rom-analysis.md`](docs/rom-analysis.md) | [`ROADMAP.md`](ROADMAP.md) | [`HANDOFF.md`](HANDOFF.md) | [`NOTAS.md`](NOTAS.md)
+
+### Automação de CI, RBS e Cache de Build
+
+- Pipeline incremental local (`Build.ps1`, `tools/rbs*.py`) e validação de pacotes: [`docs/RBS.md`](docs/RBS.md).
+- Verificações de segurança, SPDX e proveniência: [`docs/CI_AUTOMATION.md`](docs/CI_AUTOMATION.md) e [`docs/LICENSE_REVIEW.md`](docs/LICENSE_REVIEW.md).
+- Sccache local opcional (PowerShell): `$env:NDS_SCCACHE = "1"` — veja [`docs/BUILD_CACHE.md`](docs/BUILD_CACHE.md).
 
 [Voltar ao topo / Back to top](#castlevania-dawn-of-sorrow-recompiled)
-
-## Automação de CI e distribuição — Etapa 2
-
-As verificações de navegador, as propostas de versão e os artefatos de
-integridade estão descritos em [docs/CI_AUTOMATION.md](docs/CI_AUTOMATION.md).
-A publicação de releases permanece sujeita a revisão humana.
-
-Para ativar o Sccache localmente (PowerShell): `$env:NDS_SCCACHE = "1"`. Veja [docs/BUILD_CACHE.md](docs/BUILD_CACHE.md) para instalação e uso; a opção não é permanente.
