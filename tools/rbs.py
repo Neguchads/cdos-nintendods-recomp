@@ -50,13 +50,18 @@ def configure_local(profile):
     os.environ["PATH"] = str(ROOT / ".venv" / "Scripts") + os.pathsep + os.environ["PATH"]
     portable = profile in {"test", "release"}
     original_args = build.cmake_common_args
-    sccache = shutil.which("sccache")
+    sccache = shutil.which("sccache") if os.environ.get("RBS_LOCAL_SCCACHE") == "1" else None
     if sccache:
+        for name in list(os.environ):
+            if name.startswith("SCCACHE_"):
+                del os.environ[name]
         os.environ["SCCACHE_DIR"] = str(G / "sccache")
-        os.environ.pop("SCCACHE_BUCKET", None)
-        os.environ.pop("SCCACHE_REDIS", None)
-        os.environ.pop("SCCACHE_ENDPOINT", None)
         os.environ["SCCACHE_CACHE_SIZE"] = "10G"
+        os.environ["SCCACHE_SERVER_PORT"] = "42821"
+        config = G / "sccache-local.toml"
+        config.parent.mkdir(parents=True, exist_ok=True)
+        config.write_text("[cache.disk]\nsize = 10737418240\n", encoding="utf-8")
+        os.environ["SCCACHE_CONF"] = str(config)
     def args(tc, *, static_exe):
         values = original_args(tc, static_exe=static_exe)
         # Explicit launcher also resets stale CMake values when unavailable.
@@ -151,7 +156,7 @@ def main():
     cache.run("prepare", rom_key, [G/"inputs"], lambda: clean_phase("prepare", [G/"inputs"]), force)
     analysis = ROOT / "analysis/dsd"
     cache.run("analysis", key([ROM, build.DSD_EXE, Path(build.__file__)]),
-              [analysis/"project/arm9/module.yaml"], lambda: clean_phase("analyze", [analysis]), force)
+              [analysis/"project/arm9"], lambda: clean_phase("analyze", [analysis]), force)
     # CMake/Ninja already tracks dependency changes. Preserve its object tree.
     command("recompiler")
     bank_key = key([G/"inputs", build.RECOMPILER_EXE, FW/"bios",
@@ -196,7 +201,7 @@ def main():
                    "archive": archive.name, "sha256": digest(archive), "profile": "release"}
         archive.with_name(archive.name+".build.json").write_text(json.dumps(receipt, indent=2)+"\n", encoding="utf-8")
         print(f"[RBS] validated {archive}; review before uploading.")
-    if shutil.which("sccache"):
+    if os.environ.get("RBS_LOCAL_SCCACHE") == "1" and shutil.which("sccache"):
         run("sccache", "--show-stats")
 
 
