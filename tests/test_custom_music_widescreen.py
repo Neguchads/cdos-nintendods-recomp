@@ -74,6 +74,36 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
         self.assertIn("custom_music_volume", settings_by_id)
         self.assertIn("widescreen_crop_y", settings_by_id)
 
+    def test_music_wizard_imports_arbitrary_names_and_configures_stage_and_jukebox(self) -> None:
+        sys.path.insert(0, str(ROOT / "mods" / "music"))
+        import configurar_musica as cm  # noqa: E402
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src_dir = Path(tmp) / "Downloads"
+            mdir = Path(tmp) / "music"
+            src_dir.mkdir()
+            mdir.mkdir()
+            song1 = src_dir / "minha_musica_aleatoria.mp3"
+            song2 = src_dir / "rock_castelo.ogg"
+            song1.write_bytes(b"ID3test1")
+            song2.write_bytes(b"OggStest2")
+
+            n1 = cm.import_audio_file_to_music_dir(song1, mdir)
+            n2 = cm.import_audio_file_to_music_dir(song2, mdir)
+            self.assertEqual(n1, "minha_musica_aleatoria.mp3")
+            self.assertTrue((mdir / n1).is_file())
+            self.assertTrue((mdir / n2).is_file())
+
+            cm.assign_track_in_manifest(mdir, 7, n1, loop=True, gain_db=-1.5)
+            cm.configure_jukebox_in_manifest(mdir, [n1, n2], enabled=True, shuffle=True, append=False)
+
+            rep = lbt.scan_music_dir(mdir)
+            self.assertEqual(rep["errors"], [])
+            self.assertEqual(rep["matched"], {7: "minha_musica_aleatoria.mp3"})
+            self.assertTrue(rep["jukebox_enabled"])
+            self.assertEqual(rep["jukebox_playlist"], ["minha_musica_aleatoria.mp3", "rock_castelo.ogg"])
+            self.assertTrue((ROOT / "mods" / "music" / "Configurar_Musica.bat").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

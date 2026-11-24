@@ -147,22 +147,33 @@ index addb5d1..510a0f6 100644
    add_test(NAME screen_layout_test COMMAND screen_layout_test)
 diff --git a/runner/src/dos_custom_music.cpp b/runner/src/dos_custom_music.cpp
 new file mode 100644
-index 0000000..faa2214
+index 0000000..4ee31f8
 --- /dev/null
 +++ b/runner/src/dos_custom_music.cpp
-@@ -0,0 +1,887 @@
+@@ -0,0 +1,1296 @@
 +#include "dos_custom_music.h"
 +
 +#include <algorithm>
++#include <atomic>
 +#include <cctype>
 +#include <cmath>
 +#include <cstdio>
 +#include <cstring>
 +#include <filesystem>
 +#include <fstream>
++#include <iomanip>
++#include <map>
 +#include <mutex>
++#include <random>
 +#include <sstream>
 +#include <unordered_map>
++
++#ifdef _WIN32
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif
++#include <windows.h>
++#endif
 +
 +#define DR_MP3_IMPLEMENTATION
 +#include "../third_party/audio/dr_mp3.h"
@@ -504,11 +515,65 @@ index 0000000..faa2214
 +    return !out->pcm_stereo_32768.empty();
 +}
 +
++struct JukeboxManifestConfig {
++    bool present = false;
++    bool enabled = false;
++    bool shuffle = false;
++    std::vector<std::string> playlist;
++};
++
++std::string json_escape(const std::string& s) {
++    std::string out;
++    out.reserve(s.size() + 8u);
++    for (unsigned char c : s) {
++        if (c == '\\') out += "\\\\";
++        else if (c == '"') out += "\\\"";
++        else if (c == '\n') out += "\\n";
++        else if (c == '\r') out += "\\r";
++        else if (c == '\t') out += "\\t";
++        else if (c >= 0x20u) out.push_back(static_cast<char>(c));
++    }
++    return out;
++}
++
++bool atomic_write_text_file(const fs::path& dst, const std::string& content) {
++    std::error_code ec;
++    fs::create_directories(dst.parent_path(), ec);
++    const fs::path tmp = dst.string() + ".tmp";
++    {
++        std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
++        if (!out) return false;
++        out.write(content.data(), static_cast<std::streamsize>(content.size()));
++        out.flush();
++        if (!out) return false;
++    }
++#ifdef _WIN32
++    if (MoveFileExW(tmp.wstring().c_str(), dst.wstring().c_str(),
++                    MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0) {
++        return true;
++    }
++    fs::remove(tmp, ec);
++    return false;
++#else
++    fs::rename(tmp, dst, ec);
++    if (ec) {
++        fs::remove(tmp, ec);
++        return false;
++    }
++    return true;
++#endif
++}
++
 +// Parser simples para music.json opcional:
-+// { "tracks": { "11": { "file": "remix.ogg", "loop": true, "loop_start_ms": 0, "loop_end_ms": 0, "gain_db": 0.0 } } }
++// {
++//   "jukebox": { "enabled": false, "shuffle": false, "playlist": ["rock.mp3"] },
++//   "tracks": { "11": { "file": "remix.ogg", "loop": true, "loop_start_ms": -1, "loop_end_ms": -1, "gain_db": 0.0 } }
++// }
 +void parse_optional_music_manifest(
 +    const fs::path& music_dir,
-+    std::unordered_map<uint8_t, DosCustomTrackBinding>* bindings) {
++    std::unordered_map<uint8_t, DosCustomTrackBinding>* manifest_tracks,
++    std::unordered_map<uint8_t, DosCustomTrackBinding>* bindings,
++    JukeboxManifestConfig* jukebox_out) {
 +    const fs::path manifest = music_dir / "music.json";
 +    std::error_code ec;
 +    if (!fs::is_regular_file(manifest, ec)) return;
@@ -518,21 +583,19 @@ index 0000000..faa2214
 +    ss << in.rdbuf();
 +    const std::string text = ss.str();
 +
-+    // Parser leve baseado em tokens JSON (apenas para "tracks": { key: { ... } }).
-+    size_t pos = text.find("\"tracks\"");
-+    if (pos == std::string::npos) return;
-+    pos = text.find('{', pos);
-+    if (pos == std::string::npos) return;
-+    ++pos;
++    auto make_reader = [&](size_t start_pos) {
++        return start_pos;
++    };
++    (void)make_reader;
 +
-+    auto skip_ws = [&]() {
++    auto skip_ws_at = [&](size_t& pos) {
 +        while (pos < text.size() && (std::isspace(static_cast<unsigned char>(text[pos])) ||
 +                                     text[pos] == ',' || text[pos] == ':')) {
 +            ++pos;
 +        }
 +    };
-+    auto read_str = [&](std::string* dst) -> bool {
-+        skip_ws();
++    auto read_str_at = [&](size_t& pos, std::string* dst) -> bool {
++        skip_ws_at(pos);
 +        if (pos >= text.size() || text[pos] != '"') return false;
 +        ++pos;
 +        dst->clear();
@@ -544,12 +607,81 @@ index 0000000..faa2214
 +        return true;
 +    };
 +
++    // 1. Secao opcional "jukebox"
++    if (jukebox_out) {
++        size_t jpos = text.find("\"jukebox\"");
++        if (jpos != std::string::npos) {
++            jpos = text.find('{', jpos);
++            if (jpos != std::string::npos) {
++                ++jpos;
++                jukebox_out->present = true;
++                while (jpos < text.size()) {
++                    skip_ws_at(jpos);
++                    if (jpos >= text.size() || text[jpos] == '}') {
++                        if (jpos < text.size()) ++jpos;
++                        break;
++                    }
++                    std::string k;
++                    if (!read_str_at(jpos, &k)) break;
++                    skip_ws_at(jpos);
++                    if (jpos >= text.size()) break;
++                    if (text.compare(jpos, 4, "true") == 0) {
++                        jpos += 4;
++                        if (k == "enabled") jukebox_out->enabled = true;
++                        else if (k == "shuffle") jukebox_out->shuffle = true;
++                    } else if (text.compare(jpos, 5, "false") == 0) {
++                        jpos += 5;
++                        if (k == "enabled") jukebox_out->enabled = false;
++                        else if (k == "shuffle") jukebox_out->shuffle = false;
++                    } else if (text[jpos] == '[') {
++                        ++jpos;
++                        while (jpos < text.size()) {
++                            skip_ws_at(jpos);
++                            if (jpos >= text.size() || text[jpos] == ']') {
++                                if (jpos < text.size()) ++jpos;
++                                break;
++                            }
++                            std::string item;
++                            if (!read_str_at(jpos, &item)) {
++                                ++jpos;
++                                continue;
++                            }
++                            if (k == "playlist" && is_safe_rel_music_path(item) &&
++                                has_supported_audio_ext(item)) {
++                                const fs::path full = music_dir / item;
++                                if (fs::is_regular_file(full, ec)) {
++                                    if (std::find(jukebox_out->playlist.begin(),
++                                                  jukebox_out->playlist.end(),
++                                                  item) == jukebox_out->playlist.end()) {
++                                        jukebox_out->playlist.push_back(item);
++                                    }
++                                }
++                            }
++                        }
++                    } else if (text[jpos] == '"') {
++                        std::string dummy;
++                        read_str_at(jpos, &dummy);
++                    } else {
++                        ++jpos;
++                    }
++                }
++            }
++        }
++    }
++
++    // 2. Secao opcional "tracks": { key: { ... } }
++    size_t pos = text.find("\"tracks\"");
++    if (pos == std::string::npos) return;
++    pos = text.find('{', pos);
++    if (pos == std::string::npos) return;
++    ++pos;
++
 +    while (pos < text.size()) {
-+        skip_ws();
++        skip_ws_at(pos);
 +        if (pos >= text.size() || text[pos] == '}') break;
 +        std::string track_key;
-+        if (!read_str(&track_key)) break;
-+        skip_ws();
++        if (!read_str_at(pos, &track_key)) break;
++        skip_ws_at(pos);
 +        if (pos >= text.size() || text[pos] != '{') break;
 +        ++pos;
 +
@@ -561,18 +693,18 @@ index 0000000..faa2214
 +        float gain_db = 0.0f;
 +
 +        while (pos < text.size()) {
-+            skip_ws();
++            skip_ws_at(pos);
 +            if (pos >= text.size() || text[pos] == '}') {
 +                if (pos < text.size()) ++pos;
 +                break;
 +            }
 +            std::string k;
-+            if (!read_str(&k)) break;
-+            skip_ws();
++            if (!read_str_at(pos, &k)) break;
++            skip_ws_at(pos);
 +            if (pos >= text.size()) break;
 +            if (text[pos] == '"') {
 +                std::string val;
-+                read_str(&val);
++                read_str_at(pos, &val);
 +                if (k == "file") rel_file = val;
 +            } else if (text.compare(pos, 4, "true") == 0) {
 +                pos += 4;
@@ -608,8 +740,10 @@ index 0000000..faa2214
 +                b.loop = loop;
 +                b.loop_start_ms = loop_start_ms;
 +                b.loop_end_ms = loop_end_ms;
++                b.gain_db = gain_db;
 +                b.gain_linear = std::pow(10.0f, gain_db / 20.0f);
-+                (*bindings)[b.track_id] = std::move(b);
++                if (manifest_tracks) (*manifest_tracks)[b.track_id] = b;
++                if (bindings) (*bindings)[b.track_id] = std::move(b);
 +            }
 +        }
 +    }
@@ -619,7 +753,17 @@ index 0000000..faa2214
 +    std::mutex mu;
 +    std::string music_dir;
 +    bool enabled = true;
++    std::vector<std::string> available_files;
++    std::unordered_map<uint8_t, DosCustomTrackBinding> auto_bindings;
++    std::unordered_map<uint8_t, DosCustomTrackBinding> manifest_tracks;
 +    std::unordered_map<uint8_t, DosCustomTrackBinding> bindings;
++
++    bool jukebox_enabled = false;
++    bool jukebox_shuffle = false;
++    std::vector<std::string> jukebox_playlist;
++    size_t jukebox_index = 0;
++    std::atomic<bool> jukebox_advance_pending{false};
++    std::mt19937 rng{0xC05D0516u};
 +
 +    int active_bgm_id = -1;
 +    int active_bgm_player_slot = -1;  // Slot dinamico de hardware player (0..15) alocado pelo Nitro SDK
@@ -646,22 +790,56 @@ index 0000000..faa2214
 +    return std::string(buf);
 +}
 +
-+void activate_track_locked(int tid, bool start_now) {
-+    g_music.active_bgm_id = tid;
-+    g_music.guest_paused = false;
-+    g_music.finished = false;
++bool jukebox_active_locked() {
++    return g_music.enabled && g_music.jukebox_enabled && !g_music.jukebox_playlist.empty();
++}
 +
-+    if (!g_music.enabled || tid < 0) {
-+        g_music.active_playing = false;
-+        return;
++void rebuild_effective_bindings_locked() {
++    g_music.bindings = g_music.auto_bindings;
++    for (const auto& kv : g_music.manifest_tracks) {
++        g_music.bindings[kv.first] = kv.second;
 +    }
-+    const auto it = g_music.bindings.find(static_cast<uint8_t>(tid));
-+    if (it == g_music.bindings.end()) {
-+        g_music.active_playing = false;
-+        return;
-+    }
++}
 +
-+    const DosCustomTrackBinding& bind = it->second;
++bool save_music_manifest_locked() {
++    if (g_music.music_dir.empty()) return false;
++    std::ostringstream ss;
++    ss << "{\n";
++    ss << "  \"jukebox\": {\n";
++    ss << "    \"enabled\": " << (g_music.jukebox_enabled ? "true" : "false") << ",\n";
++    ss << "    \"shuffle\": " << (g_music.jukebox_shuffle ? "true" : "false") << ",\n";
++    ss << "    \"playlist\": [";
++    for (size_t i = 0; i < g_music.jukebox_playlist.size(); ++i) {
++        if (i > 0) ss << ", ";
++        ss << "\"" << json_escape(g_music.jukebox_playlist[i]) << "\"";
++    }
++    ss << "]\n";
++    ss << "  },\n";
++    ss << "  \"tracks\": {";
++    std::map<uint8_t, DosCustomTrackBinding> sorted_tracks(
++        g_music.manifest_tracks.begin(), g_music.manifest_tracks.end());
++    bool first = true;
++    for (const auto& kv : sorted_tracks) {
++        const auto& b = kv.second;
++        if (!first) ss << ",";
++        first = false;
++        char idbuf[8]{};
++        std::snprintf(idbuf, sizeof(idbuf), "%02u", static_cast<unsigned>(b.track_id));
++        ss << "\n    \"" << idbuf << "\": {\n";
++        ss << "      \"file\": \"" << json_escape(b.file_label) << "\",\n";
++        ss << "      \"loop\": " << (b.loop ? "true" : "false") << ",\n";
++        ss << "      \"loop_start_ms\": " << b.loop_start_ms << ",\n";
++        ss << "      \"loop_end_ms\": " << b.loop_end_ms << ",\n";
++        ss << "      \"gain_db\": " << std::fixed << std::setprecision(2) << b.gain_db << "\n";
++        ss << "    }";
++    }
++    if (!sorted_tracks.empty()) ss << "\n  ";
++    ss << "}\n";
++    ss << "}\n";
++    return atomic_write_text_file(fs::path(g_music.music_dir) / "music.json", ss.str());
++}
++
++bool load_and_start_binding_locked(const DosCustomTrackBinding& bind, bool start_now, const char* reason_label) {
 +    if (g_music.loaded_path != bind.file_path) {
 +        DosDecodedAudio dec{};
 +        std::string err;
@@ -669,7 +847,7 @@ index 0000000..faa2214
 +            std::fprintf(stderr, "[custom-music] failed to decode %s: %s\n",
 +                         bind.file_path.c_str(), err.c_str());
 +            g_music.active_playing = false;
-+            return;
++            return false;
 +        }
 +        if (bind.loop_start_ms >= 0) {
 +            dec.loop_start_frame = static_cast<size_t>(
@@ -692,15 +870,71 @@ index 0000000..faa2214
 +
 +    g_music.current_binding = bind;
 +    g_music.play_frame = 0;
++    g_music.finished = false;
++    g_music.guest_paused = false;
 +    g_music.active_playing = start_now;
 +    g_music.game_fade_gain = 1.0f;
 +    if (start_now) {
-+        std::fprintf(stderr, "[custom-music] playing track %s -> %s (frames=%zu loop=%s)\n",
-+                     format_bgm_label(tid).c_str(),
++        std::fprintf(stderr, "[custom-music] playing %s -> %s (frames=%zu loop=%s)\n",
++                     reason_label ? reason_label : "track",
 +                     bind.file_label.c_str(),
 +                     g_music.decoded.pcm_stereo_32768.size() / 2u,
 +                     bind.loop ? "on" : "off");
 +    }
++    return true;
++}
++
++bool start_jukebox_index_locked(size_t idx, bool keep_if_already_playing_same) {
++    g_music.jukebox_advance_pending.store(false, std::memory_order_relaxed);
++    if (!jukebox_active_locked() || g_music.music_dir.empty()) {
++        g_music.active_playing = false;
++        return false;
++    }
++    const size_t n = g_music.jukebox_playlist.size();
++    g_music.jukebox_index = idx % n;
++    const std::string& rel = g_music.jukebox_playlist[g_music.jukebox_index];
++    const fs::path full = fs::path(g_music.music_dir) / rel;
++    if (keep_if_already_playing_same && g_music.active_playing && !g_music.finished &&
++        g_music.loaded_path == full.string()) {
++        return true;
++    }
++    DosCustomTrackBinding b{};
++    b.track_id = 0xFFu;
++    b.file_path = full.string();
++    b.file_label = rel;
++    b.loop = (n == 1u);  // Musica unica na playlist faz loop continuo; 2+ musicas avancam na playlist
++    b.gain_db = 0.0f;
++    b.gain_linear = 1.0f;
++    return load_and_start_binding_locked(b, true, "jukebox");
++}
++
++void activate_track_locked(int tid, bool start_now) {
++    g_music.active_bgm_id = tid;
++    g_music.guest_paused = false;
++
++    if (!g_music.enabled) {
++        g_music.active_playing = false;
++        return;
++    }
++    if (jukebox_active_locked()) {
++        // No modo Jukebox Global, mantem a faixa atual da playlist fluindo sem reiniciar a cada sala.
++        start_jukebox_index_locked(g_music.jukebox_index, true);
++        return;
++    }
++
++    g_music.finished = false;
++    if (tid < 0) {
++        g_music.active_playing = false;
++        return;
++    }
++    const auto it = g_music.bindings.find(static_cast<uint8_t>(tid));
++    if (it == g_music.bindings.end()) {
++        g_music.active_playing = false;
++        return;
++    }
++
++    const std::string label = format_bgm_label(tid);
++    load_and_start_binding_locked(it->second, start_now, label.c_str());
 +}
 +
 +}  // namespace
@@ -795,15 +1029,19 @@ index 0000000..faa2214
 +
 +size_t dos_custom_music_rescan() {
 +    std::lock_guard<std::mutex> lock(g_music.mu);
++    g_music.available_files.clear();
++    g_music.auto_bindings.clear();
++    g_music.manifest_tracks.clear();
 +    g_music.bindings.clear();
 +    g_music.loaded_path.clear();
++    g_music.jukebox_advance_pending.store(false, std::memory_order_relaxed);
 +    if (g_music.music_dir.empty()) return 0;
 +
 +    std::error_code ec;
 +    const fs::path dir(g_music.music_dir);
 +    if (!fs::is_directory(dir, ec)) return 0;
 +
-+    // 1. Scan automatico de arquivos .wav/.mp3/.ogg na raiz de {data}/mods/music/
++    // 1. Scan de TODOS os arquivos .wav/.mp3/.ogg na raiz de {data}/mods/music/ (qualquer nome!)
 +    std::vector<fs::path> files;
 +    for (const auto& entry : fs::directory_iterator(dir, ec)) {
 +        if (ec) break;
@@ -815,6 +1053,7 @@ index 0000000..faa2214
 +    std::sort(files.begin(), files.end());
 +
 +    for (const auto& p : files) {
++        g_music.available_files.push_back(p.filename().string());
 +        const int tid = dos_bgm_find_track_by_key(p.stem().string());
 +        if (tid < 0) continue;
 +        DosCustomTrackBinding b{};
@@ -822,19 +1061,43 @@ index 0000000..faa2214
 +        b.file_path = p.string();
 +        b.file_label = p.filename().string();
 +        b.loop = kBgmCatalog[static_cast<size_t>(tid)].default_loop;
-+        g_music.bindings[b.track_id] = std::move(b);
++        g_music.auto_bindings[b.track_id] = std::move(b);
 +    }
 +
-+    // 2. Manifesto opcional music.json sobrescreve/adiciona loop points e gain_db
-+    parse_optional_music_manifest(dir, &g_music.bindings);
-+
-+    if (!g_music.bindings.empty()) {
-+        std::fprintf(stderr, "[custom-music] scanned %s -> %zu custom BGM track(s) ready\n",
-+                     g_music.music_dir.c_str(), g_music.bindings.size());
++    // 2. Manifesto opcional music.json (jukebox + tracks com loop/gain_db)
++    JukeboxManifestConfig jb{};
++    rebuild_effective_bindings_locked();
++    parse_optional_music_manifest(dir, &g_music.manifest_tracks, &g_music.bindings, &jb);
++    if (jb.present) {
++        g_music.jukebox_enabled = jb.enabled;
++        g_music.jukebox_shuffle = jb.shuffle;
++        g_music.jukebox_playlist = std::move(jb.playlist);
++        if (g_music.jukebox_playlist.empty()) {
++            g_music.jukebox_index = 0;
++        } else if (g_music.jukebox_index >= g_music.jukebox_playlist.size()) {
++            g_music.jukebox_index = 0;
++        }
++    } else {
++        g_music.jukebox_enabled = false;
++        g_music.jukebox_shuffle = false;
++        g_music.jukebox_playlist.clear();
++        g_music.jukebox_index = 0;
 +    }
-+    if (g_music.enabled && g_music.active_bgm_id >= 0) {
++
++    if (!g_music.bindings.empty() || !g_music.available_files.empty()) {
++        std::fprintf(stderr,
++                     "[custom-music] scanned %s -> %zu file(s), %zu track binding(s), jukebox=%s (%zu)\n",
++                     g_music.music_dir.c_str(),
++                     g_music.available_files.size(),
++                     g_music.bindings.size(),
++                     g_music.jukebox_enabled ? "on" : "off",
++                     g_music.jukebox_playlist.size());
++    }
++    if (jukebox_active_locked()) {
++        start_jukebox_index_locked(g_music.jukebox_index, false);
++    } else if (g_music.enabled && g_music.active_bgm_id >= 0) {
 +        activate_track_locked(g_music.active_bgm_id, true);
-+    } else if (g_music.active_bgm_id >= 0) {
++    } else {
 +        g_music.active_playing = false;
 +    }
 +    return g_music.bindings.size();
@@ -846,8 +1109,12 @@ index 0000000..faa2214
 +    g_music.enabled = enabled;
 +    if (!enabled) {
 +        g_music.active_playing = false;
-+    } else if (!was_enabled && g_music.active_bgm_id >= 0) {
-+        activate_track_locked(g_music.active_bgm_id, true);
++    } else if (!was_enabled) {
++        if (jukebox_active_locked()) {
++            start_jukebox_index_locked(g_music.jukebox_index, false);
++        } else if (g_music.active_bgm_id >= 0) {
++            activate_track_locked(g_music.active_bgm_id, true);
++        }
 +    }
 +}
 +
@@ -856,15 +1123,133 @@ index 0000000..faa2214
 +    return g_music.enabled;
 +}
 +
++bool dos_custom_music_assign_track(uint8_t track_id, const std::string& rel_filename_or_empty) {
++    std::lock_guard<std::mutex> lock(g_music.mu);
++    if (track_id >= kDosBgmTrackCount || g_music.music_dir.empty()) return false;
++
++    if (rel_filename_or_empty.empty()) {
++        g_music.manifest_tracks.erase(track_id);
++        rebuild_effective_bindings_locked();
++        save_music_manifest_locked();
++        if (!jukebox_active_locked() && g_music.active_bgm_id == static_cast<int>(track_id)) {
++            activate_track_locked(g_music.active_bgm_id, true);
++        }
++        return true;
++    }
++
++    if (!is_safe_rel_music_path(rel_filename_or_empty) ||
++        !has_supported_audio_ext(rel_filename_or_empty)) {
++        return false;
++    }
++    std::error_code ec;
++    const fs::path full = fs::path(g_music.music_dir) / rel_filename_or_empty;
++    if (!fs::is_regular_file(full, ec)) return false;
++
++    DosCustomTrackBinding b{};
++    auto existing = g_music.manifest_tracks.find(track_id);
++    if (existing != g_music.manifest_tracks.end()) {
++        b = existing->second;
++    } else {
++        b.loop = kBgmCatalog[static_cast<size_t>(track_id)].default_loop;
++        b.loop_start_ms = -1;
++        b.loop_end_ms = -1;
++        b.gain_db = 0.0f;
++        b.gain_linear = 1.0f;
++    }
++    b.track_id = track_id;
++    b.file_path = full.string();
++    b.file_label = rel_filename_or_empty;
++    g_music.manifest_tracks[track_id] = b;
++    rebuild_effective_bindings_locked();
++    save_music_manifest_locked();
++
++    if (!jukebox_active_locked() && g_music.enabled &&
++        g_music.active_bgm_id == static_cast<int>(track_id)) {
++        activate_track_locked(g_music.active_bgm_id, true);
++    }
++    return true;
++}
++
++bool dos_custom_music_set_jukebox(bool enabled, bool shuffle, const std::vector<std::string>& playlist) {
++    std::lock_guard<std::mutex> lock(g_music.mu);
++    if (g_music.music_dir.empty()) return false;
++
++    std::error_code ec;
++    std::vector<std::string> clean_list;
++    clean_list.reserve(playlist.size());
++    for (const auto& item : playlist) {
++        if (!is_safe_rel_music_path(item) || !has_supported_audio_ext(item)) continue;
++        const fs::path full = fs::path(g_music.music_dir) / item;
++        if (!fs::is_regular_file(full, ec)) continue;
++        if (std::find(clean_list.begin(), clean_list.end(), item) == clean_list.end()) {
++            clean_list.push_back(item);
++        }
++    }
++
++    g_music.jukebox_enabled = enabled;
++    g_music.jukebox_shuffle = shuffle;
++    g_music.jukebox_playlist = std::move(clean_list);
++    if (g_music.jukebox_playlist.empty()) {
++        g_music.jukebox_index = 0;
++    } else if (g_music.jukebox_index >= g_music.jukebox_playlist.size()) {
++        g_music.jukebox_index = 0;
++    }
++    save_music_manifest_locked();
++
++    if (jukebox_active_locked()) {
++        start_jukebox_index_locked(g_music.jukebox_index, true);
++    } else if (g_music.enabled && g_music.active_bgm_id >= 0) {
++        activate_track_locked(g_music.active_bgm_id, true);
++    } else {
++        g_music.active_playing = false;
++    }
++    return true;
++}
++
++bool dos_custom_music_jukebox_next() {
++    std::lock_guard<std::mutex> lock(g_music.mu);
++    if (!jukebox_active_locked()) return false;
++    const size_t n = g_music.jukebox_playlist.size();
++    size_t next_idx = (g_music.jukebox_index + 1u) % n;
++    if (g_music.jukebox_shuffle && n > 1u) {
++        std::uniform_int_distribution<size_t> dist(0, n - 2u);
++        size_t pick = dist(g_music.rng);
++        if (pick >= g_music.jukebox_index) ++pick;
++        next_idx = pick;
++    }
++    return start_jukebox_index_locked(next_idx, false);
++}
++
++bool dos_custom_music_jukebox_prev() {
++    std::lock_guard<std::mutex> lock(g_music.mu);
++    if (!jukebox_active_locked()) return false;
++    const size_t n = g_music.jukebox_playlist.size();
++    const size_t prev_idx = (g_music.jukebox_index + n - 1u) % n;
++    return start_jukebox_index_locked(prev_idx, false);
++}
++
++void dos_custom_music_tick() {
++    if (!g_music.jukebox_advance_pending.exchange(false, std::memory_order_acq_rel)) {
++        return;
++    }
++    dos_custom_music_jukebox_next();
++}
++
 +void dos_custom_music_reset() {
 +    std::lock_guard<std::mutex> lock(g_music.mu);
 +    g_music.active_bgm_id = -1;
 +    g_music.active_bgm_player_slot = -1;
-+    g_music.active_playing = false;
 +    g_music.guest_paused = false;
-+    g_music.play_frame = 0;
-+    g_music.finished = false;
 +    g_music.game_fade_gain = 1.0f;
++    g_music.jukebox_advance_pending.store(false, std::memory_order_relaxed);
++    if (jukebox_active_locked()) {
++        // Mantem a playlist pronta ao reiniciar / carregar savestate
++        start_jukebox_index_locked(g_music.jukebox_index, true);
++    } else {
++        g_music.active_playing = false;
++        g_music.play_frame = 0;
++        g_music.finished = false;
++    }
 +}
 +
 +void dos_custom_music_set_host_paused(bool paused) {
@@ -933,27 +1318,35 @@ index 0000000..faa2214
 +                g_music.active_bgm_player_slot = static_cast<int>(arg0);
 +                activate_track_locked(tid, true);
 +            } else if (static_cast<int>(arg0) == g_music.active_bgm_player_slot) {
-+                // Este slot de hardware foi reutilizado por um SFX/SSAR — encerra BGM anterior.
++                // Este slot de hardware foi reutilizado por um SFX/SSAR — libera slot de BGM.
 +                g_music.active_bgm_player_slot = -1;
 +                g_music.active_bgm_id = -1;
-+                g_music.active_playing = false;
++                if (!jukebox_active_locked()) {
++                    g_music.active_playing = false;
++                }
 +            }
 +        } else if (cmd_id == 1u && static_cast<int>(arg0) == g_music.active_bgm_player_slot) {
 +            // SND_COMMAND_STOP_SEQ
-+            g_music.active_playing = false;
-+            g_music.guest_paused = false;
 +            g_music.active_bgm_player_slot = -1;
++            g_music.guest_paused = false;
++            if (!jukebox_active_locked()) {
++                g_music.active_playing = false;
++            }
 +        } else if (cmd_id == 2u && static_cast<int>(arg0) == g_music.active_bgm_player_slot) {
 +            // SND_COMMAND_PAUSE_SEQ (Nitro SDK 2.x)
-+            g_music.guest_paused = (arg1 != 0u);
++            if (!jukebox_active_locked()) {
++                g_music.guest_paused = (arg1 != 0u);
++            }
 +        } else if (cmd_id == 4u && static_cast<int>(arg0) == g_music.active_bgm_player_slot) {
 +            // SND_COMMAND_PLAYER_PARAM (Nitro SDK 2.x): arg1=offset, arg2=data, arg3=size
 +            const bool custom_owns_slot =
-+                g_music.enabled && g_music.active_bgm_id >= 0 &&
-+                g_music.bindings.count(static_cast<uint8_t>(g_music.active_bgm_id)) != 0u;
++                g_music.enabled &&
++                (jukebox_active_locked() ||
++                 (g_music.active_bgm_id >= 0 &&
++                  g_music.bindings.count(static_cast<uint8_t>(g_music.active_bgm_id)) != 0u));
 +            if (arg1 == 5u && arg3 == 1u) {
 +                const uint32_t vol = std::min<uint32_t>(127u, arg2 & 0xFFu);
-+                g_music.game_fade_gain = static_cast<float>(vol) / 127.0f;
++                g_music.game_fade_gain = jukebox_active_locked() ? 1.0f : (static_cast<float>(vol) / 127.0f);
 +                if (custom_owns_slot) {
 +                    // Silencia SOMENTE o slot de BGM na ARM7 mantendo SFX/vozes intactos.
 +                    wr_u32(node + 16, 0u);
@@ -993,10 +1386,11 @@ index 0000000..faa2214
 +    const size_t total_frames = g_music.decoded.pcm_stereo_32768.size() / 2u;
 +    if (total_frames == 0) return;
 +
++    const float fade = jukebox_active_locked() ? 1.0f : g_music.game_fade_gain;
 +    const float gain =
 +        (static_cast<float>(std::min<uint8_t>(custom_volume_pct, 150u)) / 100.0f) *
 +        (static_cast<float>(std::min<uint8_t>(master_volume_pct, 150u)) / 100.0f) *
-+        g_music.game_fade_gain * g_music.current_binding.gain_linear;
++        fade * g_music.current_binding.gain_linear;
 +    if (gain <= 0.0001f) return;
 +
 +    const size_t loop_end = (g_music.decoded.loop_end_frame > g_music.decoded.loop_start_frame &&
@@ -1008,6 +1402,11 @@ index 0000000..faa2214
 +
 +    for (uint32_t i = 0; i < frames; ++i) {
 +        if (g_music.play_frame >= loop_end) {
++            if (jukebox_active_locked() && g_music.jukebox_playlist.size() > 1u) {
++                g_music.finished = true;
++                g_music.jukebox_advance_pending.store(true, std::memory_order_release);
++                break;
++            }
 +            if (g_music.current_binding.loop) {
 +                g_music.play_frame = loop_start;
 +            } else {
@@ -1036,14 +1435,24 @@ index 0000000..faa2214
 +    st.custom_file_label = st.playing_custom ? g_music.current_binding.file_label : "";
 +    st.paused = g_music.guest_paused || g_music.host_paused;
 +    st.game_fade_gain = g_music.game_fade_gain;
++    st.jukebox_enabled = g_music.jukebox_enabled;
++    st.jukebox_shuffle = g_music.jukebox_shuffle;
++    st.jukebox_index = g_music.jukebox_index;
++    st.jukebox_playlist = g_music.jukebox_playlist;
++    st.available_files = g_music.available_files;
++    for (const auto& kv : g_music.bindings) {
++        if (kv.first < kDosBgmTrackCount) {
++            st.track_files[kv.first] = kv.second.file_label;
++        }
++    }
 +    return st;
 +}
 diff --git a/runner/src/dos_custom_music.h b/runner/src/dos_custom_music.h
 new file mode 100644
-index 0000000..5b6ec74
+index 0000000..0127d17
 --- /dev/null
 +++ b/runner/src/dos_custom_music.h
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,94 @@
 +#pragma once
 +
 +#include <array>
@@ -1061,6 +1470,9 @@ index 0000000..5b6ec74
 +    std::array<uint8_t, 16> data16;
 +};
 +
++inline constexpr uint32_t kDosSpuSampleRate = 32768u;
++inline constexpr size_t kDosBgmTrackCount = 30u;
++
 +struct DosCustomTrackBinding {
 +    uint8_t track_id = 0;
 +    std::string file_path;
@@ -1068,6 +1480,7 @@ index 0000000..5b6ec74
 +    bool loop = true;
 +    int64_t loop_start_ms = -1;
 +    int64_t loop_end_ms = -1;
++    float gain_db = 0.0f;
 +    float gain_linear = 1.0f;
 +};
 +
@@ -1080,6 +1493,12 @@ index 0000000..5b6ec74
 +    std::string custom_file_label;
 +    bool paused = false;
 +    float game_fade_gain = 1.0f;
++    bool jukebox_enabled = false;
++    bool jukebox_shuffle = false;
++    size_t jukebox_index = 0;
++    std::vector<std::string> jukebox_playlist;
++    std::vector<std::string> available_files;
++    std::array<std::string, kDosBgmTrackCount> track_files{};
 +};
 +
 +struct DosDecodedAudio {
@@ -1087,9 +1506,6 @@ index 0000000..5b6ec74
 +    size_t loop_start_frame = 0;
 +    size_t loop_end_frame = 0;              // 0 = fim do arquivo
 +};
-+
-+inline constexpr uint32_t kDosSpuSampleRate = 32768u;
-+inline constexpr size_t kDosBgmTrackCount = 30u;
 +
 +// Catalogo estatico das 30 faixas BGM (SSEQ 00..29, player 0) de Castlevania: Dawn of Sorrow (USA ACVE).
 +const std::array<DosBgmTrackInfo, kDosBgmTrackCount>& dos_bgm_track_catalog();
@@ -1106,6 +1522,13 @@ index 0000000..5b6ec74
 +size_t dos_custom_music_rescan();
 +void dos_custom_music_set_enabled(bool enabled);
 +bool dos_custom_music_is_enabled();
++
++// Mapeamento visual em tempo real (F1 -> Audio) persistido atomicamente em {music_dir}/music.json.
++bool dos_custom_music_assign_track(uint8_t track_id, const std::string& rel_filename_or_empty);
++bool dos_custom_music_set_jukebox(bool enabled, bool shuffle, const std::vector<std::string>& playlist);
++bool dos_custom_music_jukebox_next();
++bool dos_custom_music_jukebox_prev();
++void dos_custom_music_tick();
 +
 +// Controle de estado sincronizado com o emulador (reset, savestate, pausa do menu F1).
 +void dos_custom_music_reset();
@@ -5331,10 +5754,10 @@ index 0000000..367f8c1
 +inline constexpr size_t kDosPostProcessSpirvSize = 22152;
 diff --git a/runner/src/dos_i18n.cpp b/runner/src/dos_i18n.cpp
 new file mode 100644
-index 0000000..24ccb19
+index 0000000..98794c6
 --- /dev/null
 +++ b/runner/src/dos_i18n.cpp
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,294 @@
 +#include "dos_i18n.h"
 +
 +#include <array>
@@ -5571,9 +5994,30 @@ index 0000000..24ccb19
 +    {DosStrId::BtnRescanMusic, "Rescan mods/music Folder", "Reescanear Pasta mods/music"},
 +    {DosStrId::LblCustomMusicNowPlaying, "Current BGM Track", "Faixa BGM Atual"},
 +    {DosStrId::LblCustomMusicFolderHint,
-+     "Drop .wav/.mp3/.ogg files into {data}/mods/music/ named by track ID (e.g. 11.mp3), SDAT name (SDL_BGM_ST00_1_.ogg), or slug (pitch_black_intrusion.wav).",
-+     "Coloque arquivos .wav/.mp3/.ogg em {data}/mods/music/ com o ID da faixa (ex.: 11.mp3), nome SDAT (SDL_BGM_ST00_1_.ogg) ou slug (pitch_black_intrusion.wav)."},
++     "Drop any .wav/.mp3/.ogg into {data}/mods/music/ (any filename works!) and assign below, or run mods/music/Configurar_Musica.bat.",
++     "Coloque qualquer .wav/.mp3/.ogg em {data}/mods/music/ (qualquer nome funciona!) e escolha abaixo, ou rode mods/music/Configurar_Musica.bat."},
 +    {DosStrId::ToastMusicRescanned, "Custom music folder rescanned.", "Pasta de músicas reescaneada."},
++    {DosStrId::SecMusicJukebox, "Global Jukebox / Playlist (Mute ALL DS BGM)", "Jukebox / Playlist Global (Muta TODAS as BGMs do DS)"},
++    {DosStrId::LblMusicJukeboxEnabled, "Global Jukebox Mode (Mutes all 30 DS BGMs, keeps SFX)", "Modo Jukebox Global (Muta todas as 30 BGMs, mantém SFX)"},
++    {DosStrId::LblMusicJukeboxShuffle, "Shuffle", "Aleatório"},
++    {DosStrId::BtnMusicPrev, "Prev", "Anterior"},
++    {DosStrId::BtnMusicNext, "Next", "Próxima"},
++    {DosStrId::BtnMusicSelectAll, "Select All", "Marcar Todas"},
++    {DosStrId::BtnMusicClearPlaylist, "Clear", "Limpar"},
++    {DosStrId::LblMusicJukeboxHint,
++     "Plays only the checked song(s) continuously across rooms while muting DS BGM (full mute applies immediately on next track/room change).",
++     "Toca só a(s) música(s) marcada(s) continuamente entre salas mutando a BGM do DS (mute completo entra na próxima troca de sala/faixa)."},
++    {DosStrId::SecMusicTrackMapper, "Per-Stage Track Mapper (30 Game Tracks)", "Substituir Música por Estágio / Área (30 Faixas)"},
++    {DosStrId::LblMusicStageSelect, "Game Stage / BGM", "Estágio / Música do Jogo"},
++    {DosStrId::BtnMusicUseCurrent, "Current Room", "Sala Atual"},
++    {DosStrId::LblMusicFileSelect, "Audio File", "Arquivo de Áudio"},
++    {DosStrId::LblMusicOriginalDs, "(Original DS Music)", "(Música Original do DS)"},
++    {DosStrId::BtnMusicAssign, "Assign to Stage", "Aplicar neste Estágio"},
++    {DosStrId::BtnMusicClearStage, "Restore Original", "Restaurar Original"},
++    {DosStrId::LblMusicNoFilesHint,
++     "No .wav/.mp3/.ogg files found yet in mods/music/. Drop files there or run Configurar_Musica.bat, then click Rescan.",
++     "Nenhum .wav/.mp3/.ogg encontrado em mods/music/. Coloque arquivos lá ou rode Configurar_Musica.bat e clique em Reescanear."},
++    {DosStrId::ToastMusicSaved, "Custom music mapping saved to music.json.", "Configuração de música salva em music.json."},
 +
 +    {DosStrId::ToastSettingsSaved, "Settings saved.", "Configurações salvas."},
 +    {DosStrId::ToastScreenshotSaved, "Screenshot saved.", "Captura de tela salva."},
@@ -5610,10 +6054,10 @@ index 0000000..24ccb19
 +}
 diff --git a/runner/src/dos_i18n.h b/runner/src/dos_i18n.h
 new file mode 100644
-index 0000000..1d1ba28
+index 0000000..4bd3271
 --- /dev/null
 +++ b/runner/src/dos_i18n.h
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,248 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -5821,6 +6265,23 @@ index 0000000..1d1ba28
 +    LblCustomMusicNowPlaying,
 +    LblCustomMusicFolderHint,
 +    ToastMusicRescanned,
++    SecMusicJukebox,
++    LblMusicJukeboxEnabled,
++    LblMusicJukeboxShuffle,
++    BtnMusicPrev,
++    BtnMusicNext,
++    BtnMusicSelectAll,
++    BtnMusicClearPlaylist,
++    LblMusicJukeboxHint,
++    SecMusicTrackMapper,
++    LblMusicStageSelect,
++    BtnMusicUseCurrent,
++    LblMusicFileSelect,
++    LblMusicOriginalDs,
++    BtnMusicAssign,
++    BtnMusicClearStage,
++    LblMusicNoFilesHint,
++    ToastMusicSaved,
 +
 +    ToastSettingsSaved,
 +    ToastScreenshotSaved,
@@ -5847,10 +6308,10 @@ index 0000000..1d1ba28
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..f331cf9
+index 0000000..9c213be
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
-@@ -0,0 +1,1323 @@
+@@ -0,0 +1,1495 @@
 +#include "dos_imgui_menu.h"
 +
 +#if defined(NDS_HAVE_SDL3)
@@ -6408,11 +6869,22 @@ index 0000000..f331cf9
 +                dos_tr(lang, DosStrId::LblCustomMusicNowPlaying),
 +                cm_st.active_bgm_label.empty() ? "-" : cm_st.active_bgm_label.c_str());
 +    if (cm_st.playing_custom) {
-+        ImGui::TextColored(ImVec4(0.32f, 0.90f, 0.48f, 1.0f),
-+                           "Custom track active: %s (%zu installed)",
-+                           cm_st.custom_file_label.c_str(), cm_st.installed_tracks);
++        if (cm_st.jukebox_enabled && !cm_st.jukebox_playlist.empty()) {
++            ImGui::TextColored(ImVec4(0.32f, 0.90f, 0.48f, 1.0f),
++                               "[JUKEBOX %zu/%zu] %s",
++                               cm_st.jukebox_index + 1u,
++                               cm_st.jukebox_playlist.size(),
++                               cm_st.custom_file_label.c_str());
++        } else {
++            ImGui::TextColored(ImVec4(0.32f, 0.90f, 0.48f, 1.0f),
++                               "Custom track active: %s (%zu mapped, %zu files)",
++                               cm_st.custom_file_label.c_str(),
++                               cm_st.installed_tracks,
++                               cm_st.available_files.size());
++        }
 +    } else {
-+        ImGui::TextDisabled("Installed custom tracks: %zu  |  Dir: %s",
++        ImGui::TextDisabled("Audio files: %zu  |  Mapped stages: %zu  |  Dir: %s",
++                            cm_st.available_files.size(),
 +                            cm_st.installed_tracks,
 +                            cm_st.music_dir.empty() ? "(not configured)" : cm_st.music_dir.c_str());
 +    }
@@ -6420,6 +6892,167 @@ index 0000000..f331cf9
 +        dos_custom_music_rescan();
 +    }
 +    ImGui::TextWrapped("%s", dos_tr(lang, DosStrId::LblCustomMusicFolderHint));
++
++    if (cm_st.available_files.empty()) {
++        ImGui::Spacing();
++        ImGui::TextColored(ImVec4(0.95f, 0.78f, 0.30f, 1.0f), "%s",
++                           dos_tr(lang, DosStrId::LblMusicNoFilesHint));
++    } else {
++        // --- Global Jukebox / Playlist (mutes ALL DS BGM) ---
++        begin_section(dos_tr(lang, DosStrId::SecMusicJukebox), heading_font);
++        bool jb_enabled = cm_st.jukebox_enabled;
++        bool jb_shuffle = cm_st.jukebox_shuffle;
++        std::vector<std::string> jb_playlist = cm_st.jukebox_playlist;
++        bool jb_changed = false;
++
++        if (ImGui::Checkbox(dos_tr(lang, DosStrId::LblMusicJukeboxEnabled), &jb_enabled)) {
++            if (jb_enabled && jb_playlist.empty()) {
++                jb_playlist = cm_st.available_files;
++            }
++            jb_changed = true;
++        }
++        ImGui::SameLine();
++        if (ImGui::Checkbox(dos_tr(lang, DosStrId::LblMusicJukeboxShuffle), &jb_shuffle)) {
++            jb_changed = true;
++        }
++        ImGui::TextDisabled("%s", dos_tr(lang, DosStrId::LblMusicJukeboxHint));
++
++        if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicPrev), ImVec2(90.0f, 0.0f))) {
++            dos_custom_music_jukebox_prev();
++        }
++        ImGui::SameLine();
++        if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicNext), ImVec2(90.0f, 0.0f))) {
++            dos_custom_music_jukebox_next();
++        }
++        ImGui::SameLine();
++        if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicSelectAll), ImVec2(110.0f, 0.0f))) {
++            jb_playlist = cm_st.available_files;
++            jb_changed = true;
++        }
++        ImGui::SameLine();
++        if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicClearPlaylist), ImVec2(90.0f, 0.0f))) {
++            jb_playlist.clear();
++            jb_enabled = false;
++            jb_changed = true;
++        }
++
++        if (ImGui::BeginChild("##dos_jukebox_playlist", ImVec2(0.0f, 118.0f), ImGuiChildFlags_Borders)) {
++            for (const auto& fname : cm_st.available_files) {
++                auto it = std::find(jb_playlist.begin(), jb_playlist.end(), fname);
++                bool checked = (it != jb_playlist.end());
++                if (ImGui::Checkbox(fname.c_str(), &checked)) {
++                    if (checked) {
++                        jb_playlist.push_back(fname);
++                    } else if (it != jb_playlist.end()) {
++                        jb_playlist.erase(it);
++                    }
++                    jb_changed = true;
++                }
++            }
++        }
++        ImGui::EndChild();
++        if (jb_changed) {
++            dos_custom_music_set_jukebox(jb_enabled, jb_shuffle, jb_playlist);
++        }
++
++        // --- Per-Stage Visual Track Mapper (30 game tracks, any filename) ---
++        begin_section(dos_tr(lang, DosStrId::SecMusicTrackMapper), heading_font);
++        static int s_selected_stage = 11;  // Default: #11 Pitch Black Intrusion
++        static int s_selected_file_idx = 0;  // 0 = Original DS, 1..N = available_files[idx-1]
++        static int s_last_synced_stage = -1;
++
++        const auto& catalog = dos_bgm_track_catalog();
++        auto sync_file_idx_for_stage = [&](int stage_id) {
++            s_last_synced_stage = stage_id;
++            s_selected_file_idx = 0;
++            if (stage_id >= 0 && stage_id < static_cast<int>(kDosBgmTrackCount)) {
++                const std::string& cur = cm_st.track_files[static_cast<size_t>(stage_id)];
++                if (!cur.empty()) {
++                    for (size_t i = 0; i < cm_st.available_files.size(); ++i) {
++                        if (cm_st.available_files[i] == cur) {
++                            s_selected_file_idx = static_cast<int>(i) + 1;
++                            break;
++                        }
++                    }
++                }
++            }
++        };
++        if (s_last_synced_stage != s_selected_stage) {
++            sync_file_idx_for_stage(s_selected_stage);
++        }
++        if (s_selected_file_idx > static_cast<int>(cm_st.available_files.size())) {
++            s_selected_file_idx = 0;
++        }
++
++        char stage_preview[160]{};
++        const auto& cur_stage_info = catalog[static_cast<size_t>(s_selected_stage)];
++        const std::string& cur_assigned = cm_st.track_files[static_cast<size_t>(s_selected_stage)];
++        std::snprintf(stage_preview, sizeof(stage_preview), "#%02u %s%s%s",
++                      static_cast<unsigned>(cur_stage_info.id),
++                      cur_stage_info.display_name,
++                      cur_assigned.empty() ? "" : "  ->  ",
++                      cur_assigned.c_str());
++
++        ImGui::SetNextItemWidth(340.0f);
++        if (ImGui::BeginCombo(dos_tr(lang, DosStrId::LblMusicStageSelect), stage_preview)) {
++            for (size_t i = 0; i < kDosBgmTrackCount; ++i) {
++                char item_label[192]{};
++                const auto& info = catalog[i];
++                const std::string& assigned = cm_st.track_files[i];
++                std::snprintf(item_label, sizeof(item_label), "#%02u %s%s%s",
++                              static_cast<unsigned>(info.id),
++                              info.display_name,
++                              assigned.empty() ? "" : "  [",
++                              assigned.empty() ? "" : (assigned + "]").c_str());
++                const bool is_sel = (static_cast<int>(i) == s_selected_stage);
++                if (ImGui::Selectable(item_label, is_sel)) {
++                    s_selected_stage = static_cast<int>(i);
++                    sync_file_idx_for_stage(s_selected_stage);
++                }
++                if (is_sel) ImGui::SetItemDefaultFocus();
++            }
++            ImGui::EndCombo();
++        }
++        if (cm_st.active_bgm_id >= 0 && cm_st.active_bgm_id < static_cast<int>(kDosBgmTrackCount)) {
++            ImGui::SameLine();
++            if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicUseCurrent))) {
++                s_selected_stage = cm_st.active_bgm_id;
++                sync_file_idx_for_stage(s_selected_stage);
++            }
++        }
++
++        const char* file_preview =
++            (s_selected_file_idx <= 0)
++                ? dos_tr(lang, DosStrId::LblMusicOriginalDs)
++                : cm_st.available_files[static_cast<size_t>(s_selected_file_idx - 1)].c_str();
++        ImGui::SetNextItemWidth(340.0f);
++        if (ImGui::BeginCombo(dos_tr(lang, DosStrId::LblMusicFileSelect), file_preview)) {
++            if (ImGui::Selectable(dos_tr(lang, DosStrId::LblMusicOriginalDs), s_selected_file_idx == 0)) {
++                s_selected_file_idx = 0;
++            }
++            for (size_t i = 0; i < cm_st.available_files.size(); ++i) {
++                const bool is_sel = (s_selected_file_idx == static_cast<int>(i) + 1);
++                if (ImGui::Selectable(cm_st.available_files[i].c_str(), is_sel)) {
++                    s_selected_file_idx = static_cast<int>(i) + 1;
++                }
++                if (is_sel) ImGui::SetItemDefaultFocus();
++            }
++            ImGui::EndCombo();
++        }
++
++        if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicAssign), ImVec2(180.0f, 0.0f))) {
++            const std::string chosen =
++                (s_selected_file_idx <= 0)
++                    ? ""
++                    : cm_st.available_files[static_cast<size_t>(s_selected_file_idx - 1)];
++            dos_custom_music_assign_track(static_cast<uint8_t>(s_selected_stage), chosen);
++        }
++        ImGui::SameLine();
++        if (ImGui::Button(dos_tr(lang, DosStrId::BtnMusicClearStage), ImVec2(160.0f, 0.0f))) {
++            dos_custom_music_assign_track(static_cast<uint8_t>(s_selected_stage), "");
++            s_selected_file_idx = 0;
++        }
++    }
 +}
 +
 +void draw_tab_controls(DosImGuiMenuContext& ctx, DosLanguage lang, ImFont* heading_font,
@@ -9691,7 +10324,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..6a6cdaa 100644
+index 7ff4316..83ba0b9 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,6 +14,7 @@
@@ -12081,17 +12714,18 @@ index 7ff4316..6a6cdaa 100644
      bool audio_review_paused = false;
      while (running) {
          finish_pending_save(false);
-@@ -3237,7 +4774,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3237,7 +4774,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // client is connected). See debug_server.h.
          publish_input_debug();
          debug_pump();
 -        if (g_frontend_paused != audio_review_paused) {
++        dos_custom_music_tick();
 +        const bool eff_paused = is_effective_paused();
 +        if (eff_paused != audio_review_paused) {
              // Every previous producer was joined before this safe point.
              // Drop wall-clock audio backlog, then resume through the ordinary
              // short prebuffer rather than playing catch-up after a long pause.
-@@ -3247,7 +4785,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3247,7 +4786,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
              audio_pace_floor = kAudioQueueFrames;
@@ -12101,7 +12735,7 @@ index 7ff4316..6a6cdaa 100644
              fps_frames = 0;
              fps_start = SDL_GetPerformanceCounter();
              g_pacing_previous_counter = 0;
-@@ -3259,6 +4798,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3259,6 +4799,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // short steady-state prebuffer to restart from restored guest time.
              pause_audio(audio, true);
              clear_audio_queue(audio, audio_queue);
@@ -12109,7 +12743,7 @@ index 7ff4316..6a6cdaa 100644
              audio_queue.started.store(false, std::memory_order_relaxed);
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
-@@ -3461,6 +5001,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3461,6 +5002,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  compute_failed=true;running=false;break;
              }
  #endif
@@ -12117,7 +12751,7 @@ index 7ff4316..6a6cdaa 100644
              convert_mouse_event_to_logical_coordinates(event, presentation);
              if (event.type == SDL_QUIT) {
                  release_relative_mouse();
-@@ -3491,6 +5032,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3491,6 +5033,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      presentation_window_focused[index] = true;
                  focus_release_pending = false;
              }
@@ -12191,7 +12825,7 @@ index 7ff4316..6a6cdaa 100644
              // NDS_DEBUG_KEYEV=1: trace every polled keyboard event to stderr.
              // Exists because an injected key that vanishes between
              // SDL_PushEvent (debug pump, counted) and this loop is otherwise
-@@ -3507,10 +5115,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3507,10 +5116,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                               (int)sdl_event_scancode(event),
                               (int)event.key.repeat);
              }
@@ -12230,7 +12864,7 @@ index 7ff4316..6a6cdaa 100644
                  const bool known = runtime_menu_key_input(
                      scancode, &menu_input);
                  if (known && runtime_ui &&
-@@ -3524,118 +5159,141 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3524,118 +5160,141 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      finish_runtime_menu_input(was_open);
                      continue;
                  }
@@ -12464,7 +13098,7 @@ index 7ff4316..6a6cdaa 100644
                  if (runtime_menu_controller_input(button, &menu_input) &&
                      runtime_ui &&
                      recomp_runtime_ui_handle_input(
-@@ -3685,6 +5343,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3685,6 +5344,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (event.type == SDL_MOUSEBUTTONDOWN ||
                   event.type == SDL_MOUSEBUTTONUP ||
                   event.type == SDL_MOUSEMOTION)) {
@@ -12490,7 +13124,7 @@ index 7ff4316..6a6cdaa 100644
                  continue;
              }
              const bool primary_left_down =
-@@ -3701,7 +5378,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3701,7 +5379,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (bottom_left_down && mph_prime_unified_window_focus);
              const NdsStackedRelativeMouseRoute stacked_left_route =
                  primary_left_down && !presentation.separate
@@ -12499,7 +13133,7 @@ index 7ff4316..6a6cdaa 100644
                         nds_screen_touch_position(touch_placement,presentation.screen_widths[1],event.button.x,event.button.y,nullptr,nullptr)
                          ? NdsStackedRelativeMouseRoute::Touchscreen : nds_route_stacked_relative_mouse_button(
                          options.relative_mouse_touch,
-@@ -3816,6 +5493,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3816,6 +5494,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      set_touch_from_mouse(event.button.x, event.button.y, false,
                                           touch_placement, presentation.screen_widths[1]);
              }
@@ -12521,7 +13155,7 @@ index 7ff4316..6a6cdaa 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5570,242 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5571,242 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -12764,7 +13398,7 @@ index 7ff4316..6a6cdaa 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +5817,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +5818,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -12846,7 +13480,7 @@ index 7ff4316..6a6cdaa 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +5868,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +5869,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -12855,7 +13489,7 @@ index 7ff4316..6a6cdaa 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6104,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6105,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -12865,7 +13499,7 @@ index 7ff4316..6a6cdaa 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6116,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6117,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -12874,7 +13508,7 @@ index 7ff4316..6a6cdaa 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6130,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6131,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -12885,7 +13519,7 @@ index 7ff4316..6a6cdaa 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4218,11 +6156,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4218,11 +6157,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                              screen, &widths[screen]);
                  }
              }
@@ -12907,7 +13541,7 @@ index 7ff4316..6a6cdaa 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4417,12 +6363,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6364,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -12928,7 +13562,7 @@ index 7ff4316..6a6cdaa 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6392,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6393,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -12963,7 +13597,7 @@ index 7ff4316..6a6cdaa 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,7 +6498,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,7 +6499,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -12972,7 +13606,7 @@ index 7ff4316..6a6cdaa 100644
          if (audio_pace_floor > kAudioQueueFrames + kGlideStepFrames)
              audio_pace_floor -= kGlideStepFrames;
          else
-@@ -4542,12 +6508,22 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4542,12 +6509,22 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (turbo_active) {
              if (!cpu_handoff) discard_spu_output();
          } else {
@@ -12997,7 +13631,7 @@ index 7ff4316..6a6cdaa 100644
                  );
          }
          const uint64_t frame_drain_ticks =
-@@ -4620,17 +6596,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +6597,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -13055,7 +13689,7 @@ index 7ff4316..6a6cdaa 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,6 +6703,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,6 +6704,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -13066,7 +13700,7 @@ index 7ff4316..6a6cdaa 100644
      if (controller) SDL_GameControllerClose(controller);
      if (runtime_ui) {
          g_runtime_menu_ui = nullptr;
-@@ -5053,3 +7070,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7071,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -14110,10 +14744,10 @@ index e411b57..7e17859 100644
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..69ceb8e
+index 0000000..54e98fa
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,920 @@
+@@ -0,0 +1,993 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -15013,6 +15647,79 @@ index 0000000..69ceb8e
 +    wr32(0x2060, 0u); wr32(0x2064, 1u); wr32(0x2068, 2u);
 +    dos_custom_music_on_pxi_sound(0x02002060u, ram.data(), ram.size());
 +    assert(!dos_custom_music_status().playing_custom);
++
++    // 4. Visual Track Mapper (arbitrary filename -> stage #07) + Global Jukebox Playlist (mutes ANY BGM)
++    {
++        auto write_short_wav = [](const std::filesystem::path& p, int16_t val, uint32_t frames) {
++            const uint32_t sr = 32768;
++            const uint32_t data_bytes = frames * 4;
++            std::vector<uint8_t> wav(44 + data_bytes, 0);
++            std::memcpy(wav.data(), "RIFF", 4);
++            const uint32_t riff_sz = 36 + data_bytes;
++            std::memcpy(wav.data() + 4, &riff_sz, 4);
++            std::memcpy(wav.data() + 8, "WAVEfmt ", 8);
++            const uint32_t fmt_sz = 16;
++            const uint16_t pcm_fmt = 1, ch = 2, align = 4, bps = 16;
++            const uint32_t byte_rate = sr * 4;
++            std::memcpy(wav.data() + 16, &fmt_sz, 4);
++            std::memcpy(wav.data() + 20, &pcm_fmt, 2);
++            std::memcpy(wav.data() + 22, &ch, 2);
++            std::memcpy(wav.data() + 24, &sr, 4);
++            std::memcpy(wav.data() + 28, &byte_rate, 4);
++            std::memcpy(wav.data() + 32, &align, 2);
++            std::memcpy(wav.data() + 34, &bps, 2);
++            std::memcpy(wav.data() + 36, "data", 4);
++            std::memcpy(wav.data() + 40, &data_bytes, 4);
++            for (uint32_t i = 0; i < frames; ++i) {
++                std::memcpy(wav.data() + 44 + i * 4, &val, 2);
++                std::memcpy(wav.data() + 44 + i * 4 + 2, &val, 2);
++            }
++            std::ofstream wf(p, std::ios::binary);
++            wf.write(reinterpret_cast<const char*>(wav.data()), static_cast<std::streamsize>(wav.size()));
++        };
++
++        write_short_wav(tmp_dir / "music" / "random_rock_a.wav", 6000, 64);
++        write_short_wav(tmp_dir / "music" / "random_rock_b.wav", 14000, 64);
++        dos_custom_music_rescan();
++        const auto st_avail = dos_custom_music_status();
++        assert(st_avail.available_files.size() >= 3u);
++
++        // Assign arbitrary filename to stage #07 -> persists to music.json & survives rescan
++        assert(dos_custom_music_assign_track(7, "random_rock_a.wav"));
++        dos_custom_music_rescan();
++        assert(dos_custom_music_status().track_files[7] == "random_rock_a.wav");
++
++        // Enable Global Jukebox with 2 songs -> mutes unmapped BGM #13 (Dracula's Tears) & advances on finish
++        assert(dos_custom_music_set_jukebox(true, false, {"random_rock_a.wav", "random_rock_b.wav"}));
++        const auto jb_st = dos_custom_music_status();
++        assert(jb_st.jukebox_enabled && jb_st.playing_custom && jb_st.custom_file_label == "random_rock_a.wav");
++
++        // Unmapped BGM #13 START_SEQ + PLAYER_PARAM(Priority) must be muted via MUTE_TRACK in Jukebox mode
++        std::memcpy(ram.data() + 0x12000u, cat[13].data16.data(), 16u);
++        wr32(0x2100, 0x02002120u); wr32(0x2104, 0u); wr32(0x2108, 3u); wr32(0x210C, 0x02012000u); wr32(0x2110, 0u); wr32(0x2114, 0x02020000u);
++        wr32(0x2120, 0u);          wr32(0x2124, 4u); wr32(0x2128, 3u); wr32(0x212C, 4u);          wr32(0x2130, 0x40u); wr32(0x2134, 1u);
++        dos_custom_music_on_pxi_sound(0x02002100u, ram.data(), ram.size());
++        assert(rd32(0x2124) == 6u && rd32(0x212C) == 0xFFFFu && rd32(0x2130) == 1u);
++
++        // Mix past end of 64-frame random_rock_a.wav -> tick() advances to random_rock_b.wav!
++        std::array<int16_t, 256> jb_buf{};
++        dos_custom_music_mix(jb_buf.data(), 128, true, 100, true, 100);
++        dos_custom_music_tick();
++        assert(dos_custom_music_status().custom_file_label == "random_rock_b.wav");
++
++        // Prev returns to random_rock_a.wav
++        assert(dos_custom_music_jukebox_prev());
++        assert(dos_custom_music_status().custom_file_label == "random_rock_a.wav");
++
++        // Rescan preserves jukebox config persisted in music.json
++        dos_custom_music_rescan();
++        const auto jb_reloaded = dos_custom_music_status();
++        assert(jb_reloaded.jukebox_enabled && jb_reloaded.jukebox_playlist.size() == 2u);
++
++        // Disable jukebox restores Per-Track mode
++        assert(dos_custom_music_set_jukebox(false, false, jb_reloaded.jukebox_playlist));
++        assert(!dos_custom_music_status().jukebox_enabled);
++    }
 +
 +    dos_custom_music_reset();
 +    std::filesystem::remove_all(tmp_dir, ec);

@@ -82,9 +82,32 @@ def scan_music_dir(music_dir: Path) -> dict[str, object]:
             matched[tid] = p.name
 
     manifest = music_dir / "music.json"
+    jukebox_files: list[str] = []
+    jukebox_enabled = False
     if manifest.is_file():
         try:
             data = json.loads(manifest.read_text(encoding="utf-8"))
+            jukebox = data.get("jukebox", {})
+            if isinstance(jukebox, dict):
+                jukebox_enabled = bool(jukebox.get("enabled", False))
+                raw_pl = jukebox.get("playlist", [])
+                if isinstance(raw_pl, list):
+                    for item in raw_pl:
+                        rel = str(item)
+                        if (
+                            not rel
+                            or ".." in rel
+                            or rel.startswith(("/", "\\"))
+                            or ":" in rel
+                            or Path(rel).is_absolute()
+                            or Path(rel).suffix.lower() not in SUPPORTED_EXTS
+                        ):
+                            errors.append(f"music.json: invalid jukebox file '{rel}'")
+                            continue
+                        if not (music_dir / rel).is_file():
+                            errors.append(f"music.json: missing jukebox file '{rel}'")
+                            continue
+                        jukebox_files.append(rel)
             tracks = data.get("tracks", {})
             if isinstance(tracks, dict):
                 for k, v in tracks.items():
@@ -110,7 +133,14 @@ def scan_music_dir(music_dir: Path) -> dict[str, object]:
         except Exception as exc:  # noqa: BLE001
             errors.append(f"music.json parse error: {exc}")
 
-    return {"dir": str(music_dir), "matched": matched, "unmatched": unmatched, "errors": errors}
+    return {
+        "dir": str(music_dir),
+        "matched": matched,
+        "unmatched": unmatched,
+        "jukebox_enabled": jukebox_enabled,
+        "jukebox_playlist": jukebox_files,
+        "errors": errors,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
