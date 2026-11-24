@@ -1,6 +1,10 @@
-# Notas de Sessão (`v1.1.1`)
+# Notas de Sessão (`v1.1.2`)
 
 ## Feito
+- **`v1.1.2` (segurança de empacotamento + launcher MSVC 2022):**
+  - `CastlevaniaDawnOfSorrow.exe` compilado com **MSVC 2022 (`cl.exe /O2 /MT`)** (`443 KB`, apenas 5 DLLs padrão do Windows, sem stub `llvm-mingw -static`).
+  - Allowlist explícita de `runtime/` em `tools/package_recomplauncher.py` (`nds_runner.exe`, `SDL3.dll`, `libc++.dll`, `libunwind.dll`).
+  - SHA-256 obrigatório travado para `dsd.exe` em `tools/setup_toolchains.py` e `-march=x86-64 -mtune=generic` em `CMakePresets.json`.
 - **`v1.1.1` (fix de compatibilidade + anti-falso-positivo AV):**
   - Troca de `-march=native` para **`-march=x86-64 -mtune=generic`** em `tools/build.py` (evita crash `SIGILL` em CPUs mais antigas).
   - Embutido `launcher/app.manifest` (`asInvoker`, Windows 10/11, `PerMonitorV2`, **`activeCodePage=UTF-8`**) em `CastlevaniaDawnOfSorrow.exe` e `runtime/nds_runner.exe` + `--gc-sections` no launcher (`2,16 MB -> 1,35 MB`), mitigando falso positivo `BitDefender Gen:Variant.Lazy.751345` e suportando caminhos acentuados no Windows (testado ao vivo com `Coração_Ação_Usuários\Castlevania — João.nds`).

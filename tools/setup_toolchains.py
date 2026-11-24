@@ -68,7 +68,7 @@ COMPONENTS: tuple[ToolComponent, ...] = (
             "https://github.com/AetiasHax/ds-decomp/releases/download/"
             "v0.12.1/dsd-windows-x86_64.exe"
         ),
-        sha256=None,
+        sha256="5917df26bffc05d4752276a2e0b1edd21bd6e920aabe1992be8a50efc9d10932",
         archive="dsd-windows-x86_64.exe",
         kind="exe",
         target_rel="dsd",

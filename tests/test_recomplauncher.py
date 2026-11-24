@@ -241,7 +241,7 @@ class TestRecompLauncher(unittest.TestCase):
             (runtime / "SDL3.dll").write_bytes(b"MZ-sdl3")
             (runtime / "libc++.dll").write_bytes(b"MZ-libcxx")
             (runtime / "libunwind.dll").write_bytes(b"MZ-libunwind")
-            for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log"):
+            for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log", "stray_unexpected.dll", "notes.txt"):
                 (runtime / junk).write_bytes(b"junk")
 
             stage = Path(tmp) / "stage"

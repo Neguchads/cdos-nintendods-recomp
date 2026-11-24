@@ -397,37 +397,72 @@ def compile_app_icon_resource(tc: dict[str, Path]) -> Path:
     return APP_ICON_OBJ
 
 
+def find_msvc_vcvars64() -> Path | None:
+    """Localiza vcvars64.bat do Visual Studio 2022/BuildTools para compilar o launcher nativo MSVC."""
+    if os.environ.get("NDS_LAUNCHER_FORCE_MINGW") == "1":
+        return None
+    candidates = [
+        Path(r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"),
+        Path(r"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"),
+        Path(r"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat"),
+        Path(r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"),
+    ]
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
 def build_launcher_exe(tc: dict[str, Path], icon_obj: Path) -> Path:
     if not LAUNCHER_SRC.is_file():
         die(f"fonte do launcher ausente: {LAUNCHER_SRC}")
-    run_logged(
-        "build-launcher",
-        [
-            tc["cxx"],
-            "-std=c++20",
-            "-O2",
-            "-march=x86-64",
-            "-mtune=generic",
-            "-ffunction-sections",
-            "-fdata-sections",
-            "-fno-ident",
-            "-Wall",
-            "-Wextra",
-            "-mwindows",
-            "-municode",
-            "-static",
-            "-Wl,--gc-sections",
-            posix(LAUNCHER_SRC),
-            posix(icon_obj),
-            "-lcomdlg32",
-            "-lole32",
-            "-lshell32",
-            "-luser32",
-            "-luuid",
-            "-o",
-            posix(LAUNCHER_EXE),
-        ],
-    )
+    vcvars = find_msvc_vcvars64()
+    if vcvars is not None:
+        GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+        res_file = GENERATED_DIR / "app_icon_msvc.res"
+        obj_file = GENERATED_DIR / "launcher_win32_msvc.obj"
+        bat_file = GENERATED_DIR / "build_launcher_msvc.bat"
+        bat_file.write_text(
+            "@echo off\n"
+            f'call "{vcvars}" >nul || exit /b 1\n'
+            f'rc /nologo /I "{LAUNCHER_DIR}" /fo "{res_file}" "{APP_ICON_RC}" || exit /b 1\n'
+            f'cl /nologo /std:c++20 /O2 /EHsc /MT /W3 /DUNICODE /D_UNICODE '
+            f'/Fo"{obj_file}" "{LAUNCHER_SRC}" "{res_file}" '
+            f'/Fe"{LAUNCHER_EXE}" '
+            f'/link /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF '
+            f'comdlg32.lib ole32.lib shell32.lib user32.lib uuid.lib || exit /b 1\n',
+            encoding="ascii",
+        )
+        run_logged("build-launcher-msvc", ["cmd.exe", "/d", "/c", str(bat_file)])
+    else:
+        run_logged(
+            "build-launcher",
+            [
+                tc["cxx"],
+                "-std=c++20",
+                "-O2",
+                "-march=x86-64",
+                "-mtune=generic",
+                "-ffunction-sections",
+                "-fdata-sections",
+                "-fno-ident",
+                "-Wall",
+                "-Wextra",
+                "-mwindows",
+                "-municode",
+                "-static",
+                "-Wl,--gc-sections",
+                posix(LAUNCHER_SRC),
+                posix(icon_obj),
+                "-lcomdlg32",
+                "-lole32",
+                "-lshell32",
+                "-luser32",
+                "-luuid",
+                "-o",
+                posix(LAUNCHER_EXE),
+            ],
+        )
     if not LAUNCHER_EXE.is_file():
         die(f"executavel launcher nao gerado em {LAUNCHER_EXE}")
     return LAUNCHER_EXE

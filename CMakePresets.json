@@ -33,8 +33,8 @@
         "CMAKE_RC_COMPILER": "${sourceDir}/toolchains/llvm-mingw/bin/llvm-rc.exe",
         "SDL3_DIR": "${sourceDir}/toolchains/sdl3/x86_64-w64-mingw32/lib/cmake/SDL3",
         "CMAKE_PREFIX_PATH": "${sourceDir}/toolchains/sdl3/x86_64-w64-mingw32",
-        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -march=native",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native"
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -march=x86-64 -mtune=generic",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=x86-64 -mtune=generic"
       }
     },
     {
