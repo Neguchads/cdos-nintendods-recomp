@@ -223,6 +223,7 @@ class TestRecompLauncher(unittest.TestCase):
                 "mods/ptbr/dos-ptbr.dospatch",
                 "mods/definitive/dos-definitive-en.dospatch",
                 "mods/definitive/dos-definitive-ptbr.dospatch",
+                "mods/registry.json",
                 "docs/RECOMPLAUNCHER.md",
             ):
                 dst = fake_root / rel

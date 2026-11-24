@@ -52,6 +52,8 @@ play.sh
 
 # Artefatos locais importados de pacotes de mods externos (grandes ou de terceiros)
 mods/local/
+mods/profiles/
+mods/cache/
 mods/intro/*.mp4
 mods/intro/*.webm
 
