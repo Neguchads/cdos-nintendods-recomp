@@ -239,13 +239,15 @@ class TestRecompLauncher(unittest.TestCase):
             (fake_root / "CastlevaniaDawnOfSorrow.exe").write_bytes(b"MZ-launcher")
             (runtime / "nds_runner.exe").write_bytes(b"MZ-stub")
             (runtime / "SDL3.dll").write_bytes(b"MZ-sdl3")
+            (runtime / "libc++.dll").write_bytes(b"MZ-libcxx")
+            (runtime / "libunwind.dll").write_bytes(b"MZ-libunwind")
             for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log"):
                 (runtime / junk).write_bytes(b"junk")
 
             stage = Path(tmp) / "stage"
             pr.stage_release_tree(fake_root, out_dir=stage, make_zip=False)
             staged_runtime = {p.name for p in (stage / "runtime").iterdir()}
-            self.assertEqual(staged_runtime, {"nds_runner.exe", "SDL3.dll"})
+            self.assertEqual(staged_runtime, {"nds_runner.exe", "SDL3.dll", "libc++.dll", "libunwind.dll"})
             self.assertTrue((stage / "CastlevaniaDawnOfSorrow.exe").is_file())
             self.assertTrue((stage / "assets" / "recomplauncher" / "icon.png").is_file())
 

@@ -52,7 +52,7 @@ REQUIRED_INI_KEYS = {
     "dos_stick_deadzone",
 }
 
-FORBIDDEN_EXTENSIONS = {".nds", ".gba", ".cia", ".3ds"}
+FORBIDDEN_EXTENSIONS = {".nds", ".rom", ".gba", ".cia", ".3ds", ".sav", ".state", ".savestate"}
 
 SCHEMA_URL = "https://recomplauncher.com/schema/recomplauncher.json"
 REPO = "Neguchads/cdos-nintendods-recomp"
@@ -211,30 +211,9 @@ def stage_release_tree(
     if errors:
         raise RuntimeError("Falha na validacao de recomplauncher.json:\n- " + "\n- ".join(errors))
 
-    runtime_dir = root / "runtime"
-    required_files = [
-        root / "recomplauncher.json",
-        root / "CastlevaniaDawnOfSorrow.exe",
-        root / "game.toml",
-        root / "play.bat",
-        root / "README.md",
-        root / "mods" / "ptbr" / "dos-ptbr.dospatch",
-        root / "mods" / "definitive" / "dos-definitive-en.dospatch",
-        root / "mods" / "definitive" / "dos-definitive-ptbr.dospatch",
-        root / "mods" / "registry.json",
-        root / "docs" / "RECOMPLAUNCHER.md",
-        runtime_dir / "nds_runner.exe",
-        runtime_dir / "SDL3.dll",
-    ]
-    for path in required_files:
-        if not path.is_file():
-            raise FileNotFoundError(f"Artefato obrigatorio ausente para pacote: {path}")
-
-    target_dir = out_dir or (root / "dist" / "castlevania-dos-recomp-win64")
-    if target_dir.exists():
-        shutil.rmtree(target_dir)
-    target_dir.mkdir(parents=True, exist_ok=True)
-
+    root = root.resolve()
+    # The runtime and media trees may contain local saves, logs, game files or
+    # arbitrary DLLs. Package an explicit file list, not recursive directories.
     copy_items = [
         ("recomplauncher.json", False),
         ("CastlevaniaDawnOfSorrow.exe", False),
@@ -252,30 +231,64 @@ def stage_release_tree(
         ("docs/RECOMPLAUNCHER.md", False),
         ("docs/CREDITS.md", True),
         ("docs/MULTIPLATFORM.md", True),
-        ("assets/recomplauncher", False),
-        ("runtime", False),
+        ("docs/LICENSE_REVIEW.md", True),
+        ("runtime/nds_runner.exe", False),
+        ("runtime/SDL3.dll", False),
+        ("runtime/libc++.dll", False),
+        ("runtime/libunwind.dll", False),
+        *[(name, False) for name in MEDIA_FILES if name.startswith("assets/recomplauncher/")],
     ]
+    selected = []
     for rel, optional in copy_items:
         src = root / rel
-        if not src.exists():
-            if optional:
-                continue
-            raise FileNotFoundError(f"Origem ausente: {src}")
+        if not src.exists() and optional:
+            continue
+        if not src.is_file():
+            raise FileNotFoundError(f"Artefato obrigatorio ausente para pacote: {src}")
+        if not src.resolve().is_relative_to(root) or any(
+            p.is_symlink() for p in (src, *src.parents) if p != root and p.is_relative_to(root)
+        ):
+            raise ValueError(f"Symlink nao permitido no pacote: {rel}")
+        selected.append((rel, src))
+
+    requested = Path(out_dir) if out_dir is not None else root / "dist" / "castlevania-dos-recomp-win64"
+    if requested.is_symlink():
+        raise ValueError("Destino de staging nao pode ser symlink")
+    target_dir = requested.resolve()
+    dist = root / "dist"
+    if target_dir == root or target_dir in root.parents or (
+        target_dir.is_relative_to(root) and (target_dir == dist or not target_dir.is_relative_to(dist))
+    ):
+        raise ValueError("Destino de staging sobrepoe codigo-fonte ou dados do jogador")
+    if target_dir.exists():
+        # Never delete a user directory. Only replace an intact previous package
+        # whose checksum manifest covers exactly every staged file.
+        if not target_dir.is_dir() or any(p.is_symlink() for p in target_dir.rglob("*")):
+            raise ValueError("Destino existente nao e staging seguro")
+        existing = {p.relative_to(target_dir).as_posix(): p for p in target_dir.rglob("*") if p.is_file()}
+        if existing:
+            marker = existing.get("SHA256SUMS.txt")
+            if marker is None or "recomplauncher.json" not in existing:
+                raise ValueError("Destino existente nao foi gerado pelo empacotador")
+            try:
+                previous_manifest = json.loads(existing["recomplauncher.json"].read_text(encoding="utf-8"))
+                checks = dict((name, digest) for digest, name in (
+                    line.split("  ", 1) for line in marker.read_text(encoding="utf-8").splitlines()
+                ))
+            except (OSError, ValueError) as exc:
+                raise ValueError("Staging anterior invalido; nao sera removido") from exc
+            if previous_manifest.get("repo") != REPO or set(checks) != set(existing) - {"SHA256SUMS.txt"}:
+                raise ValueError("Staging anterior possui arquivos adicionais ou checksum incompleto")
+            for name, digest in checks.items():
+                if hashlib.sha256(existing[name].read_bytes()).hexdigest() != digest:
+                    raise ValueError(f"Staging anterior modificado; preservado: {name}")
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for rel, src in selected:
         dst = target_dir / rel
-        if src.is_dir():
-            patterns = (
-                ("*.log", "*.tmp", "dispatch_miss*", "*.ndshp", "*.jsonl", "*.bmp", "*.png")
-                if rel == "runtime"
-                else ("*.log", "*.tmp", "dispatch_miss*")
-            )
-            shutil.copytree(
-                src,
-                dst,
-                ignore=shutil.ignore_patterns(*patterns),
-            )
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
 
     # Pasta de BIOS (vazia): o runner a recebe como argumento. Saves e savestates vao para {data}
     # (recompdata/), que o RecompLauncher cria; nunca envie 'recompdata' na release.
