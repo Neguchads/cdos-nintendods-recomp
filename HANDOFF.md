@@ -1,4 +1,4 @@
-# HANDOFF — Castlevania: Dawn of Sorrow: Recompiled (ACVE)
+# Handoff — Castlevania: Dawn of Sorrow: Recompiled (`ACVE`)
 
 **[English](#english) | [Português (BR)](#português-br)**
 
@@ -8,82 +8,32 @@
 
 ## English
 
-### Current Technical State (Branch `feat/custom-music-widescreen` — Issues #16 & #7 over PR #17)
-Branch `feat/custom-music-widescreen` extends `feat/campaigns-randomizer-v1` (PR #17, `eec523d`) with **Issue #16 (Custom Music Support `.wav`/`.mp3`/`.ogg`)** and **Issue #7 (Widescreen Display Modes)**:
-- **Custom Music (`runner/src/dos_custom_music.{h,cpp}`, `third_party/audio/{dr_mp3.h,stb_vorbis.c}`, `io.cpp`, `frontend.cpp`, `mods/music/README.md`, `tools/list_bgm_tracks.py`):** Native zero-DLL `.wav`/`.mp3`/`.ogg` decoding + resampling to 32768 Hz stereo, Nitro SDK 2.x PXI `tag == 7` dynamic-slot BGM detection across all 30 tracks (`00..29`), verified selective `MUTE_TRACK` muting (`DS SPU BGM peak 6528 -> 0` while DS cursor SFX still peaks at `6304..7808`), live `F1 -> Audio` controls (enable, volume `0..150%`, rescan, Now Playing), and optional `music.json` loop points / `gain_db`.
-- **Widescreen (`screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend.cpp`, `dos_imgui_menu.cpp`, `recomplauncher.json`):** `WidescreenTheatre` (`342×192` 16:9 canvas: 4:3 gameplay + docked Map/Status sidebar, left/right), `SmartCrop16x9` (`SDL_LOGICAL_PRESENTATION_OVERSCAN` 1:1 square pixels + `-24..+24 px` vertical crop pan + accurate touch), and `Balanced16x10` (`16:10` mild widescreen).
-- **Issue #19 (Albus Mode bug):** Opened cleanly at `Neguchads/cdos-nintendods-recomp#19` for follow-up investigation.
+### Current Technical State (`v1.1.0` — `main`)
+- **Merged PRs into `main`:** `#22` (RBS incremental build & artifact validation), `#15` (P0/P1/P2 Definitive Edition + PT-BR + native intro player), `#17` (16A–16D campaigns, character packs, 3-state `ConflictEngine`, Native C++ Seed Mutator), and `#21` (Issues #16 Custom Music + F1 Visual Track Mapper + Global Jukebox + Explorer wizard, and #7 2D Widescreen modes).
+- **Release `v1.1.0`:** standard RecompLauncher Windows x64 package (`CastlevaniaDawnOfSorrowRecomp-v1.1.0-Windows-x64.zip` + `.sha256`), validated by both `tools/package_recomplauncher.py` (`35` INI keys, `{data}` save-path guard, zero copyrighted ROM/BIOS/intro video) and `tools/rbs_artifact.py` (strict allowlist + CRC + MZ header + SHA-256).
+- **Verified Features:**
+  - Definitive Edition (EN & PT-BR) and Original USA (EN & PT-BR) at ~60 FPS (`0` dispatch misses, isolated saves).
+  - Native Custom Music engine (`.wav`, `.mp3`, `.ogg` — zero external DLLs) with live-verified selective ARM7 BGM muting (`DS BGM = 0`, `DS SFX = 100%`), `F1 -> Audio` Visual Track Mapper, Global Jukebox / Playlist mode, and double-clickable Windows Explorer wizard (`mods/music/Configurar_Musica.bat`).
+  - 2D Widescreen presentation modes (`Widescreen Theatre`, `16:9 Smart Crop` with `-24..+24 px` vertical offset, `16:10 Balanced`) with pixel-accurate touch mapping.
+- **Experimental / Unverified Features (explicitly flagged in `README.md`, `CHANGELOG.md`, and `v1.1.0` release notes):**
+  - *Eternity of Sorrow 1.2* (`unverified`, boot & ~60 FPS perf verified, full playthrough pending).
+  - *Albus Mode* (`unverified`, known inverted movement bug tracked in [Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
+  - *Model ZX* / *Model Omega* (`unverified`, boot tested, full Julius Mode playthrough pending).
+  - Native C++ Seed Mutator (`unverified`, non-progression regular enemy stats/drops only; full progression randomizer remains via `tools/import_dsvrandom.py`).
+  - Widescreen 2D presentation (true ARM9 2D camera wide-viewport decompilation tracked in ADR-014 as future work).
 
-### Previous State (Branch `feat/campaigns-randomizer-v1` — PR #17 over `development`)
-Branch `feat/campaigns-randomizer-v1` extends `development` (PR #15, `b367ba3`, kept intact and green) with **PR #16 Stages 16A–16D**:
-- **16A (Foundation):** Declarative [`mods/registry.json`](mods/registry.json), 3-state `ConflictEngine` (`verified` / `unverified` / `incompatible`), XDELTA1 vs VCDIFF/IPS magic detection, hardened ZIP limits + path-traversal rejection + atomic writes, `{install}` read-only vs `{data}` writable separation, isolated saves/savestates by `profile_id + version + modset_hash`, and the 7th `F1` ImGui tab (`Mods & Campaigns`) keeping **Definitive Edition** as integrated default and **Original USA** as advanced compatibility mode.
-- **16B (Eternity of Sorrow 1.2):** Fixed expanded non-power-of-two cartridge masking in `runner/src/io.cpp` (`68.6 MB -> 128 MiB` `0xFF` padding + dynamic `g_card_chip_id`), added SHA-256 verified community mod fetcher (`tools/fetch_community_mods.py`), and verified *Eternity of Sorrow 1.2* live at **`59.98 FPS`**, `emu_ms=2.37 ms`, `0` dispatch misses, isolated `profiles/eternity-of-sorrow-v1.2-59644e04/dos.sav`, and soft reset OK (kept honestly as `state: "unverified"`, `validation_level: "boot_and_perf_probe"`).
-- **16C (Character Packs & Manual Slots):** Split GameBanana's ZX/Omega package into mutually exclusive `model-zx` and `model-omega` packs alongside `albus-mode` (`exclusive_group: "julius-pack"`, pinned SHA-256, `unverified` / `boot_and_perf_probe`, `0` dispatch misses, isolated saves), while keeping absent manual-import slots (`alucards-requiem-sotn`, `alucards-requiem-cv3`, `draculas-curse`, `definitive-plus`) cleanly disabled (`Not Installed`).
-- **16D (Native C++ Seed Mutator & DSVania Randomizer Importer):** Added zero-dependency C++17 `runner/src/dos_seed_mutator.{h,cpp}` (`xoshiro256**/SplitMix64`, `--seed`, `--seed-preset casual|standard|hard`, verified FNV-1a signature `0x51F8556E92BA32C4` of the `118 × 36 B` USA Enemy DNA table at `ROM 0x7CCAC`, non-progression regular enemies `0..100` only, bosses `101..117` and soul IDs untouched, atomic spoiler logs in `{data}/mods/cache/`), plus `tools/import_dsvrandom.py` and automatic `{data}/mods/profiles/dsvrandom-*.dospatch` discovery.
-- **Verifications on `feat/campaigns-randomizer-v1`:** `ctest` **3/3 PASSED** (`0.41s`), Python `unittest` **39/39 PASSED** (`5.35s`), `patches/ndsrecomp-local.patch` (`734.8 KiB`, `< 2 MiB`, `31` files), live DX12 E2E on all 4 PR #15 base modes + *Eternity of Sorrow 1.2* + *Albus Mode* + *Model ZX* + *Model Omega* + *Native Seed Mutator* determinism/rejection (`0` dispatch misses).
-
-### Previous State (Branch `development` — PR #15)
-Branch `development` extends `v1.0.1` (`main` `332b293`) with **P0 (Mod Bundle Importer & Semantic NDS Diff)**, **P1 (Definitive Edition + PT-BR Semantic Composition, Isolated Profile Saves/Savestates & `F1` Content/Mods UI)**, **P2 (Native Windows Media Foundation + SDL3 Opening Video Player)**, and **full researched author credits** in [`docs/CREDITS.md`](docs/CREDITS.md).
-
-### Newly Added / Updated on `development`
-- **Python Pipeline & Tests (`castlevania-dos-recomp/`):**
-  - `tools/vcdiff_ips.py`: pure-Python RFC 3284 VCDIFF and IPS decoders.
-  - `tools/import_mod_bundle.py`: magic-byte + SHA-256 classifier rejecting Dominus PC / Portrait of Ruin files and importing compatible DoS mods + `mods/intro/opening.mp4` (`mods/catalog.json`).
-  - `tools/diff_dos_mods.py`: NDS Header/ARM9/ARM7/41 Overlays/NitroFS FNT+FAT semantic diff (`mods/reports/definitive-vs-ptbr.json`).
-  - `tools/compose_dos_mods.py`: semantic merger producing `mods/definitive/dos-definitive-en.dospatch` (`615 KB`) and `mods/definitive/dos-definitive-ptbr.dospatch` (`752 KB`) with recomputed header CRC16 (`mods/reports/definitive-composition.json`).
-  - `tests/test_mod_pipeline.py` (5 new unit tests -> **34/34** Python tests passing).
-  - `game.toml`, `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/build.py`, `play.bat`, `launcher/launcher_win32.cpp`, `tests/test_recomplauncher.py`, `docs/CREDITS.md`, `docs/DECISIONS.md` (ADR-012), `README.md`, `ROADMAP.md`, `NOTAS.md`, `patches/ndsrecomp-local.patch` (`656.6 KiB`).
-- **C++ Runtime (`..\ndsrecomp\runner\src\`):**
-  - `dos_mod_profile.{h,cpp}`: `DosRomPatchSet`, `dos_mod_load_patch_set`, `dos_build_active_rom`, `dos_profile_savestate_dir`, `dos_profile_save_path`.
-  - `dos_intro_player.{h,cpp}`: `dos_intro_validate_mp4_file`, `dos_play_intro_video` (Windows Media Foundation `IMFSourceReader` + SDL3 texture/audio, zero FFmpeg DLLs).
-  - Wired into `dos_enhancements.{h,cpp}`, `dos_i18n.{h,cpp}`, `dos_imgui_menu.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt`, and `tests/dos_enhancements_test.cpp`.
-
-### Verifications Executed on `development`
-- `ctest --test-dir generated/build-runner -R "^(dos_enhancements_test|frontend_config_test|screen_layout_test)$" --output-on-failure`: **3/3 passed** (`0.37s`).
-- `python -m unittest discover -s tests -v`: **34/34 passed** (`2.848s`).
-- `python tools/import_mod_bundle.py "C:\Users\Desktop\Downloads\CDOS NDS"`: `inspecionados=17 aceitos=3 rejeitados=8`.
-- `python tools/compose_dos_mods.py`: roundtrip-verified `dos-definitive-en.dospatch` (`615,288 B`) + `dos-definitive-ptbr.dospatch` (`752,796 B`).
-- **Live E2E (`nds_runner.exe`):**
-  - `P2_INTRO_AND_DEFINITIVE_EN`: `[content] active ROM: Definitive Edition (English) (modset=2333f02b22dc)`, `[intro-video] playing ...\mods\intro\opening.mp4 (640x480, audio=off)` -> `finished (frames=53, skipped=1, quit=0)` -> clean DX12 boot.
-  - `P1_DEFINITIVE_PTBR` + Audio ON: `[content] active ROM: Definitive Edition (PT-BR) (modset=6ffc88b8023a)`, `[intro-video] playing ... (640x480, audio=on)` -> `finished (frames=35, skipped=1, quit=0)`, isolated `definitive/dos.sav`, `present=0.66ms`.
-  - `P2_FALLBACK_MISSING_INTRO`: clean Original USA boot with zero errors when `opening.mp4` is absent.
-- `git apply --stat patches/ndsrecomp-local.patch`: **26 files**, `656.6 KiB` (`< 2 MiB` CI limit).
-
-### Files Added / Updated
-- **`..\ndsrecomp\runner\third_party\imgui\`:** Dear ImGui v1.92.9b (`15` source files + `imgui_impl_sdl3` and `imgui_impl_sdlrenderer3` backends).
-- **`..\ndsrecomp\runner\src\`:**
-  - `dos_i18n.{h,cpp}`: full EN / PT-BR bilingual string catalog.
-  - `dos_imgui_menu.{h,cpp}`: 6-tab overlay menu + toasts + FPS Sparkline + live input remapping.
-  - `dos_rom_patch.{h,cpp}`: in-RAM `DOSPATCH` validator and applier (magic, source/target SHA-1, payload CRC32).
-  - `dos_postprocess.frag.hlsl`, `dos_gpu_shader_dxil.h`, `dos_gpu_shader_spirv.h`, `dos_gpu_shader.{h,cpp}`: live calibration uniforms (`brightness`, `contrast`, `saturation`, `vignette`) + dual **DXIL SM 6.0** and **SPIR-V Vulkan 1.1** support.
-  - `screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt`, `tests/{dos_enhancements_test,screen_layout_test}.cpp`: new INI settings (`36` loader/saver keys), `pip_size_pct`, `hud_mode`, `vsync`, `pause_on_menu`, `pause_unfocused`, `mute_unfocused`, `stick_deadzone_pct`, `--ptbr-patch`, `--validate-live-bytes`, live language switching, and removal of legacy `menu_texture`.
-- **`castlevania-dos-recomp\`:**
-  - `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/prepare_media_assets.py`, `tests/test_recomplauncher.py`, `docs/RECOMPLAUNCHER.md`.
-  - `launcher/launcher_win32.cpp`, `launcher/app_icon.rc`, `tests/test_launcher.py` (compiles `CastlevaniaDawnOfSorrow.exe` and embeds `assets/recomplauncher/icon.ico` into both `CastlevaniaDawnOfSorrow.exe` and `runtime/nds_runner.exe` at the end of `tools/build.py build`).
-  - `assets/recomplauncher/{icon.png,icon.ico,cover.png,cover.jpg,hero.png,hero.jpg,logo.png,wallpaper.png,artwork.png,catalog-entry.json}` and `assets/screenshots/{gameplay-dx12-pip.png,imgui-menu-f1.png,vulkan-spirv-ptbr.png}`.
-  - `mods/ptbr/dos-ptbr.dospatch`, `tools/build_ptbr_patch.py`, `tests/test_ptbr_patch.py`.
-  - `CMakePresets.json`, `tools/build_linux.sh`, `android/`, `.github/dependabot.yml`, `.github/workflows/ci.yml`, `.gitattributes`, `.gitignore`, `docs/MULTIPLATFORM.md`.
-  - `tools/build.py`, `play.bat`, `game.toml`, `patches/ndsrecomp-local.patch`, `docs/DECISIONS.md` (`ADR-001`..`ADR-010`), `docs/rom-analysis.md`, `README.md`, `ROADMAP.md`, `NOTAS.md`.
-
-### Verifications Executed
-- `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passed** (`0.21s`).
-- `python tools/prepare_media_assets.py --check-only`: **OK** (`8` RecompLauncher images + `icon.ico` + `catalog-entry.json` + `3` in-engine screenshots validated).
-- `python -m unittest discover -s tests -v`: **29/29 passed** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher`, and `launcher` including mouse combat + `Q`/`R` defaults, EN-first language defaults, PE `.rsrc` `RT_ICON`/`RT_GROUP_ICON` checks, `ACVE`/CRC32 setup validation, local `game/` install, and COM `.lnk` shortcut creation).
-- `python tools/package_recomplauncher.py --validate-only`: **OK** (all 30 INI keys + `inputs[game]` + verified dump `CRC32: 135737f6` + `{install}`/`{data}` `start.args` + media kit validated).
-- **End-to-end RecompLauncher simulation (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** boots cleanly from staged zip, loads `{install}/game.toml` and `{install}/mods/ptbr/dos-ptbr.dospatch`, activates `dx12-gpu` + `DXIL ps_6_0`, writes BIOS/firmware/save only inside `{data}`, zero files created inside `{install}/runtime`.
-- `python tools/build.py smoke`: **PASS** (`724` vblanks in `run/smoke/report.json`).
-- **Clean `dx12-gpu` PT-BR benchmark (`420` frames, isolated INI, `NDS_FRONTEND_AUDIO_MUTE=1`):** **`59.86 FPS`**, `emu_mean=3.72ms`, `pres_mean=0.78ms`, `rb_max=0.000ms`, `underruns=0`.
-- **Visual `vulkan-gpu` SPIR-V PT-BR capture (`1920x1080`):** `[sdl] render driver: vulkan-gpu (vsync=0)`, `[dos-gpu] HLSL shader active (SPIR-V Vulkan)`, full HUD `FPS:60.0 EMU:2.0MS PRES:0.3MS T3:0.0K VULKAN-GPU XBR2X SIDE-BY-SIDE PT-BR`.
-
-### Known Limits
-- Windows (`dx12-gpu` and `vulkan-gpu`) is compiled and verified locally; Linux/Steam Deck and Android ARM64 files are ready for compilation in a Linux or Android SDK/NDK environment (not compiled on this Windows machine).
-- User `saves/dos.sav` and `saves/dos-settings.ini` remain untouched.
+### Verification Commands
+```powershell
+ctest --test-dir generated/build-runner -R "^(dos_enhancements_test|frontend_config_test|screen_layout_test)$" --output-on-failure
+python -m unittest discover -s tests -v
+python tools/package_recomplauncher.py --validate-only
+python tools/prepare_media_assets.py --check-only
+```
 
 ### Next Steps
-1. Run `.\CastlevaniaDawnOfSorrow.exe` (or `.\play.bat` fallback) to play in **English (`en`)** by default or switch to **PT-BR** live inside the **`F1`** Dear ImGui menu.
-2. Publish GitHub Release **`v1.0.1`** (`--latest`) with `dist/CastlevaniaDawnOfSorrowRecomp-v1.0.1-Windows-x64.zip` + `.sha256` so RecompLauncher updates players automatically.
-
-[Back to top / Voltar ao topo](#handoff--castlevania-dawn-of-sorrow-recompiled-acve)
+1. Fix *Albus Mode* inverted movement bug ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
+2. Complete full playthroughs for *Eternity of Sorrow 1.2*, *Model ZX*, and *Model Omega* to promote them to `verified`.
+3. Evaluate native Linux / Steam Deck and Android builds with prebuilt SDL3.
 
 ---
 
@@ -91,64 +41,21 @@ Branch `development` extends `v1.0.1` (`main` `332b293`) with **P0 (Mod Bundle I
 
 ## Português (BR)
 
-### Estado Técnico Atual (Branch `feat/custom-music-widescreen` — Issues #16 e #7 sobre o PR #17)
-A branch `feat/custom-music-widescreen` estende `feat/campaigns-randomizer-v1` (PR #17, `eec523d`) com a **Issue #16 (Suporte a Música Customizada `.wav`/`.mp3`/`.ogg`)** e a **Issue #7 (Modos Widescreen)**:
-- **Música Customizada (`runner/src/dos_custom_music.{h,cpp}`, `third_party/audio/{dr_mp3.h,stb_vorbis.c}`, `io.cpp`, `frontend.cpp`, `mods/music/README.md`, `tools/list_bgm_tracks.py`):** Decodificação nativa sem DLLs para `.wav`/`.mp3`/`.ogg` + reamostragem 32768 Hz estéreo, detecção dinâmica PXI `tag == 7` (Nitro SDK 2.x) nas 30 faixas BGM (`00..29`), mute seletivo comprovado via `MUTE_TRACK` (`pico SPU BGM 6528 -> 0` mantendo SFX do DS em `6304..7808`), controles ao vivo em `F1 -> Áudio` e manifesto opcional `music.json` com loop points e `gain_db`.
-- **Widescreen (`screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend.cpp`, `dos_imgui_menu.cpp`, `recomplauncher.json`):** `WidescreenTheatre` (`342×192` 16:9 com gameplay 4:3 + lateral acoplada esquerda/direita), `SmartCrop16x9` (`SDL_LOGICAL_PRESENTATION_OVERSCAN` pixels 1:1 + ajuste vertical `-24..+24 px` + toque preciso) e `Balanced16x10` (`16:10` equilibrado).
-- **Issue #19 (Albus Mode):** Aberta em `Neguchads/cdos-nintendods-recomp#19` para correção futura.
-
-### Estado Anterior (Branch `feat/campaigns-randomizer-v1` — PR #17 sobre `development`)
-A branch `feat/campaigns-randomizer-v1` estende `development` (PR #15, `b367ba3`, mantido intacto e verde) com as **Etapas 16A–16D do PR #16**:
-- **16A (Fundação):** [`mods/registry.json`](mods/registry.json) declarativo, `ConflictEngine` de 3 estados (`verified` / `unverified` / `incompatible`), detecção binária XDELTA1 vs VCDIFF/IPS, limites ZIP + proteção contra path traversal + escrita atômica, separação `{install}` somente leitura vs `{data}` gravável, isolamento de saves/savestates por `profile_id + version + modset_hash` e 7ª aba `Mods & Campanhas` no `F1` mantendo **Definitive Edition** como padrão integrado e **Original USA** como modo avançado de compatibilidade.
-- **16B (Eternity of Sorrow 1.2):** Corrigido mascaramento de cartucho expandido fora de potência de 2 em `runner/src/io.cpp` (padding `0xFF` `68,6 MB -> 128 MiB` + `g_card_chip_id` dinâmico), adicionado fetcher verificado por SHA-256 (`tools/fetch_community_mods.py`) e verificado *Eternity of Sorrow 1.2* ao vivo em **`59,98 FPS`**, `emu_ms=2,37 ms`, `0` dispatch misses, save isolado `profiles/eternity-of-sorrow-v1.2-59644e04/dos.sav` e soft reset OK (mantido honestamente como `state: "unverified"`, `validation_level: "boot_and_perf_probe"`).
-- **16C (Packs de Personagens & Slots Manuais):** Pacote ZX/Omega da GameBanana separado em `model-zx` e `model-omega` ao lado de `albus-mode` (`exclusive_group: "julius-pack"`, SHA-256 travado, `unverified` / `boot_and_perf_probe`, `0` dispatch misses, saves isolados), mantendo slots manuais ausentes (`alucards-requiem-sotn`, `alucards-requiem-cv3`, `draculas-curse`, `definitive-plus`) desabilitados (`Não instalado`).
-- **16D (Seed Mutator C++ Nativo & Importador DSVania Randomizer):** Adicionado `runner/src/dos_seed_mutator.{h,cpp}` em C++17 sem dependências externas (`xoshiro256**/SplitMix64`, `--seed`, `--seed-preset casual|standard|hard`, assinatura FNV-1a verificada `0x51F8556E92BA32C4` da tabela Enemy DNA `118 × 36 B` em `ROM 0x7CCAC`, apenas inimigos regulares `0..100` não-progressão, chefes `101..117` e `soul_id`s intactos, spoiler logs atômicos em `{data}/mods/cache/`), além de `tools/import_dsvrandom.py` e descoberta automática de `{data}/mods/profiles/dsvrandom-*.dospatch`.
-- **Verificações em `feat/campaigns-randomizer-v1`:** `ctest` **3/3 PASSARAM** (`0,41s`), Python `unittest` **39/39 PASSARAM** (`5,35s`), `patches/ndsrecomp-local.patch` (`734,8 KiB`, `< 2 MiB`, `31` arquivos), E2E ao vivo em DX12 nos 4 modos base do PR #15 + *Eternity of Sorrow 1.2* + *Albus Mode* + *Model ZX* + *Model Omega* + determinismo/rejeição do *Seed Mutator Nativo* (`0` dispatch misses).
-
-### Estado Anterior (Branch `development` — PR #15)
-A branch `development` estende a `v1.0.1` (`main` `332b293`) com **P0 (Importador de Pacote de Mods & Diff Semântico NDS)**, **P1 (Composição Semântica Definitive Edition + PT-BR, Isolamento de Saves/Savestates por Perfil e UI de Conteúdo/Mods no `F1`)**, **P2 (Player Nativo de Abertura Windows Media Foundation + SDL3)** e **créditos completos pesquisados** em [`docs/CREDITS.md`](docs/CREDITS.md).
-
-### Adicionado / Atualizado em `development`
-- **Pipeline Python & Testes (`castlevania-dos-recomp/`):** `tools/vcdiff_ips.py`, `tools/import_mod_bundle.py`, `tools/diff_dos_mods.py`, `tools/compose_dos_mods.py`, `tests/test_mod_pipeline.py`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, `mods/catalog.json`, `mods/reports/*.json`, `game.toml`, `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/build.py`, `play.bat`, `launcher/launcher_win32.cpp`, `docs/CREDITS.md`, `docs/DECISIONS.md` (ADR-012) e `patches/ndsrecomp-local.patch` (`656,6 KiB`).
-- **Runtime C++ (`..\ndsrecomp\runner\src\`):** `dos_mod_profile.{h,cpp}`, `dos_intro_player.{h,cpp}` (Windows Media Foundation + SDL3, zero FFmpeg), integrados em `dos_enhancements.{h,cpp}`, `dos_i18n.{h,cpp}`, `dos_imgui_menu.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt` e `tests/dos_enhancements_test.cpp`.
-
-### Verificações Executadas em `development`
-- `ctest`: **3/3 passaram** (`0.37s`).
-- `unittest`: **34/34 passaram** (`2.848s`).
-- **E2E ao vivo (`nds_runner.exe`):** abertura `opening.mp4` decodificada nativamente em 640x480 (`53` frames com `audio=off` e `35` frames com `audio=on`), boot limpo em `Definitive Edition (English)` (`modset=2333f02b22dc`), `Definitive Edition (PT-BR)` (`modset=6ffc88b8023a`) com `definitive/dos.sav` isolado, e fallback silencioso quando `opening.mp4` está ausente.
-
-### Arquivos Adicionados / Atualizados
-- **`..\ndsrecomp\runner\third_party\imgui\`:** Dear ImGui v1.92.9b (`15` arquivos + backends `imgui_impl_sdl3` e `imgui_impl_sdlrenderer3`).
-- **`..\ndsrecomp\runner\src\`:**
-  - `dos_i18n.{h,cpp}`: catálogo bilíngue completo EN / PT-BR.
-  - `dos_imgui_menu.{h,cpp}`: menu overlay moderno de 6 abas + toasts + Sparkline FPS + remapeamento ao vivo.
-  - `dos_rom_patch.{h,cpp}`: aplicador/validador `DOSPATCH` (magic, SHA-1 origem/destino, CRC32) em RAM.
-  - `dos_postprocess.frag.hlsl`, `dos_gpu_shader_dxil.h`, `dos_gpu_shader_spirv.h`, `dos_gpu_shader.{h,cpp}`: uniformes de calibração (`brightness`, `contrast`, `saturation`, `vignette`) + suporte dual **DXIL SM 6.0** e **SPIR-V Vulkan 1.1**.
-  - `screen_layout.h`, `dos_enhancements.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt`, `tests/{dos_enhancements_test,screen_layout_test}.cpp`: novos campos INI (`36` chaves no loader/saver), `pip_size_pct`, `hud_mode`, `vsync`, `pause_on_menu`, `pause_unfocused`, `mute_unfocused`, `stick_deadzone_pct`, `--ptbr-patch`, `--validate-live-bytes`, troca de idioma ao vivo e eliminação do `menu_texture` legado.
-- **`castlevania-dos-recomp\`:**
-  - `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/prepare_media_assets.py`, `tests/test_recomplauncher.py`, `docs/RECOMPLAUNCHER.md`.
-  - `launcher/launcher_win32.cpp`, `launcher/app_icon.rc`, `tests/test_launcher.py` (compila `CastlevaniaDawnOfSorrow.exe` e embute `assets/recomplauncher/icon.ico` tanto em `CastlevaniaDawnOfSorrow.exe` quanto em `runtime/nds_runner.exe` ao final de `tools/build.py build`).
-  - `assets/recomplauncher/{icon.png,icon.ico,cover.png,cover.jpg,hero.png,hero.jpg,logo.png,wallpaper.png,artwork.png,catalog-entry.json}` e `assets/screenshots/{gameplay-dx12-pip.png,imgui-menu-f1.png,vulkan-spirv-ptbr.png}`.
-  - `mods/ptbr/dos-ptbr.dospatch`, `tools/build_ptbr_patch.py`, `tests/test_ptbr_patch.py`.
-  - `CMakePresets.json`, `tools/build_linux.sh`, `android/`, `.github/dependabot.yml`, `.github/workflows/ci.yml`, `.gitattributes`, `.gitignore`, `docs/MULTIPLATFORM.md`.
-  - `tools/build.py`, `play.bat`, `game.toml`, `patches/ndsrecomp-local.patch`, `docs/DECISIONS.md` (`ADR-001`..`ADR-010`), `docs/rom-analysis.md`, `README.md`, `ROADMAP.md`, `NOTAS.md`.
-
-### Verificações Executadas
-- `ctest --test-dir generated/build-runner -R "screen_layout_test|frontend_config_test|dos_enhancements_test" --output-on-failure`: **3/3 passaram** (`0.21s`).
-- `python tools/prepare_media_assets.py --check-only`: **OK** (`8` imagens RecompLauncher + `icon.ico` + `catalog-entry.json` + `3` capturas reais validadas).
-- `python -m unittest discover -s tests -v`: **29/29 passaram** (`prepare_rom`, `promote_banks`, `ptbr_patch`, `recomplauncher` e `launcher` incluindo padrão mouse em combate + `Q`/`R`, padrão EN principal com PT-BR secundário, checagem de recursos PE `RT_ICON`/`RT_GROUP_ICON`, validação `ACVE`/CRC32 no setup, instalação local em `game/` e criação de atalho `.lnk` via COM).
-- `python tools/package_recomplauncher.py --validate-only`: **OK** (todas as 30 chaves INI + `inputs[game]` + dump verificado `CRC32: 135737f6` + caminhos `{install}`/`{data}` + kit de mídia validados).
-- **Simulação ponta a ponta do RecompLauncher (`cwd = {install}/runtime`, `RECOMPLAUNCHER=1`, `RECOMPLAUNCHER_DATA={data}`):** inicia sem erro a partir do zip empacotado, carrega `{install}/game.toml` e `{install}/mods/ptbr/dos-ptbr.dospatch`, ativa `dx12-gpu` + `DXIL ps_6_0`, grava BIOS/firmware/save apenas em `{data}` e não cria nenhum arquivo em `{install}/runtime`.
-- `python tools/build.py smoke`: **PASS** (`724` vblanks em `run/smoke/report.json`).
-- **Benchmark limpo `dx12-gpu` PT-BR (`420` quadros em INI isolado, `NDS_FRONTEND_AUDIO_MUTE=1`):** **`59.86 FPS`**, `emu_mean=3.72ms`, `pres_mean=0.78ms`, `rb_max=0.000ms`, `underruns=0`.
-- **Captura visual `vulkan-gpu` SPIR-V PT-BR (`1920x1080`):** `[sdl] render driver: vulkan-gpu (vsync=0)`, `[dos-gpu] HLSL shader active (SPIR-V Vulkan)`, HUD completo `FPS:60.0 EMU:2.0MS PRES:0.3MS T3:0.0K VULKAN-GPU XBR2X SIDE-BY-SIDE PT-BR`.
-
-### Limites Conhecidos
-- O build Windows (`dx12-gpu` e `vulkan-gpu`) foi compilado e testado localmente; os arquivos Linux/Steam Deck e Android ARM64 estão prontos para compilação em ambiente Linux/Android NDK (não compilados nesta máquina Windows).
-- `saves/dos.sav` e `saves/dos-settings.ini` do usuário foram preservados sem alteração.
+### Estado Técnico Atual (`v1.1.0` — `main`)
+- **PRs integrados na `main`:** `#22` (pipeline RBS e validação de artefatos), `#15` (P0/P1/P2 Definitive Edition + PT-BR + player nativo de abertura), `#17` (16A–16D campanhas, packs de personagens, `ConflictEngine` 3 estados, Seed Mutator C++ nativo) e `#21` (Issues #16 Música Customizada + Seletor Visual no F1 + Jukebox Global + assistente Explorer, e #7 modos Widescreen 2D).
+- **Release `v1.1.0`:** pacote padrão RecompLauncher Windows x64 (`CastlevaniaDawnOfSorrowRecomp-v1.1.0-Windows-x64.zip` + `.sha256`), validado por `tools/package_recomplauncher.py` (`35` chaves INI, guarda `{data}` de saves, zero ROM/BIOS/vídeo protegido) e `tools/rbs_artifact.py` (allowlist estrita + CRC + header MZ + SHA-256).
+- **Recursos Verificados:**
+  - Definitive Edition (EN e PT-BR) e Original USA (EN e PT-BR) a ~60 FPS (`0` dispatch misses, saves isolados).
+  - Motor nativo de Música Customizada (`.wav`, `.mp3`, `.ogg` — sem DLLs externas) com mute seletivo validado ao vivo (`BGM DS = 0`, `SFX DS = 100%`), Seletor Visual por Estágio no `F1 -> Áudio`, Modo Jukebox / Playlist Global e assistente duplo-clique com Windows Explorer (`mods/music/Configurar_Musica.bat`).
+  - Modos Widescreen 2D (`Widescreen Teatro`, `16:9 Smart Crop` com offset vertical `-24..+24 px`, `16:10 Equilibrado`) com mapeamento de toque exato.
+- **Recursos Experimentais / Não Verificados (sinalizados no `README.md`, `CHANGELOG.md` e release `v1.1.0`):**
+  - *Eternity of Sorrow 1.2* (`unverified`, boot e ~60 FPS validados, campanha completa pendente).
+  - *Albus Mode* (`unverified`, bug conhecido de movimento invertido na [Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
+  - *Model ZX* / *Model Omega* (`unverified`, boot testado, campanha completa pendente).
+  - Mutador Nativo por Seed C++ (`unverified`, apenas stats/drops fora da progressão; randomizer completo via `tools/import_dsvrandom.py`).
+  - Widescreen 2D de apresentação (descompilação de câmera 2D nativa ARM9 registrada no ADR-014 como trabalho futuro).
 
 ### Próximos Passos
-1. Executar `.\CastlevaniaDawnOfSorrow.exe` (ou `.\play.bat` como alternativa) para jogar em **Inglês (`en`)** por padrão ou alternar para **PT-BR** ao vivo no menu Dear ImGui (**`F1`**).
-2. Publicar a GitHub Release **`v1.0.1`** (`--latest`) com `dist/CastlevaniaDawnOfSorrowRecomp-v1.0.1-Windows-x64.zip` + `.sha256` para o RecompLauncher atualizar os jogadores automaticamente.
-
-[Voltar ao topo / Back to top](#handoff--castlevania-dawn-of-sorrow-recompiled-acve)
+1. Investigar e corrigir movimento invertido no *Albus Mode* ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
+2. Validar campanhas completas (*Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega*) para promoção a `verified`.
+3. Avaliar builds Linux / Steam Deck e Android com SDL3 pré-compilado.

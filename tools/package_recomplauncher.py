@@ -134,8 +134,15 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
         ("--intro-video", "{install}/mods/intro/opening.mp4"),
         ("--mod-registry", "{install}/mods/registry.json"),
         ("--mod-data-dir", "{data}/mods"),
+        # Runtime user data must never be written into the read-only install tree.
+        ("--runtime-settings-path", "{data}/saves/dos-settings.ini"),
+        ("--savestate-dir", "{data}/run/savestates"),
+        ("--save-path", "{data}/saves/dos.sav"),
+        ("--firmware-state-path", "{data}/run/firmware_state.bin"),
     ):
-        if flag in start_args:
+        if flag not in start_args:
+            errors.append(f"start.args deve conter {flag}")
+        else:
             idx = start_args.index(flag)
             actual = start_args[idx + 1] if idx + 1 < len(start_args) else None
             if actual != expected:
@@ -239,7 +246,6 @@ def stage_release_tree(
         ("mods/definitive/dos-definitive-ptbr.dospatch", False),
         ("mods/registry.json", False),
         ("mods/catalog.json", True),
-        ("mods/intro/opening.mp4", True),
         ("mods/music/README.md", True),
         ("mods/music/configurar_musica.py", True),
         ("mods/music/Configurar_Musica.bat", True),
