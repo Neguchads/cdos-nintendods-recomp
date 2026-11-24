@@ -1,25 +1,21 @@
-# Notas de Sessão (`v1.1.2`)
+# Notas de Sessão (Sharp Scaling & True 2D Widescreen `342×192`)
 
 ## Feito
-- **`v1.1.2` (segurança de empacotamento + launcher MSVC 2022):**
-  - `CastlevaniaDawnOfSorrow.exe` compilado com **MSVC 2022 (`cl.exe /O2 /MT`)** (`443 KB`, apenas 5 DLLs padrão do Windows, sem stub `llvm-mingw -static`).
-  - Allowlist explícita de `runtime/` em `tools/package_recomplauncher.py` (`nds_runner.exe`, `SDL3.dll`, `libc++.dll`, `libunwind.dll`).
-  - SHA-256 obrigatório travado para `dsd.exe` em `tools/setup_toolchains.py` e `-march=x86-64 -mtune=generic` em `CMakePresets.json`.
-- **`v1.1.1` (fix de compatibilidade + anti-falso-positivo AV):**
-  - Troca de `-march=native` para **`-march=x86-64 -mtune=generic`** em `tools/build.py` (evita crash `SIGILL` em CPUs mais antigas).
-  - Embutido `launcher/app.manifest` (`asInvoker`, Windows 10/11, `PerMonitorV2`, **`activeCodePage=UTF-8`**) em `CastlevaniaDawnOfSorrow.exe` e `runtime/nds_runner.exe` + `--gc-sections` no launcher (`2,16 MB -> 1,35 MB`), mitigando falso positivo `BitDefender Gen:Variant.Lazy.751345` e suportando caminhos acentuados no Windows (testado ao vivo com `Coração_Ação_Usuários\Castlevania — João.nds`).
-  - Mensagens claras de diagnóstico de ROM em `runner/src/main.cpp`.
-- **PRs integrados na `main`:** `#22` (RBS), `#15` (Definitive Edition EN/PT-BR + intro player), `#17` (Campanhas, Character Packs, ConflictEngine 3 estados, Seed Mutator C++) e `#21` (Issues #16 Música Customizada + Seletor Visual no F1 + Jukebox Global + `mods/music/Configurar_Musica.bat` + Issue #7 Modos Widescreen 2D).
-- Removido `.github/workflows/codeql-python.yml` duplicado (mantendo `.github/workflows/codeql.yml` que já cobre `c-cpp` e `python`).
-- Removido `mods/intro/opening.mp4` do staging de release pública em `tools/package_recomplauncher.py` (clean-room estrito) e liberados os arquivos `mods/music/{README.md,configurar_musica.py,Configurar_Musica.bat}` na allowlist de `tools/rbs_artifact.py`.
-- Documentação atualizada para `v1.1.0` (`README.md`, `CHANGELOG.md`, `.release-please-manifest.json`, `ROADMAP.md`, `HANDOFF.md`, `NOTAS.md`, `docs/DECISIONS.md` ADR-014, `docs/CREDITS.md`).
-- Pacote padrão RecompLauncher `CastlevaniaDawnOfSorrowRecomp-v1.1.0-Windows-x64.zip` + `.sha256` gerado e validado por `package_recomplauncher.py` + `rbs_artifact.py`.
+- **Shaders anti-cintilação para esticar sem perder qualidade (`dos_postprocess.frag.hlsl` -> DXIL `ps_6_0` + SPIR-V Vulkan 1.1):**
+  - `Sharp Bilinear` (`filter_mode = 2u`) evoluído para prescale inteiro automático independente por eixo + transição subpixel via `fwidth`.
+  - Novo `Bandlimited Pixel` (`filter_mode = 5u`, `bandlimited-pixel`) com degrau quíntico C2 + mistura linear gama 2.0 para eliminar cintilação no scroll em qualquer proporção (`16:9`, `16:10`, `21:9`, janela livre).
+  - Validados ao vivo na RTX 3060 em `dx12-gpu` (DXIL `ps_6_0`) e `vulkan-gpu` (SPIR-V Vulkan).
+- **Widescreen 2D Nativo Real `16:9` (`342×192`, opt-in Experimental):**
+  - Alternável ao vivo em `F1 -> Tela & Layout` (`dos_true_widescreen`, padrão `false`) e em `recomplauncher.json`.
+  - 14 ganchos ARM9 verificados com preflight em `title_patches.cpp` (projeção 3D ortográfica `-171..+171`, aspecto `342/192`, colunas BG `17 -> 23`, clear BG2 `0x600 -> 0x1000`, centro de câmera `171`, clamp `cam_max_x`, OAM cull `344`) + amostragem direta `0..341` de BG2 `64×32` (`512px`) em `gpu2d.cpp`.
+  - Detecção automática de gameplay (`g_state[0x08] == 0x02` && `width_screens >= 2`): prólogo (`0x01`), menu de pausa/equip (`0x0A`), tela título e Save Rooms (`width_screens == 1`) ficam em `256×192` centralizado limpo, e o HUD HP/MP fica 100% íntegro no canto superior esquerdo (`center_width = 8`).
+- **`v1.1.2` publicada (anterior nesta sessão):** launcher MSVC 2022 (`443 KB`, 5 DLLs do Windows), allowlist explícita de `runtime/`, SHA-256 obrigatório em `dsd.exe`, preset portável `-march=x86-64 -mtune=generic`.
+- `patches/ndsrecomp-local.patch` sincronizado (`1,343,511 B < 2 MiB`, `apply --check --reverse` OK) e `runtime/nds_runner.exe` atualizado localmente.
 
 ## Falta / Próximos passos
+- Testar `True 2D Widescreen 342×192` em mais salas/chefes do castelo (e decidir quando promover a próxima tag `v1.1.3` / `v1.2.0`).
 - Corrigir movimento invertido no *Albus Mode* ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
 - Zerar campanhas experimentais (*Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega*) para promover de `unverified` para `verified`.
-- Publicar comentários de encerramento/resposta nas Issues #16 e #7 após confirmação do usuário.
 
 ## Decisões
-- **ADR-014:** Custom Music usa decodificadores nativos (RIFF/WAVE + `dr_mp3.h` + `stb_vorbis.c`) sem DLLs + mute seletivo PXI `MUTE_TRACK` no slot dinâmico da ARM7; Widescreen 2D entrega 3 modos honestos (Theatre, Smart Crop 16:9, Balanced 16:10) sem distorção e sem prometer câmera 2D descompilada antes da hora.
-- Recursos experimentais ficam explicitamente marcados na página inicial (`README.md`), no `CHANGELOG.md` e nas notas da release `v1.1.0`.
+- **ADR-015:** `Sharp Bilinear` (auto-integer) + `Bandlimited Pixel` (C2 quintic) resolvem esticamento nítido sem distorção em qualquer formato mantendo `DosShaderParams` em 48 bytes; `True 2D Widescreen 342×192` aproveita o pipeline híbrido nativo de *Dawn of Sorrow* (GPU3D ortográfica + BG2 `64×32` + OAM HUD) com preflight estrito e fallback automático para `256×192` fora de gameplay multi-tela.
