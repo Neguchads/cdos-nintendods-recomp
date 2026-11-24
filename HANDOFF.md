@@ -8,7 +8,8 @@
 
 ## English
 
-### Current Technical State (`v1.1.0` — `main`)
+### Current Technical State (`v1.1.1` — `main`)
+- **Latest Patch (`v1.1.1`):** Portable `-march=x86-64 -mtune=generic` release build, embedded Windows `app.manifest` (`asInvoker`, `supportedOS`, `PerMonitorV2`, `activeCodePage=UTF-8`) in both `CastlevaniaDawnOfSorrow.exe` (`1.35 MB` with `--gc-sections`) and `runtime/nds_runner.exe`, UTF-8 `read_file` fallback, and clearer ROM mismatch diagnostics.
 - **Merged PRs into `main`:** `#22` (RBS incremental build & artifact validation), `#15` (P0/P1/P2 Definitive Edition + PT-BR + native intro player), `#17` (16A–16D campaigns, character packs, 3-state `ConflictEngine`, Native C++ Seed Mutator), and `#21` (Issues #16 Custom Music + F1 Visual Track Mapper + Global Jukebox + Explorer wizard, and #7 2D Widescreen modes).
 - **Release `v1.1.0`:** standard RecompLauncher Windows x64 package (`CastlevaniaDawnOfSorrowRecomp-v1.1.0-Windows-x64.zip` + `.sha256`), validated by both `tools/package_recomplauncher.py` (`35` INI keys, `{data}` save-path guard, zero copyrighted ROM/BIOS/intro video) and `tools/rbs_artifact.py` (strict allowlist + CRC + MZ header + SHA-256).
 - **Verified Features:**
@@ -41,7 +42,8 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`v1.1.0` — `main`)
+### Estado Técnico Atual (`v1.1.1` — `main`)
+- **Patch `v1.1.1`:** Build portátil `-march=x86-64 -mtune=generic`, manifesto Windows `app.manifest` (`asInvoker`, `supportedOS`, `PerMonitorV2`, `activeCodePage=UTF-8`) embutido em `CastlevaniaDawnOfSorrow.exe` (`1,35 MB` com `--gc-sections`) e `runtime/nds_runner.exe`, leitura UTF-8 em `main.cpp` e mensagens claras de erro de ROM.
 - **PRs integrados na `main`:** `#22` (pipeline RBS e validação de artefatos), `#15` (P0/P1/P2 Definitive Edition + PT-BR + player nativo de abertura), `#17` (16A–16D campanhas, packs de personagens, `ConflictEngine` 3 estados, Seed Mutator C++ nativo) e `#21` (Issues #16 Música Customizada + Seletor Visual no F1 + Jukebox Global + assistente Explorer, e #7 modos Widescreen 2D).
 - **Release `v1.1.0`:** pacote padrão RecompLauncher Windows x64 (`CastlevaniaDawnOfSorrowRecomp-v1.1.0-Windows-x64.zip` + `.sha256`), validado por `tools/package_recomplauncher.py` (`35` chaves INI, guarda `{data}` de saves, zero ROM/BIOS/vídeo protegido) e `tools/rbs_artifact.py` (allowlist estrita + CRC + header MZ + SHA-256).
 - **Recursos Verificados:**

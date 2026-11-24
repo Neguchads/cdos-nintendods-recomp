@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 (2026-11-24)
+
+### Fixed
+- **Portable x86-64 Windows release binaries:** switched `tools/build.py` release flags from `-march=native` to portable `-march=x86-64 -mtune=generic` so `nds_runner.exe` and `CastlevaniaDawnOfSorrow.exe` run on any x64 CPU without illegal-instruction crashes (`SIGILL`).
+- **Native Windows UTF-8 paths & AV manifest hardening:** embedded [`launcher/app.manifest`](launcher/app.manifest) (`requestedExecutionLevel level="asInvoker"`, Windows 10/11 `supportedOS`, `PerMonitorV2` DPI, and `<activeCodePage>UTF-8</activeCodePage>`) into both `CastlevaniaDawnOfSorrow.exe` and `runtime/nds_runner.exe`, added UTF-8 path fallback in `runner/src/main.cpp`, and stripped unused sections (`-ffunction-sections -fdata-sections -Wl,--gc-sections -fno-ident`) from `CastlevaniaDawnOfSorrow.exe` (`2.16 MB -> 1.35 MB`) to eliminate common AV false-positive heuristics (`BitDefender Gen:Variant.Lazy`).
+- **Clearer ROM boot diagnostics:** `main.cpp` now logs the exact path, byte size, and expected USA dump details (`67,108,864` bytes, `ACVE`, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`) when a ROM is missing, truncated, or modified.
+
 ## 1.1.0 (2026-11-24)
 
 ### Stable / Verified

@@ -78,11 +78,13 @@ class TestWindowsLauncherAndIcon(unittest.TestCase):
         runner_exe = ROOT / "runtime" / "nds_runner.exe"
         if not launcher_exe.is_file() or not runner_exe.is_file():
             self.skipTest("Executaveis Windows ainda nao compilados neste ambiente.")
-        # RT_ICON = 3, RT_GROUP_ICON = 14
+        # RT_ICON = 3, RT_GROUP_ICON = 14, RT_VERSION = 16, RT_MANIFEST = 24
         for exe in (launcher_exe, runner_exe):
             rtypes = pe_resource_types(exe)
             self.assertIn(3, rtypes, f"{exe.name} sem recurso RT_ICON (3): {rtypes}")
             self.assertIn(14, rtypes, f"{exe.name} sem recurso RT_GROUP_ICON (14): {rtypes}")
+            self.assertIn(16, rtypes, f"{exe.name} sem recurso RT_VERSION (16): {rtypes}")
+            self.assertIn(24, rtypes, f"{exe.name} sem recurso RT_MANIFEST (24): {rtypes}")
 
     def test_launcher_exe_print_command_resolves_runner_and_paths(self) -> None:
         launcher_exe = ROOT / "CastlevaniaDawnOfSorrow.exe"

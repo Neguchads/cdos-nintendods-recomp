@@ -14161,7 +14161,7 @@ index 7c9f618..ac6a74d 100644
  
  bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..fa31426 100644
+index afa9e18..fb57fb1 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
 @@ -55,6 +55,11 @@
@@ -14189,7 +14189,28 @@ index afa9e18..fa31426 100644
  extern "C" const DispatchEntry g_dispatch_freebios_arm9[];
  extern "C" const unsigned g_dispatch_freebios_arm9_len;
  extern "C" const DispatchEntry g_dispatch_freebios_arm7[];
-@@ -446,6 +453,19 @@ int main(int argc, char** argv) {
+@@ -160,7 +167,19 @@ extern "C" const unsigned g_dispatch_fw_arm7_pictochat_room_a_len;
+ namespace {
+ 
+ std::vector<uint8_t> read_file(const std::string& p) {
+-    std::ifstream f(p, std::ios::binary);
++    if (p.empty()) return {};
++    std::ifstream f;
++#ifdef _WIN32
++    {
++        std::u8string u8(reinterpret_cast<const char8_t*>(p.data()), p.size());
++        f.open(std::filesystem::path(u8), std::ios::binary);
++    }
++    if (!f) {
++        f.open(std::filesystem::path(p), std::ios::binary);
++    }
++#else
++    f.open(p, std::ios::binary);
++#endif
+     if (!f) return {};
+     return std::vector<uint8_t>((std::istreambuf_iterator<char>(f)),
+                                 std::istreambuf_iterator<char>());
+@@ -446,6 +465,19 @@ int main(int argc, char** argv) {
      std::string cli_diagnostics_dir;
      std::string cli_diagnostics_interval_ms;
      std::string cli_runtime_settings_path;
@@ -14209,7 +14230,7 @@ index afa9e18..fa31426 100644
      // beads-yjp.28: where the Tier-3 coverage manifest lands. Empty means
      // "derive it" (next to the save, else next to the ROM). Written on every
      // exit path, with no flag required, so a player's ordinary session yields
-@@ -531,6 +551,32 @@ int main(int argc, char** argv) {
+@@ -531,6 +563,32 @@ int main(int argc, char** argv) {
              cli_diagnostics_interval_ms = argv[++i];
          } else if (a == "--runtime-settings-path" && i + 1 < argc) {
              cli_runtime_settings_path = argv[++i];
@@ -14242,7 +14263,7 @@ index afa9e18..fa31426 100644
          } else if (a == "--coverage-manifest" && i + 1 < argc) {
              cli_coverage_manifest = argv[++i];
          } else if (a == "--no-coverage-manifest") {
-@@ -718,6 +764,14 @@ int main(int argc, char** argv) {
+@@ -718,6 +776,14 @@ int main(int argc, char** argv) {
                  "[--diagnostics on|off] [--diagnostics-dir dir] "
                  "[--diagnostics-interval-ms ms] "
                  "[--runtime-settings-path FILE] "
@@ -14257,7 +14278,7 @@ index afa9e18..fa31426 100644
                  "[--coverage-manifest out.json|--no-coverage-manifest] "
                  "[--firmware-path firmware.bin] "
                  "[--firmware-state-path mutable-firmware.bin] "
-@@ -824,12 +878,16 @@ int main(int argc, char** argv) {
+@@ -824,12 +890,16 @@ int main(int argc, char** argv) {
          return 2;
      }
      frontend_options.runtime_settings_path = cli_runtime_settings_path;
@@ -14275,7 +14296,7 @@ index afa9e18..fa31426 100644
              return 2;
          }
      }
-@@ -959,7 +1017,8 @@ int main(int argc, char** argv) {
+@@ -959,7 +1029,8 @@ int main(int argc, char** argv) {
                                   &frontend_options.screen_layout)) {
          std::fprintf(stderr,
                       "invalid --screen-layout "
@@ -14285,7 +14306,7 @@ index afa9e18..fa31426 100644
          return 2;
      }
      if ((!cli_pip_corner.empty() && !nds_parse_pip_corner(cli_pip_corner, &frontend_options.pip_corner)) ||
-@@ -1615,6 +1674,20 @@ int main(int argc, char** argv) {
+@@ -1615,6 +1686,20 @@ int main(int argc, char** argv) {
  
      if (cli_generated_firmware) frontend_options.generated_firmware = true;
      if (cli_freebios) frontend_options.freebios = true;
@@ -14306,7 +14327,31 @@ index afa9e18..fa31426 100644
      if (frontend_options.freebios &&
          frontend_options.boot_mode != NdsBootMode::Direct) {
          // A reimplemented BIOS cannot boot the firmware menu (melonDS
-@@ -1758,6 +1831,15 @@ int main(int argc, char** argv) {
+@@ -1742,7 +1827,11 @@ int main(int argc, char** argv) {
+     }
+     if (!rom_path.empty()) {
+         if (rom.size() < 0x200u) {
+-            std::fprintf(stderr, "refusing to start: cartridge image is missing or truncated\n");
++            std::fprintf(stderr,
++                         "refusing to start: cartridge image is missing or truncated "
++                         "(path='%s', bytes=%zu). Verify the file exists and is readable.\n",
++                         rom_path.c_str(), rom.size());
++            std::fflush(stderr);
+             return 1;
+         }
+         rom_sha1 = gba::sha1(rom.data(), rom.size()).hex();
+@@ -1751,13 +1840,23 @@ int main(int argc, char** argv) {
+         if (!frontend_options.expected_rom_sha1.empty() &&
+             rom_sha1 != frontend_options.expected_rom_sha1) {
+             std::fprintf(stderr,
+-                         "refusing to start: game config expects ROM SHA-1 "
+-                         "%s, got %s\n",
++                         "refusing to start: game config expects unmodified, untrimmed USA ROM SHA-1 "
++                         "%s (67108864 bytes, ACVE, CRC32 135737f6), got %s (%zu bytes, path='%s')\n",
+                          frontend_options.expected_rom_sha1.c_str(),
+-                         rom_sha1.c_str());
++                         rom_sha1.c_str(), rom.size(), rom_path.c_str());
++            std::fflush(stderr);
              return 1;
          }
      }
@@ -14322,7 +14367,7 @@ index afa9e18..fa31426 100644
      std::string execution_error;
      if (!nds_execution_model_select(cli_execution_model, rom_sha1, execution_error)) {
          std::fprintf(stderr, "refusing to start: %s\n", execution_error.c_str());
-@@ -2151,6 +2233,164 @@ int main(int argc, char** argv) {
+@@ -2151,6 +2250,164 @@ int main(int argc, char** argv) {
              "(LLE-faithful, reads real firmware dump over SPI)\n");
      }
  
@@ -14487,7 +14532,7 @@ index afa9e18..fa31426 100644
      // Full power-on init, reusable so the debug server can honour `reset`
      // (the bisector compares fresh-from-reset at each event count).
      auto boot = [&]() {
-@@ -2183,11 +2423,13 @@ int main(int argc, char** argv) {
+@@ -2183,11 +2440,13 @@ int main(int argc, char** argv) {
                                    g_dispatch_freebios_arm9_len, 0xFFFF0000u);
              nds_register_dispatch(NDS_ARM7, g_dispatch_freebios_arm7,
                                    g_dispatch_freebios_arm7_len, 0x00000000u);
@@ -14501,7 +14546,7 @@ index afa9e18..fa31426 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2449,9 +2691,123 @@ int main(int argc, char** argv) {
+@@ -2449,9 +2708,123 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
