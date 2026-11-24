@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Anti-shimmer GPU scaling shaders (Direct3D 12 DXIL `ps_6_0` + Vulkan 1.1 SPIR-V):**
+  - Upgraded **Sharp Bilinear** (`sharp-bilinear`) to automatic per-axis integer prescaling with `fwidth` subpixel edge blending so stretching to any aspect ratio (`16:9`, `16:10`, `21:9`, arbitrary window sizes) stays crisp without blur or uneven pixel widths.
+  - Added **Bandlimited Pixel** (`bandlimited-pixel` / `filter_mode = 5u`), a C2-continuous quintic Hermite anti-shimmer filter with gamma-2.0 linear blending to eliminate scrolling shimmer and dark halos at non-integer scales.
+- **Opt-in True 2D Widescreen `16:9` (`342×192`, Experimental):**
+  - Live-togglable in **`F1 -> Screen & Layout`** and `recomplauncher.json` (`dos_true_widescreen`, default `false`).
+  - Expands *Castlevania: Dawn of Sorrow (USA ACVE)*'s hybrid 3D-ortho BG0 + hardware 2D BG2 (`64×32` 512px tilemap) + camera centering/clamping (`0x020F7098`) to true `342×192` (`16:9`, zero sprite stretching) in multi-screen rooms (`g_state[0x08] == 0x02` and `width_screens >= 2`), while keeping the HP/MP HUD unsplit at top-left (`center_width = 8`) and automatically letterboxing to native `256×192` on title screens, prologues, pause/equip menus, and single-screen/Save rooms.
+
 ## 1.1.2 (2026-11-24)
 
 ### Security & Release Hardening

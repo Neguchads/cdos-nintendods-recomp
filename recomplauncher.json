@@ -120,6 +120,7 @@
         "dos_pip_opacity": "90",
         "dos_aspect_mode": "stretch",
         "dos_widescreen_crop_y": "0",
+        "dos_true_widescreen": "false",
         "dos_render_driver": "direct3d12",
         "dos_vsync": "false",
         "dos_hd_filter": "xbr2x",
@@ -488,6 +489,29 @@
       }
     },
     {
+      "id": "true_widescreen",
+      "label": "True 2D Widescreen 16:9 (342x192, Experimental)",
+      "group": "Display",
+      "help": "Expands the camera and 2D/3D viewport to native 16:9 (342x192) in multi-screen rooms without stretching; automatically pillarboxes title, menus, and single-screen rooms.",
+      "choices": [
+        {
+          "label": "Off (Native 256x192)",
+          "set": {
+            "dos_true_widescreen": "false"
+          }
+        },
+        {
+          "label": "On — True 16:9 (342x192, Experimental)",
+          "set": {
+            "dos_true_widescreen": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_true_widescreen": "false"
+      }
+    },
+    {
       "id": "render_driver",
       "label": "GPU Render Backend",
       "group": "Graphics",
@@ -567,9 +591,15 @@
           }
         },
         {
-          "label": "Sharp Bilinear",
+          "label": "Sharp Bilinear (Auto-Integer Crisp)",
           "set": {
             "dos_hd_filter": "sharp-bilinear"
+          }
+        },
+        {
+          "label": "Bandlimited Pixel (Anti-Shimmer)",
+          "set": {
+            "dos_hd_filter": "bandlimited-pixel"
           }
         },
         {

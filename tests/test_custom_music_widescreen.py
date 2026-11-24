@@ -104,6 +104,16 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
             self.assertEqual(rep["jukebox_playlist"], ["minha_musica_aleatoria.mp3", "rock_castelo.ogg"])
             self.assertTrue((ROOT / "mods" / "music" / "Configurar_Musica.bat").is_file())
 
+    def test_recomplauncher_manifest_exposes_bandlimited_filter_and_true_widescreen(self) -> None:
+        data = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["config"][0]["new"].get("dos_true_widescreen"), "false")
+        settings = {s["id"]: s for s in data["settings"]}
+        self.assertIn("true_widescreen", settings)
+        self.assertEqual(settings["true_widescreen"]["defaults"].get("dos_true_widescreen"), "false")
+        hd_values = {c["set"].get("dos_hd_filter") for c in settings["hd_filter"]["choices"]}
+        self.assertIn("sharp-bilinear", hd_values)
+        self.assertIn("bandlimited-pixel", hd_values)
+
 
 if __name__ == "__main__":
     unittest.main()

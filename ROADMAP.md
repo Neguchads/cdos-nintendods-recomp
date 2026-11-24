@@ -42,10 +42,14 @@
   - **Custom Music (Verified):** Native `.wav` / `.mp3` / `.ogg` decoders (zero external DLLs), all 30 BGM tracks (`00..29`), selective Nitro SDK 2.x PXI `MUTE_TRACK` silencing (`DS BGM = 0`, `DS SFX = 100%`), in-game **`F1 -> Audio` Visual Track Mapper** (any filename -> any stage), **Global Jukebox / Playlist mode** (mute all 30 DS BGMs + Shuffle/Prev/Next), and double-clickable Windows Explorer wizard (`mods/music/Configurar_Musica.bat`).
   - **2D Widescreen (Verified Presentation):** `WidescreenTheatre` (`342×192` 16:9 canvas with 4:3 gameplay + docked 4:3 Map/Status sidebar), `SmartCrop16x9` (`OVERSCAN` 1:1 + `-24..+24 px` offset + exact touch mapping), and `Balanced16x10`.
 
-### Planned (Post-`v1.1.0` / Future)
+### Done (`v1.1.2` + Sharp Scaling & True 2D Widescreen `342×192`)
+- **PR #29 (`v1.1.2` Security & Packaging Hardening):** Native MSVC 2022 `CastlevaniaDawnOfSorrow.exe` (`443 KB`, 5 OS DLLs only), explicit 4-file `runtime/` packaging allowlist, pinned `dsd.exe` SHA-256, portable `-march=x86-64 -mtune=generic` preset.
+- **Sharp Bilinear + Bandlimited Pixel GPU Shaders (DXIL `ps_6_0` + SPIR-V Vulkan 1.1):** Automatic per-axis integer prescale + `fwidth` subpixel edge (`sharp-bilinear`) and C2 quintic Hermite anti-shimmer filter (`bandlimited-pixel`, `filter_mode = 5u`) for distortion-free crispness on any aspect ratio (`16:9`, `16:10`, `21:9`, non-integer windows).
+- **Opt-in True 2D Widescreen `16:9` (`342×192`, Experimental):** Live-togglable in `F1 -> Screen & Layout` and `recomplauncher.json` (`dos_true_widescreen`, default `false`). Expands *Dawn of Sorrow (USA ACVE)*'s 3D-ortho BG0 + hardware 2D BG2 (`64×32` 512px tilemap) + camera centering/clamping to true `342×192` in multi-screen rooms (`g_state[0x08] == 0x02`, `width_screens >= 2`), with automatic `256×192` pillarbox on titles, prologues, pause/equip menus, and single-screen rooms.
+
+### Planned (Future)
 - Investigate and fix *Albus Mode* inverted movement bug ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
-- Full start-to-credits playthrough validation to promote *Eternity of Sorrow 1.2*, *Model ZX*, and *Model Omega* from `unverified` to `verified`.
-- Optional true ARM9 2D camera/tilemap wide-viewport decompilation (ADR-014).
+- Full start-to-credits playthrough validation to promote *Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega*, and *True 2D Widescreen `342×192`* from experimental/unverified to verified.
 - Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
 
 [Back to top / Voltar ao topo](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)
