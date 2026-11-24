@@ -1,0 +1,44 @@
+name: Release planning
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: release-planning
+  cancel-in-progress: false
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prevent stacking unpublished release versions
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          published="$(gh api repos/Neguchads/cdos-nintendods-recomp/releases/latest --jq '.tag_name')"
+          planned="v$(jq -r '."."' .release-please-manifest.json)"
+          if [ "$published" = "$planned" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Pending release $planned; latest published is $published" >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Plan next version and changelog without publishing
+        if: steps.gate.outputs.ready == 'true'
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        with:
+          token: ${{ github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
