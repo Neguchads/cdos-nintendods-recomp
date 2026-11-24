@@ -1,6 +1,10 @@
-# Notas de Sessão (`v1.1.0`)
+# Notas de Sessão (`v1.1.1`)
 
 ## Feito
+- **`v1.1.1` (fix de compatibilidade + anti-falso-positivo AV):**
+  - Troca de `-march=native` para **`-march=x86-64 -mtune=generic`** em `tools/build.py` (evita crash `SIGILL` em CPUs mais antigas).
+  - Embutido `launcher/app.manifest` (`asInvoker`, Windows 10/11, `PerMonitorV2`, **`activeCodePage=UTF-8`**) em `CastlevaniaDawnOfSorrow.exe` e `runtime/nds_runner.exe` + `--gc-sections` no launcher (`2,16 MB -> 1,35 MB`), mitigando falso positivo `BitDefender Gen:Variant.Lazy.751345` e suportando caminhos acentuados no Windows (testado ao vivo com `Coração_Ação_Usuários\Castlevania — João.nds`).
+  - Mensagens claras de diagnóstico de ROM em `runner/src/main.cpp`.
 - **PRs integrados na `main`:** `#22` (RBS), `#15` (Definitive Edition EN/PT-BR + intro player), `#17` (Campanhas, Character Packs, ConflictEngine 3 estados, Seed Mutator C++) e `#21` (Issues #16 Música Customizada + Seletor Visual no F1 + Jukebox Global + `mods/music/Configurar_Musica.bat` + Issue #7 Modos Widescreen 2D).
 - Removido `.github/workflows/codeql-python.yml` duplicado (mantendo `.github/workflows/codeql.yml` que já cobre `c-cpp` e `python`).
 - Removido `mods/intro/opening.mp4` do staging de release pública em `tools/package_recomplauncher.py` (clean-room estrito) e liberados os arquivos `mods/music/{README.md,configurar_musica.py,Configurar_Musica.bat}` na allowlist de `tools/rbs_artifact.py`.
