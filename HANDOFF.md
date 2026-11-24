@@ -8,8 +8,32 @@
 
 ## English
 
-### Current Technical State
-Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) overlay menu**, permanent **3-screens bug fix**, **in-memory PT-BR translation (`DOSPATCH`)** sustaining **59.86 FPS on `dx12-gpu`**, **dual DXIL + SPIR-V GPU shaders (`vulkan-gpu` verified at 60.0 FPS)**, **full RecompLauncher 1.0 SDK integration (`recomplauncher.json` with `inputs`, verified `dumps`, `config.new`, `looks`, `actions`)**, **complete RecompLauncher media kit (`assets/recomplauncher/` & `assets/screenshots/`)**, **bilingual EN -> PT-BR documentation**, and public GitHub repository [`Neguchads/cdos-nintendods-recomp`](https://github.com/Neguchads/cdos-nintendods-recomp) with **Dependabot** and **GitHub Actions CI**.
+### Current Technical State (Branch `development`)
+Branch `development` extends `v1.0.1` (`main` `332b293`) with **P0 (Mod Bundle Importer & Semantic NDS Diff)**, **P1 (Definitive Edition + PT-BR Semantic Composition, Isolated Profile Saves/Savestates & `F1` Content/Mods UI)**, **P2 (Native Windows Media Foundation + SDL3 Opening Video Player)**, and **full researched author credits** in [`docs/CREDITS.md`](docs/CREDITS.md).
+
+### Newly Added / Updated on `development`
+- **Python Pipeline & Tests (`castlevania-dos-recomp/`):**
+  - `tools/vcdiff_ips.py`: pure-Python RFC 3284 VCDIFF and IPS decoders.
+  - `tools/import_mod_bundle.py`: magic-byte + SHA-256 classifier rejecting Dominus PC / Portrait of Ruin files and importing compatible DoS mods + `mods/intro/opening.mp4` (`mods/catalog.json`).
+  - `tools/diff_dos_mods.py`: NDS Header/ARM9/ARM7/41 Overlays/NitroFS FNT+FAT semantic diff (`mods/reports/definitive-vs-ptbr.json`).
+  - `tools/compose_dos_mods.py`: semantic merger producing `mods/definitive/dos-definitive-en.dospatch` (`615 KB`) and `mods/definitive/dos-definitive-ptbr.dospatch` (`752 KB`) with recomputed header CRC16 (`mods/reports/definitive-composition.json`).
+  - `tests/test_mod_pipeline.py` (5 new unit tests -> **34/34** Python tests passing).
+  - `game.toml`, `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/build.py`, `play.bat`, `launcher/launcher_win32.cpp`, `tests/test_recomplauncher.py`, `docs/CREDITS.md`, `docs/DECISIONS.md` (ADR-012), `README.md`, `ROADMAP.md`, `NOTAS.md`, `patches/ndsrecomp-local.patch` (`656.6 KiB`).
+- **C++ Runtime (`..\ndsrecomp\runner\src\`):**
+  - `dos_mod_profile.{h,cpp}`: `DosRomPatchSet`, `dos_mod_load_patch_set`, `dos_build_active_rom`, `dos_profile_savestate_dir`, `dos_profile_save_path`.
+  - `dos_intro_player.{h,cpp}`: `dos_intro_validate_mp4_file`, `dos_play_intro_video` (Windows Media Foundation `IMFSourceReader` + SDL3 texture/audio, zero FFmpeg DLLs).
+  - Wired into `dos_enhancements.{h,cpp}`, `dos_i18n.{h,cpp}`, `dos_imgui_menu.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt`, and `tests/dos_enhancements_test.cpp`.
+
+### Verifications Executed on `development`
+- `ctest --test-dir generated/build-runner -R "^(dos_enhancements_test|frontend_config_test|screen_layout_test)$" --output-on-failure`: **3/3 passed** (`0.37s`).
+- `python -m unittest discover -s tests -v`: **34/34 passed** (`2.848s`).
+- `python tools/import_mod_bundle.py "C:\Users\Desktop\Downloads\CDOS NDS"`: `inspecionados=17 aceitos=3 rejeitados=8`.
+- `python tools/compose_dos_mods.py`: roundtrip-verified `dos-definitive-en.dospatch` (`615,288 B`) + `dos-definitive-ptbr.dospatch` (`752,796 B`).
+- **Live E2E (`nds_runner.exe`):**
+  - `P2_INTRO_AND_DEFINITIVE_EN`: `[content] active ROM: Definitive Edition (English) (modset=2333f02b22dc)`, `[intro-video] playing ...\mods\intro\opening.mp4 (640x480, audio=off)` -> `finished (frames=53, skipped=1, quit=0)` -> clean DX12 boot.
+  - `P1_DEFINITIVE_PTBR` + Audio ON: `[content] active ROM: Definitive Edition (PT-BR) (modset=6ffc88b8023a)`, `[intro-video] playing ... (640x480, audio=on)` -> `finished (frames=35, skipped=1, quit=0)`, isolated `definitive/dos.sav`, `present=0.66ms`.
+  - `P2_FALLBACK_MISSING_INTRO`: clean Original USA boot with zero errors when `opening.mp4` is absent.
+- `git apply --stat patches/ndsrecomp-local.patch`: **26 files**, `656.6 KiB` (`< 2 MiB` CI limit).
 
 ### Files Added / Updated
 - **`..\ndsrecomp\runner\third_party\imgui\`:** Dear ImGui v1.92.9b (`15` source files + `imgui_impl_sdl3` and `imgui_impl_sdlrenderer3` backends).
@@ -53,8 +77,17 @@ Native static AOT recompilation port featuring **Dear ImGui v1.92.9b (`F1`) over
 
 ## Português (BR)
 
-### Estado Técnico Atual
-Port nativo de recompilação estática AOT atualizado com **menu gráfico Dear ImGui v1.92.9b (`F1`)**, correção definitiva do **bug da 3ª tela**, **tradução PT-BR em memória (`DOSPATCH`)** mantendo **59,86 FPS em `dx12-gpu`**, **shader dual DXIL + SPIR-V (`vulkan-gpu` validado a 60,0 FPS)**, **integração completa com o SDK 1.0 do RecompLauncher (`recomplauncher.json` com `inputs`, `dumps` verificados, `config.new`, `looks`, `actions`)**, **kit de mídia oficial do RecompLauncher (`assets/recomplauncher/` e `assets/screenshots/`)**, **documentação bilíngue EN -> PT-BR** e repositório público [`Neguchads/cdos-nintendods-recomp`](https://github.com/Neguchads/cdos-nintendods-recomp) com **Dependabot** e **GitHub Actions CI**.
+### Estado Técnico Atual (Branch `development`)
+A branch `development` estende a `v1.0.1` (`main` `332b293`) com **P0 (Importador de Pacote de Mods & Diff Semântico NDS)**, **P1 (Composição Semântica Definitive Edition + PT-BR, Isolamento de Saves/Savestates por Perfil e UI de Conteúdo/Mods no `F1`)**, **P2 (Player Nativo de Abertura Windows Media Foundation + SDL3)** e **créditos completos pesquisados** em [`docs/CREDITS.md`](docs/CREDITS.md).
+
+### Adicionado / Atualizado em `development`
+- **Pipeline Python & Testes (`castlevania-dos-recomp/`):** `tools/vcdiff_ips.py`, `tools/import_mod_bundle.py`, `tools/diff_dos_mods.py`, `tools/compose_dos_mods.py`, `tests/test_mod_pipeline.py`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, `mods/catalog.json`, `mods/reports/*.json`, `game.toml`, `recomplauncher.json`, `tools/package_recomplauncher.py`, `tools/build.py`, `play.bat`, `launcher/launcher_win32.cpp`, `docs/CREDITS.md`, `docs/DECISIONS.md` (ADR-012) e `patches/ndsrecomp-local.patch` (`656,6 KiB`).
+- **Runtime C++ (`..\ndsrecomp\runner\src\`):** `dos_mod_profile.{h,cpp}`, `dos_intro_player.{h,cpp}` (Windows Media Foundation + SDL3, zero FFmpeg), integrados em `dos_enhancements.{h,cpp}`, `dos_i18n.{h,cpp}`, `dos_imgui_menu.{h,cpp}`, `frontend_config.cpp`, `frontend.{h,cpp}`, `main.cpp`, `CMakeLists.txt` e `tests/dos_enhancements_test.cpp`.
+
+### Verificações Executadas em `development`
+- `ctest`: **3/3 passaram** (`0.37s`).
+- `unittest`: **34/34 passaram** (`2.848s`).
+- **E2E ao vivo (`nds_runner.exe`):** abertura `opening.mp4` decodificada nativamente em 640x480 (`53` frames com `audio=off` e `35` frames com `audio=on`), boot limpo em `Definitive Edition (English)` (`modset=2333f02b22dc`), `Definitive Edition (PT-BR)` (`modset=6ffc88b8023a`) com `definitive/dos.sav` isolado, e fallback silencioso quando `opening.mp4` está ausente.
 
 ### Arquivos Adicionados / Atualizados
 - **`..\ndsrecomp\runner\third_party\imgui\`:** Dear ImGui v1.92.9b (`15` arquivos + backends `imgui_impl_sdl3` e `imgui_impl_sdlrenderer3`).

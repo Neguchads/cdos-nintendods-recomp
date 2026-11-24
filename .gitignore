@@ -50,6 +50,11 @@ play.sh
 !assets/
 !assets/**
 
+# Artefatos locais importados de pacotes de mods externos (grandes ou de terceiros)
+mods/local/
+mods/intro/*.mp4
+mods/intro/*.webm
+
 # Cache e build local Android Gradle/NDK
 android/.gradle/
 android/build/

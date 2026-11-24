@@ -384,6 +384,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const fs::path runner_exe = runtime_dir / L"nds_runner.exe";
     const fs::path game_toml = root / L"game.toml";
     const fs::path ptbr_patch = root / L"mods" / L"ptbr" / L"dos-ptbr.dospatch";
+    const fs::path def_en_patch = root / L"mods" / L"definitive" / L"dos-definitive-en.dospatch";
+    const fs::path def_ptbr_patch = root / L"mods" / L"definitive" / L"dos-definitive-ptbr.dospatch";
+    const fs::path intro_video = root / L"mods" / L"intro" / L"opening.mp4";
 
     if (!is_existing_file(runner_exe)) {
         const std::wstring msg =
@@ -486,6 +489,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (is_existing_file(ptbr_patch)) {
         cmd_args.push_back(L"--ptbr-patch");
         cmd_args.push_back(ptbr_patch.wstring());
+    }
+    if (is_existing_file(def_en_patch)) {
+        cmd_args.push_back(L"--definitive-en-patch");
+        cmd_args.push_back(def_en_patch.wstring());
+    }
+    if (is_existing_file(def_ptbr_patch)) {
+        cmd_args.push_back(L"--definitive-ptbr-patch");
+        cmd_args.push_back(def_ptbr_patch.wstring());
+    }
+    if (is_existing_file(intro_video)) {
+        cmd_args.push_back(L"--intro-video");
+        cmd_args.push_back(intro_video.wstring());
     }
     cmd_args.push_back(L"--config");
     cmd_args.push_back(game_toml.wstring());

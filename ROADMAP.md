@@ -34,8 +34,10 @@
 - **Windows Standalone Launcher & Embedded Icon (`CastlevaniaDawnOfSorrow.exe`):** added native static Win32 GUI launcher (`launcher/launcher_win32.cpp`) and Windows resource script (`launcher/app_icon.rc`) built automatically at the end of `python tools/build.py build`, embedding `assets/recomplauncher/icon.ico` into both `CastlevaniaDawnOfSorrow.exe` and `runtime/nds_runner.exe` and bundling the launcher in Windows releases.
 - **Native Mouse Combat Bindings, `Q`/`R` Defaults & Per-Key Clear (`F1` Controls):** added mappable mouse buttons (`Mouse Left` = Primary Attack `Y`, `Mouse Right` = Special Attack `A`, `Mouse Mid` = Dash `L`, plus `Mouse X1/X2`) alongside full touchscreen clicks (items, menus, Magic Seals), set `Q = L` and `R = R` natively in Key 1, and added per-key `X` clear buttons, **Clear All Mappings**, and **Restore Default Controls** in the `F1` menu.
 
-### In Progress
-- No open structural blockers on the base port.
+### In Progress (Branch `development` — Phase 6: P0 Mod Importer, P1 Definitive+PT-BR & P2 Native Opening Player)
+- **P0 (Done):** Pure-Python RFC 3284 VCDIFF & IPS decoder (`tools/vcdiff_ips.py`), mod bundle classifier/importer (`tools/import_mod_bundle.py`, `mods/catalog.json`), and NitroFS/overlay semantic diff (`tools/diff_dos_mods.py`, `mods/reports/definitive-vs-ptbr.json`).
+- **P1 (Done):** Semantic Definitive Edition + PT-BR composer (`tools/compose_dos_mods.py` -> `mods/definitive/dos-definitive-en.dospatch` `615 KB` + `dos-definitive-ptbr.dospatch` `752 KB`), C++ `dos_mod_profile.{h,cpp}` runtime builder with isolated saves/savestates, `F1 -> Performance & Dev` Content & Mods UI, full RecompLauncher + standalone launcher wiring, and complete mod author credits in [`docs/CREDITS.md`](docs/CREDITS.md).
+- **P2 (Done):** Native Windows Media Foundation + SDL3 opening video player (`runner/src/dos_intro_player.{h,cpp}`) playing `mods/intro/opening.mp4` (`640x480` 30fps H.264 + AAC, zero FFmpeg DLLs), skippable with any input, toggleable/replayable in `F1`, with safe fallback when missing.
 
 ### Planned (Optional / Future)
 - Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
@@ -75,8 +77,10 @@
 - **Executável Windows Standalone & Ícone Embutido (`CastlevaniaDawnOfSorrow.exe`):** launcher nativo Win32 GUI estático (`launcher/launcher_win32.cpp`) e recurso Windows (`launcher/app_icon.rc`) compilados automaticamente ao final de `python tools/build.py build`, embutindo `assets/recomplauncher/icon.ico` em `CastlevaniaDawnOfSorrow.exe` e `runtime/nds_runner.exe` e incluindo o executável no pacote Windows.
 - **Cliques do Mouse em Combate, `Q`/`R` Nativos & Limpar por Tecla (`F1` Controles):** botões do mouse mapeáveis (`Mouse Left` = Ataque Padrão `Y`, `Mouse Right` = Ataque Especial `A`, `Mouse Mid` = Dash `L`, além de `Mouse X1/X2`) mantendo cliques na tela inferior (itens, menus, selos mágicos), `Q = L` e `R = R` nativos na Tecla 1, botão `X` para limpar por tecla, **Limpar Mapeamento** e **Restaurar Padrão** no menu `F1`.
 
-### Em andamento
-- Nenhuma pendência estrutural aberta no port base.
+### Em andamento (Branch `development` — Fase 6: P0 Importador de Mods, P1 Definitive+PT-BR & P2 Player Nativo de Abertura)
+- **P0 (Feito):** Decodificador VCDIFF (RFC 3284) e IPS em Python puro (`tools/vcdiff_ips.py`), importador/classificador de pacotes (`tools/import_mod_bundle.py`, `mods/catalog.json`) e diff semântico NitroFS/overlays (`tools/diff_dos_mods.py`, `mods/reports/definitive-vs-ptbr.json`).
+- **P1 (Feito):** Compositor semântico Definitive Edition + PT-BR (`tools/compose_dos_mods.py` -> `mods/definitive/dos-definitive-en.dospatch` `615 KB` + `dos-definitive-ptbr.dospatch` `752 KB`), builder C++ `dos_mod_profile.{h,cpp}` com isolamento de saves/savestates, seção Conteúdo & Mods em `F1 -> Desempenho & Dev`, integração completa no RecompLauncher e launcher standalone, e créditos completos em [`docs/CREDITS.md`](docs/CREDITS.md).
+- **P2 (Feito):** Player nativo de abertura Windows Media Foundation + SDL3 (`runner/src/dos_intro_player.{h,cpp}`) reproduzindo `mods/intro/opening.mp4` (`640x480` 30fps H.264 + AAC, sem DLLs de FFmpeg), pulável por qualquer tecla/clique/botão, configurável/reproduzível no `F1` e com fallback seguro quando ausente.
 
 ### Planejado (Opcional / Futuro)
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.

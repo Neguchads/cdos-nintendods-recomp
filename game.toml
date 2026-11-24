@@ -39,6 +39,8 @@ pause_unfocused = false
 skip_launcher = true
 ui_language = "en"
 game_language = "en"
+content_profile = "definitive"
+enhanced_intro = true
 
 [audio]
 enabled = true

@@ -760,6 +760,9 @@ def cmd_play(_args: argparse.Namespace) -> int:
     savestates_dir = RUN_DIR / "savestates"
     savestates_dir.mkdir(parents=True, exist_ok=True)
     ptbr_patch = ROOT / "mods" / "ptbr" / "dos-ptbr.dospatch"
+    def_en_patch = ROOT / "mods" / "definitive" / "dos-definitive-en.dospatch"
+    def_ptbr_patch = ROOT / "mods" / "definitive" / "dos-definitive-ptbr.dospatch"
+    intro_video = ROOT / "mods" / "intro" / "opening.mp4"
     cmd = [
         str(RUNTIME_RUNNER_EXE),
         str(BIOS_EMPTY_DIR),
@@ -769,6 +772,12 @@ def cmd_play(_args: argparse.Namespace) -> int:
     ]
     if ptbr_patch.is_file():
         cmd += ["--ptbr-patch", str(ptbr_patch)]
+    if def_en_patch.is_file():
+        cmd += ["--definitive-en-patch", str(def_en_patch)]
+    if def_ptbr_patch.is_file():
+        cmd += ["--definitive-ptbr-patch", str(def_ptbr_patch)]
+    if intro_video.is_file():
+        cmd += ["--intro-video", str(intro_video)]
     cmd += [
         "--config",
         str(GAME_TOML),
