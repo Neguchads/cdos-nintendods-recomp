@@ -254,3 +254,9 @@ python tools/prepare_media_assets.py --check-only
 [`docs/RECOMPLAUNCHER.md`](docs/RECOMPLAUNCHER.md) | [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md) | [`docs/DECISIONS.md`](docs/DECISIONS.md) | [`docs/rom-analysis.md`](docs/rom-analysis.md) | [`ROADMAP.md`](ROADMAP.md) | [`HANDOFF.md`](HANDOFF.md) | [`NOTAS.md`](NOTAS.md)
 
 [Voltar ao topo / Back to top](#castlevania-dawn-of-sorrow-recompiled)
+
+## Automação de CI e distribuição — Etapa 2
+
+As verificações de navegador, as propostas de versão e os artefatos de
+integridade estão descritos em [docs/CI_AUTOMATION.md](docs/CI_AUTOMATION.md).
+A publicação de releases permanece sujeita a revisão humana.
