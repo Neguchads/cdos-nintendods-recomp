@@ -261,4 +261,4 @@ As verificações de navegador, as propostas de versão e os artefatos de
 integridade estão descritos em [docs/CI_AUTOMATION.md](docs/CI_AUTOMATION.md).
 A publicação de releases permanece sujeita a revisão humana.
 
-Para ativar o Sccache localmente (PowerShell): ` $env:NDS_SCCACHE = "1" `. Veja [docs/BUILD_CACHE.md](docs/BUILD_CACHE.md) para instalação e uso; a opção não é permanente.
+Para ativar o Sccache localmente (PowerShell): `$env:NDS_SCCACHE = "1"`. Veja [docs/BUILD_CACHE.md](docs/BUILD_CACHE.md) para instalação e uso; a opção não é permanente.
