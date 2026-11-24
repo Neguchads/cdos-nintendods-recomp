@@ -173,6 +173,33 @@ class TestRecompLauncher(unittest.TestCase):
                     errors = pr.validate_manifest(path)
                     self.assertNotEqual(errors, [], f"validate_manifest aceitou caminho relativo em {name}")
 
+    def test_validate_manifest_rejects_save_paths_outside_data(self) -> None:
+        """Writes (saves, state, settings, firmware) belong to {data}, not {install}."""
+        base = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
+        cases = [
+            "--runtime-settings-path",
+            "--savestate-dir",
+            "--save-path",
+            "--firmware-state-path",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for flag in cases:
+                with self.subTest(flag=flag):
+                    mutated = json.loads(json.dumps(base))
+                    args = mutated["start"]["args"]
+                    args[args.index(flag) + 1] = "{install}/saves/incorrect"
+                    path = Path(tmp) / "wrong-save-path.json"
+                    path.write_text(json.dumps(mutated), encoding="utf-8")
+                    errors = pr.validate_manifest(path)
+                    self.assertTrue(any(flag in item for item in errors), errors)
+
+                    # A missing save flag must also be rejected.
+                    args.remove("{install}/saves/incorrect")
+                    args.remove(flag)
+                    path.write_text(json.dumps(mutated), encoding="utf-8")
+                    errors = pr.validate_manifest(path)
+                    self.assertTrue(any(flag in item for item in errors), errors)
+
     def test_stage_release_excludes_runtime_profiling_and_capture_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fake_root = Path(tmp) / "repo"
