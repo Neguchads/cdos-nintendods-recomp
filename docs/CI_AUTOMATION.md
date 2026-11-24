@@ -9,7 +9,7 @@ Not applicable: synthetic ROM/patch/manifest tests run in CI.
 Automatic versioned GitHub Releases are deliberately NOT enabled for this game port. Release packaging still requires a separate reviewed clean-room/native-build procedure.
 
 ## Source inventory and signed evidence
-Use Actions → `Package integrity and SBOM (manual)` → `Run workflow`. This workflow is opt-in and never publishes a Release. The manual action attests checksums of public source-only files and a SPDX inventory. It does NOT distribute a Nintendo DS ROM, native runner or translated game.
+Use Actions → `Package integrity and SBOM` → `Run workflow`. This workflow runs on manual dispatch or after a reviewed change to its own definition on main, and never publishes a Release. The manual action attests checksums of public source-only files and a SPDX inventory. It does NOT distribute a Nintendo DS ROM, native runner or translated game.
 
 The resulting workflow artifact contains an SPDX-JSON SBOM, a SHA-256 checksum and a package/evidence archive. GitHub's attestation service signs the package's provenance and SBOM. Verify with GitHub CLI after downloading the archive:
 
