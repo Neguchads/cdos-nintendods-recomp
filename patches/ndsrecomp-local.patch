@@ -15613,7 +15613,7 @@ index e411b57..7e17859 100644
          p.width = std::max(top_width, bottom_width);
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
 diff --git a/runner/src/title_patches.cpp b/runner/src/title_patches.cpp
-index fa8d947..0001b37 100644
+index fa8d947..c57f682 100644
 --- a/runner/src/title_patches.cpp
 +++ b/runner/src/title_patches.cpp
 @@ -6,6 +6,7 @@
@@ -15694,7 +15694,7 @@ index fa8d947..0001b37 100644
  bool mph_local_player_position(uint8_t* out) {
      uint8_t player_position = 0;
      if (!read_main_ram8(kMphUs10PlayerPosition, &player_position) ||
-@@ -179,6 +236,119 @@ bool materialize_mph_width(uint32_t width, uint32_t* words, uint32_t* shift) {
+@@ -179,6 +236,125 @@ bool materialize_mph_width(uint32_t width, uint32_t* words, uint32_t* shift) {
      return true;
  }
  
@@ -15706,11 +15706,13 @@ index fa8d947..0001b37 100644
 +        state_ptr == kDosExpectedStatePtr &&
 +        read_main_ram8(kDosGameModeAddr, &game_mode);
 +    const bool live_gameplay = state_ok && (game_mode == 0x02u);
++    const bool in_room_or_pause =
++        state_ok && (game_mode == 0x02u || game_mode == 0x0Au);
 +
 +    uint32_t room_ptr = 0;
 +    uint8_t width_screens = 0;
 +    const bool has_room =
-+        live_gameplay &&
++        in_room_or_pause &&
 +        read_main_ram_word(kDosRoomHeaderPtrAddr, &room_ptr) &&
 +        room_ptr >= kMainRamBase && room_ptr < 0x02400000u &&
 +        read_main_ram8(room_ptr, &width_screens) &&
@@ -15731,8 +15733,8 @@ index fa8d947..0001b37 100644
 +    }
 +
 +    const bool want_wide =
-+        g_dos_wide_enabled && preflight_ok && multi_screen_room &&
-+        nds_gpu3d_output_width() == kDosWideWidth;
++        g_dos_wide_enabled && preflight_ok && live_gameplay &&
++        multi_screen_room && nds_gpu3d_output_width() == kDosWideWidth;
 +
 +    if (preflight_ok) {
 +        for (size_t i = 0; i < kSiteCount; ++i) {
@@ -15789,11 +15791,15 @@ index fa8d947..0001b37 100644
 +            if (want_wide && is_3d_narrow_backdrop && wrap_x == 0u) {
 +                bus_write_u8_slow(layer_base + kDosBgLayerWrapXOffset, 1u);
 +                g_dos_forced_wrap_mask |= static_cast<uint8_t>(1u << k);
-+            } else if (!want_wide && (g_dos_forced_wrap_mask & (1u << k)) != 0u && wrap_x == 1u) {
++            } else if (!want_wide && is_3d_narrow_backdrop &&
++                       (g_dos_forced_wrap_mask & (1u << k)) != 0u && wrap_x == 1u) {
 +                bus_write_u8_slow(layer_base + kDosBgLayerWrapXOffset, 0u);
 +                g_dos_forced_wrap_mask &= static_cast<uint8_t>(~(1u << k));
 +            }
 +        }
++    } else {
++        g_dos_forced_wrap_mask = 0u;
++        g_dos_forced_wrap_room = 0u;
 +    }
 +
 +    g_dos_wide_active = want_wide;
@@ -15814,7 +15820,7 @@ index fa8d947..0001b37 100644
  void patch_mph_adventure_wide() {
      // The wide words bake the adaptive width into guest constants, so they
      // are only correct when the 3D engine actually renders at that width.
-@@ -571,6 +741,31 @@ bool nds_title_patches_mph_adaptive_centered_native() {
+@@ -571,6 +747,31 @@ bool nds_title_patches_mph_adaptive_centered_native() {
      return g_mph_adaptive_centered_native;
  }
  
@@ -15846,7 +15852,7 @@ index fa8d947..0001b37 100644
  static_assert(kMphWideSiteCount ==
                sizeof(NdsTitlePatchDebugState::mph_adventure_wide_site_applied) /
                    sizeof(uint64_t));
-@@ -622,4 +817,5 @@ void nds_title_patches_start_frame() {
+@@ -622,4 +823,5 @@ void nds_title_patches_start_frame() {
      }
      if (g_sm64ds_adaptive) patch_sm64ds_clipper();
      if (g_mph_adventure_title) patch_mph_adventure_wide();
