@@ -239,7 +239,7 @@ class TestRecompLauncher(unittest.TestCase):
             (fake_root / "CastlevaniaDawnOfSorrow.exe").write_bytes(b"MZ-launcher")
             (runtime / "nds_runner.exe").write_bytes(b"MZ-stub")
             (runtime / "SDL3.dll").write_bytes(b"MZ-sdl3")
-            for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log"):
+            for junk in ("profile.ndshp", "trace.jsonl", "frame.bmp", "snap.png", "debug.log", "stray_unexpected.dll", "notes.txt"):
                 (runtime / junk).write_bytes(b"junk")
 
             stage = Path(tmp) / "stage"

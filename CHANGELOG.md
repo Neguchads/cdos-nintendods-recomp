@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 (2026-11-24)
+
+### Security & Release Hardening
+- **Native MSVC 2022 launcher (`CastlevaniaDawnOfSorrow.exe`):** `tools/build.py` now compiles the standalone Windows launcher with Microsoft Visual Studio 2022 (`cl.exe /std:c++20 /O2 /MT` + `rc.exe`, `443 KB` vs `1.35 MB` MinGW `-static`, importing only core Windows OS DLLs) with `LLVM-MinGW` kept as fallback, eliminating the `llvm-mingw -static` PE heuristic signature (`BitDefender Gen:Variant.Lazy.751345`).
+- **Explicit `runtime/` packaging allowlist:** replaced `shutil.copytree("runtime", ...)` in `tools/package_recomplauncher.py` with an explicit 4-file allowlist (`nds_runner.exe`, `SDL3.dll`, `libc++.dll`, `libunwind.dll`) so stray files in `runtime/` can never leak into a release ZIP.
+- **Toolchain & preset integrity:** pinned required SHA-256 (`5917df26...`) for `dsd.exe` in `tools/setup_toolchains.py` and switched `CMakePresets.json` Windows preset from `-march=native` to portable `-march=x86-64 -mtune=generic`.
+
 ## 1.1.1 (2026-11-24)
 
 ### Fixed

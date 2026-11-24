@@ -253,7 +253,11 @@ def stage_release_tree(
         ("docs/CREDITS.md", True),
         ("docs/MULTIPLATFORM.md", True),
         ("assets/recomplauncher", False),
-        ("runtime", False),
+        # Allowlist explicita de runtime/ (nunca copytree por exclusao) para impedir vazamento de residuos.
+        ("runtime/nds_runner.exe", False),
+        ("runtime/SDL3.dll", False),
+        ("runtime/libc++.dll", True),
+        ("runtime/libunwind.dll", True),
     ]
     for rel, optional in copy_items:
         src = root / rel
