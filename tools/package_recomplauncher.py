@@ -129,8 +129,15 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
         ("--definitive-en-patch", "{install}/mods/definitive/dos-definitive-en.dospatch"),
         ("--definitive-ptbr-patch", "{install}/mods/definitive/dos-definitive-ptbr.dospatch"),
         ("--intro-video", "{install}/mods/intro/opening.mp4"),
+        # Runtime user data must never be written into the read-only install tree.
+        ("--runtime-settings-path", "{data}/saves/dos-settings.ini"),
+        ("--savestate-dir", "{data}/run/savestates"),
+        ("--save-path", "{data}/saves/dos.sav"),
+        ("--firmware-state-path", "{data}/run/firmware_state.bin"),
     ):
-        if flag in start_args:
+        if flag not in start_args:
+            errors.append(f"start.args deve conter {flag}")
+        else:
             idx = start_args.index(flag)
             actual = start_args[idx + 1] if idx + 1 < len(start_args) else None
             if actual != expected:

@@ -1,0 +1,62 @@
+name: RecompLauncher release check
+on:
+  schedule:
+    - cron: '17 11 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Compare official latest release with external catalog (best effort)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(gh api repos/Neguchads/cdos-nintendods-recomp/releases/latest --jq '.tag_name')"
+          {
+            echo "### GitHub stable release: $latest"
+            echo "Catalog: https://recomplauncher.com/game/cdos-nintendods-recomp"
+          } >> "$GITHUB_STEP_SUMMARY"
+          export EXPECTED="$latest"
+          python - <<'PY'
+          from html.parser import HTMLParser
+          import os, re, urllib.request
+          class VisibleText(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+                  self.hidden = 0
+              def handle_starttag(self, tag, attrs):
+                  if tag in ("script", "style"):
+                      self.hidden += 1
+              def handle_endtag(self, tag):
+                  if tag in ("script", "style") and self.hidden:
+                      self.hidden -= 1
+              def handle_data(self, data):
+                  if not self.hidden:
+                      self.parts.append(data.strip())
+          try:
+              req = urllib.request.Request("https://recomplauncher.com/game/cdos-nintendods-recomp",
+                                           headers={"User-Agent": "CDOS-release-check/1.0"})
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  raw = response.read(2_000_000).decode("utf-8", "replace")
+              parser = VisibleText()
+              parser.feed(raw)
+              versions = set(re.findall(r"\b(?:Version|Versão)\s*[:]?\s*v?(\d+\.\d+\.\d+)\b",
+                                        " ".join(parser.parts), re.IGNORECASE))
+              if len(versions) == 1:
+                  found = versions.pop()
+                  status = ("Matches" if found == os.environ["EXPECTED"].lstrip("v") else "Mismatch")
+                  message = f"{status}: visible catalog version {found}. Verify the download manually."
+              else:
+                  message = "Catalog version could not be determined unambiguously. Check the page manually."
+          except Exception as exc:
+              message = f"Catalog check inconclusive ({type(exc).__name__}); check manually."
+          print(message)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write(message + "\n")
+          PY

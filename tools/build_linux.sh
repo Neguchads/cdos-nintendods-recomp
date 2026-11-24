@@ -23,11 +23,18 @@ fi
 CC_BIN="${CC:-$(command -v clang || command -v gcc)}"
 CXX_BIN="${CXX:-$(command -v clang++ || command -v g++)}"
 
+CACHE_FLAGS=()
+if [[ "${NDS_SCCACHE:-0}" == "1" ]]; then
+  command -v sccache >/dev/null || { echo "[erro] NDS_SCCACHE=1 requer sccache no PATH" >&2; exit 1; }
+  CACHE_FLAGS+=(-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache)
+fi
+
 cmake -S "${FRAMEWORK_DIR}/runner" -B "${BUILD_DIR}" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER="${CC_BIN}" \
   -DCMAKE_CXX_COMPILER="${CXX_BIN}" \
   -DNDSRECOMP_COMPILER_CACHE=OFF \
+  "${CACHE_FLAGS[@]}" \
   -DNDS_SDL_BACKEND=SDL3 \
   -DNDS_GENERATED_DIR="${SYSTEM_DIR}" \
   -DNDS_RECOMP_UI_ROOT="${RECOMP_UI_DIR}" \

@@ -192,6 +192,15 @@ def cmake_common_args(tc: dict[str, Path], *, static_exe: bool) -> list[str]:
         f"-DCMAKE_RC_COMPILER={posix(tc['rc'])}",
         "-DNDSRECOMP_COMPILER_CACHE=OFF",
     ]
+    # Opt-in: do not require sccache for users running the normal build.
+    if os.environ.get("NDS_SCCACHE") == "1":
+        launcher = shutil.which("sccache")
+        if not launcher:
+            die("NDS_SCCACHE=1 exige sccache instalado no PATH.")
+        args.extend([
+            f"-DCMAKE_C_COMPILER_LAUNCHER={posix(Path(launcher))}",
+            f"-DCMAKE_CXX_COMPILER_LAUNCHER={posix(Path(launcher))}",
+        ])
     if static_exe:
         args.append("-DCMAKE_EXE_LINKER_FLAGS=-static")
     return args

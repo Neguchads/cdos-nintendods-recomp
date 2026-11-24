@@ -1,0 +1,28 @@
+name: CodeQL (Python)
+on:
+  pull_request:
+    branches: [main]
+    paths: ['tools/**','tests/**','.github/workflows/codeql-python.yml']
+  push:
+    branches: [main]
+    paths: ['tools/**','tests/**','.github/workflows/codeql-python.yml']
+  schedule:
+    - cron: '31 8 * * 1'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4
+        with:
+          languages: python
+          build-mode: none
+      - uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4
