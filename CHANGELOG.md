@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+- **Modern 2D Upscalers & Multi-Pass HD-2D Pipeline (ADR-018 — Direct3D 12 DXIL `ps_6_0` + Vulkan 1.1 SPIR-V):**
+  - Added **3 new modern 2D pixel-art scalers** alongside `Pixellate`, `Pixel-AA`, and `Bandlimited Pixel`:
+    - **MMPX 2×** (Morgan McGuire & Mara Gagiu / NVIDIA, 2021): palette-preserving 13-tap 2× offscreen pass preserving 1px eyes/outlines, followed by linear-sRGB `Pixellate` to display resolution (`0.6 ms` GPU time).
+    - **OmniScale** (Lior Halphon / *SameBoy*): single-pass perceptual edge-directed smoother in linear sRGB (`0.6 ms` GPU time).
+    - **ScaleFX-Hybrid 3×** (inspired by Sp00kyFox): 3× offscreen vector-curve & subtle interior reverse-AA pass followed by linear-sRGB `Pixel-AA` (`0.8 ms` GPU time, crisp 90° corners + smooth vector curves).
+  - Added optional **Selective Anti-Dither (`GDAPT`, `dos_anti_dither`)** pre-pass that blends true 1px checkerboard and vertical-stripe dithering in linear light while leaving outlines and text untouched.
+  - Upgraded **Soft Highlight Bloom** into a real **5-Pass Dual Kawase HD-2D Bloom** pyramid (`1/2 -> 1/4 -> 1/8 -> 1/4 -> 1/2` + additive composite matching exact CRT curvature, bezel, and vignette; `0.8 ms` total GPU time).
+  - Added **HD-2D Remaster (Bloom)** and **Vector HD (ScaleFX)** one-click Visual Profiles in `F1 -> HD Graphics` (6 profiles total), keeping `Pixellate` as the crisp default and exposing all new options in `recomplauncher.json`.
+
 ### Fixed & Improved
 - **Seamless True 2D Widescreen `16:9` (`342×192`, ADR-017):**
   - Fixed `1×N` (`256 px`) hardware 2D `BG2` parallax sky/castle backdrops cutting off to black at `x = 256` (e.g., Lost Village Bridge `0x022DD9F8` and Plaza `0x022DFCF8`): `title_patches.cpp` detects `1×N` HW `BG2` layers (`flags & 0x80`) and instructs `gpu2d.cpp` (`decode_text_line_n`) to wrap screenblock 0 modulo 256 px cleanly across `x = 0..341`.
