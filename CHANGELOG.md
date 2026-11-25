@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.2.0 (2026-11-25)
+
 ### Added
 - **Modern 2D Upscalers & Multi-Pass HD-2D Pipeline (ADR-018 — Direct3D 12 DXIL `ps_6_0` + Vulkan 1.1 SPIR-V):**
   - Added **3 new modern 2D pixel-art scalers** alongside `Pixellate`, `Pixel-AA`, and `Bandlimited Pixel`:

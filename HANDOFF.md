@@ -8,7 +8,7 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.1.2` — Modern 2D Upscalers, Multi-Pass HD-2D Bloom & Seamless True 2D Widescreen `342×192`)
+### Current Technical State (`v1.2.0` on `main` — Modern 2D Upscalers, Multi-Pass HD-2D Bloom & Seamless True 2D Widescreen `342×192`)
 - **Latest Feature (Modern 2D Upscalers & Multi-Pass HD-2D Pipeline — `ADR-018`):**
   - Implemented multi-pass SDL3 GPU pipeline (`DosGpuShaderState::render_multipass` in `dos_gpu_shader.{h,cpp}`, 20-slot `SDL_GPURenderState*` pool + per-screen cached `SDL_TEXTUREACCESS_TARGET` textures) driven by a single compact ubershader (`dos_postprocess.frag.hlsl` -> `uint32_t` DXIL `ps_6_0` `56,272 B` + SPIR-V `-Os` `91,884 B`, keeping `patches/ndsrecomp-local.patch` at `1.55 MiB < 2.00 MiB`).
   - Added **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Selective Anti-Dither (GDAPT, `dos_anti_dither`)**, **5-Pass Dual Kawase HD-2D Bloom** with CRT-aligned additive composite, and **HD-2D Remaster** / **Vector HD (ScaleFX)** one-click Visual Profiles in `F1 -> HD Graphics` & `recomplauncher.json`, verified live at `0.6..0.8 ms` GPU time on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`.
@@ -55,7 +55,7 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`main` pós-`v1.1.2` — Escaladores 2D Modernos, Bloom HD-2D Multi-Passe & Widescreen 2D Nativo Sem Cortes)
+### Estado Técnico Atual (`v1.2.0` na `main` — Escaladores 2D Modernos, Bloom HD-2D Multi-Passe & Widescreen 2D Nativo Sem Cortes)
 - **Última fatia (Escaladores 2D Modernos & Pipeline Multi-Passe HD-2D — `ADR-018`):**
   - Implementado pipeline multi-passe SDL3 GPU (`DosGpuShaderState::render_multipass` em `dos_gpu_shader.{h,cpp}`, pool de 20 `SDL_GPURenderState*` + render targets em cache por tela) via ubershader único compacto (`dos_postprocess.frag.hlsl` -> `uint32_t` DXIL `ps_6_0` `56.272 B` + SPIR-V `-Os` `91.884 B`, mantendo `patches/ndsrecomp-local.patch` em `1,55 MiB < 2,00 MiB`).
   - Adicionados **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Anti-Dither Seletivo (GDAPT, `dos_anti_dither`)**, **Bloom HD-2D Dual Kawase (5 passes)** com composição aditiva alinhada à curvatura CRT, e perfis **Remaster HD-2D** / **Vetor HD (ScaleFX)** no `F1 -> Gráficos HD` e `recomplauncher.json`, validados ao vivo em `0,6..0,8 ms` na RTX 3060 em `dx12-gpu` e `vulkan-gpu`.
