@@ -22,9 +22,9 @@ pip_opacity = 90
 pip_size = 37
 aspect_mode = "stretch"
 render_driver = "direct3d12"
-hd_filter = "xbr2x"
+hd_filter = "pixellate"
 color_mode = "vivid"
-sharpen = "subtle"
+sharpen = "off"
 post_fx = "off"
 # 2D HD upscaling/filters run on the DX12 GPU shader; 1x avoids offscreen 3D compute readback stalls.
 internal_resolution = 1

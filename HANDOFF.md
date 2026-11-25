@@ -8,8 +8,11 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.1.2` — Expanded Display/Graphics Suite, Sharp Scaling & True 2D Widescreen `342×192`)
-- **Latest Feature (Expanded Display & Graphics Suite — `ADR-016`):**
+### Current Technical State (`main` post-`v1.1.2` — Seamless True 2D Widescreen `342×192` & Curated Linear-Light Upscalers)
+- **Latest Feature (Seamless True 2D Widescreen & Curated Linear-Light Upscalers — `ADR-017`):**
+  - Fixed `1×N` (`256 px`) hardware 2D `BG2` sky/castle backdrop black cutoff at `x = 256` (`title_patches.cpp` + `gpu2d.cpp` modulo-256 wrap) and the `x = 271` vertical mist brightness seam (`native_3d_raster.cpp` + `GPU3D.cpp` untextured fullscreen atmospheric quad expansion, verified `delta = (0,0,0)` on Lost Village Bridge `0x022DD9F8` & Plaza `0x022DFCF8`).
+  - Upgraded `dos_postprocess.frag.hlsl` (`DXIL ps_6_0` `20,812 B` + `Vulkan 1.1 SPIR-V` `38,200 B`, live-verified on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`) with IEC 61966-2-1 linear sRGB **`Pixellate`** (new default), **`Pixel-AA`**, upgraded TheMaister **`Bandlimited Pixel`**, moiré-free analytical cosine `Scanlines`/`CRT`/`LCD`, center-aligned `Sharpen` (`Off` default), and curated 5-filter `F1 -> HD Graphics` + `game.toml` + `recomplauncher.json`.
+- **Previous Feature (Expanded Display & Graphics Suite — `ADR-016`, PR #33):**
   - Expanded `dos_postprocess.frag.hlsl` (`DosShaderParams` `80 B`, compiled to signed DXIL `ps_6_0` `16,496 B` + Vulkan 1.1 SPIR-V `33,420 B`) with live Gamma (`70..150%`), Color Temperature (`-30..+30`), 8-tap Soft Highlight Bloom (`0..50%`), Display Mask Intensity (`0..100%`), and `fwidth`-safe CRT Barrel Curvature & Bezel (`0..30%`), live-verified on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`.
   - Added SDL3 multi-monitor selector (`dos_display_index`), windowed scale presets (`2x..6x`), `Ultrawide 21:9` aspect mode, overscan Safe Zone (`0..10%` with exact touch mapping), Widescreen HUD alignment (`Edge-Anchored` vs `Centered 4:3`), 3-mode VSync (`Off`/`On`/`Adaptive`), live `120 Hz` Frame Interpolation toggle, `3D MSAA` (`Off/2x/4x/8x`) persistence, and 4 one-click Visual Profiles (*Modern HD Crisp*, *Pixel Purist*, *Classic CRT*, *DS Handheld*) in `F1` + `recomplauncher.json`.
 - **Previous Features (PRs #31 & #32 — Sharp Scaling + True 2D Widescreen `342×192`):**
@@ -49,8 +52,11 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`main` pós-`v1.1.2` — Suíte Expandida de Gráficos/Display, Sharp Scaling & Widescreen 2D Nativo `342×192`)
-- **Nova fatia (Suíte Expandida de Gráficos e Display — `ADR-016`):**
+### Estado Técnico Atual (`main` pós-`v1.1.2` — Widescreen 2D Nativo Sem Cortes & Upscalers em Luz Linear Curados)
+- **Última fatia (Widescreen 2D Nativo Sem Cortes & Upscalers Curados — `ADR-017`):**
+  - Corrigidos o corte preto em `x = 256` de fundos `1×N` (`256 px`) em `BG2` de hardware (`title_patches.cpp` + wrap módulo 256 em `gpu2d.cpp`) e a emenda vertical de brilho da névoa em `x = 271` (expansão de quads atmosféricos 3D sem textura em `native_3d_raster.cpp` + `GPU3D.cpp`, validado com `delta = (0,0,0)` na Ponte `0x022DD9F8` e Praça `0x022DFCF8` da Lost Village).
+  - Atualizado `dos_postprocess.frag.hlsl` (`DXIL ps_6_0` `20.812 B` + `Vulkan 1.1 SPIR-V` `38.200 B`, validado ao vivo na RTX 3060 em `dx12-gpu` e `vulkan-gpu`) com **`Pixellate`** (novo padrão), **`Pixel-AA`** e **`Bandlimited Pixel`** (TheMaister) em sRGB linear IEC 61966-2-1, `Scanlines`/`CRT`/`LCD` analíticos sem moiré, `Sharpen` corrigido (`Off` padrão) e dropdown curado de 5 filtros no `F1 -> Gráficos HD`, `game.toml` e `recomplauncher.json`.
+- **Fatia anterior (Suíte Expandida de Gráficos e Display — `ADR-016`, PR #33):**
   - `dos_postprocess.frag.hlsl` expandido (`DosShaderParams` `80 B`, compilado em DXIL `ps_6_0` `16.496 B` + Vulkan 1.1 SPIR-V `33.420 B`) com Gama (`70..150%`), Temperatura de Cor (`-30..+30`), Bloom Suave (`0..50%`), Intensidade da Máscara (`0..100%`) e Curvatura CRT com bezel (`0..30%`), validado ao vivo na RTX 3060 em `dx12-gpu` e `vulkan-gpu`.
   - Adicionados seletor de monitor SDL3 (`dos_display_index`), presets de escala em janela (`2x..6x`), aspecto `Ultrawide 21:9`, margem segura / overscan (`0..10%` mantendo toque exato), alinhamento de HUD widescreen (`Bordas 16:9` vs `Centralizado 4:3`), VSync 3 modos (`Desligado`/`Ligado`/`Adaptativo`), Interpolação `120 Hz` ao vivo, `3D MSAA` (`Off/2x/4x/8x`) persistente e 4 Perfis Visuais de 1 clique (*HD Moderno Nítido*, *Pixel Purista*, *CRT Clássico*, *Portátil DS*) no menu `F1` e em `recomplauncher.json`.
 - **Fatias anteriores (PRs #31 e #32 — Sharp Scaling + Widescreen 2D Nativo `342×192`):**

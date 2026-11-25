@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed & Improved
+- **Seamless True 2D Widescreen `16:9` (`342×192`, ADR-017):**
+  - Fixed `1×N` (`256 px`) hardware 2D `BG2` parallax sky/castle backdrops cutting off to black at `x = 256` (e.g., Lost Village Bridge `0x022DD9F8` and Plaza `0x022DFCF8`): `title_patches.cpp` detects `1×N` HW `BG2` layers (`flags & 0x80`) and instructs `gpu2d.cpp` (`decode_text_line_n`) to wrap screenblock 0 modulo 256 px cleanly across `x = 0..341`.
+  - Fixed the `x = 271` vertical mist/atmosphere brightness seam by expanding untextured axis-aligned fullscreen 3D atmospheric quads (`0..255..276 px`) to full `RenderWidth` (`342 px`) in `native_3d_raster.cpp` (and melonDS `GPU3D.cpp` fallback) without mutating shared vertices.
+- **Curated Linear-Light 2D Upscale Filters & Clean `F1` Graphics Menu (ADR-017):**
+  - Replaced noisy default `xBR 2x` + `Sharpen: Subtle` with exact linear sRGB analytical **`Pixellate`** (`filter_mode = 2u`, new default) + **`Pixel-AA`** (`filter_mode = 6u`, 1.5 px cubic smoothstep) + upgraded **`Bandlimited Pixel`** (`filter_mode = 5u`, TheMaister cosine-lobe integral in IEC 61966-2-1 linear sRGB), plus `Nearest` and `Bilinear`, compiled to both DXIL `ps_6_0` (`20,812 B`) and Vulkan 1.1 SPIR-V (`38,200 B`).
+  - Fixed the mid-texel split bug in GPU `Sharpen` (now samples true `±1` texel neighbors, default `Off`), upgraded `Scanlines`, `CRT Aperture`, and `NDS LCD Grid` to moiré-free analytical cosine waves attenuated by `fwidth`, and decluttered `F1 -> HD Graphics` (curated 5-filter dropdown, collapsible Advanced Image Calibration, conditional CRT curvature, PiP keeping crisp pixel scalers, legacy INI keys still accepted).
+
 ### Added
 - **Expanded Display & Graphics Suite (benchmarked against top GitHub recomps — `Zelda64Recomp`, `UnleashedRecomp`, `zelda3`):**
   - **Display Controls (`F1 -> Screen & Layout` + `recomplauncher.json`):** live **Monitor Selector** (multi-monitor SDL3 display detection with resolution & Hz), **Windowed Scale Presets** (`Auto`, `2x..6x` with usable-bounds clamping), **21:9 Ultrawide Cinema** aspect mode (`ultrawide-21x9`), **Display Safe Zone / Overscan Margin** (`0..10%`, preserving exact pixel grid and touch mapping), **Widescreen HUD Alignment** (`Edge-Anchored 16:9` vs `Centered 4:3 Safe Zone`), **3-Mode VSync** (`Off`, `On`, `Adaptive` with automatic fallback), and live **120 Hz Frame Interpolation** toggle (`>= 100 Hz` monitors).
