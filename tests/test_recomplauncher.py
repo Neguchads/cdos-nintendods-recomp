@@ -86,8 +86,12 @@ class TestRecompLauncher(unittest.TestCase):
         self.assertEqual(data["repo"], "Neguchads/cdos-nintendods-recomp")
         self.assertEqual(data["$schema"], "https://recomplauncher.com/schema/recomplauncher.json")
         self.assertIn("graphics", data["system"]["windows"])
-        self.assertIn("graphics", data["system"]["linux"])
-        self.assertNotIn("notes", data["system"]["linux"])
+        # Only Windows builds are released and tested, so only Windows is listed.
+        self.assertEqual(set(data["system"]), {"windows"})
+        # The Definitive profile (the default) and mod profiles save beside
+        # --save-path, in saves/definitive/ and saves/profiles/: back them up too.
+        self.assertIn("{data}/saves/definitive", data["saves"])
+        self.assertIn("{data}/saves/profiles", data["saves"])
 
         presets_data = json.loads((ROOT / "CMakePresets.json").read_text(encoding="utf-8"))
         preset_names = {p["name"] for p in presets_data["configurePresets"]}
