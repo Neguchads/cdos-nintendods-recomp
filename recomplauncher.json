@@ -128,9 +128,9 @@
         "dos_frame_interpolation": "false",
         "dos_render_driver": "direct3d12",
         "dos_vsync": "off",
-        "dos_hd_filter": "xbr2x",
+        "dos_hd_filter": "pixellate",
         "dos_color_mode": "vivid",
-        "dos_sharpen": "subtle",
+        "dos_sharpen": "off",
         "dos_post_fx": "off",
         "dos_post_fx_intensity": "100",
         "dos_crt_curvature": "0",
@@ -708,33 +708,21 @@
       "group": "Graphics",
       "choices": [
         {
-          "label": "xBR 2x",
+          "label": "Pixellate (Crisp Shimmerless — Recommended)",
           "set": {
-            "dos_hd_filter": "xbr2x"
+            "dos_hd_filter": "pixellate"
           }
         },
         {
-          "label": "Scale2x EPX",
+          "label": "Pixel-AA (Balanced Crisp)",
           "set": {
-            "dos_hd_filter": "scale2x"
+            "dos_hd_filter": "pixel-aa"
           }
         },
         {
-          "label": "Sharp Bilinear (Auto-Integer Crisp)",
-          "set": {
-            "dos_hd_filter": "sharp-bilinear"
-          }
-        },
-        {
-          "label": "Bandlimited Pixel (Anti-Shimmer)",
+          "label": "Bandlimited Pixel (Silky Anti-Moire)",
           "set": {
             "dos_hd_filter": "bandlimited-pixel"
-          }
-        },
-        {
-          "label": "Bilinear",
-          "set": {
-            "dos_hd_filter": "bilinear"
           }
         },
         {
@@ -742,10 +730,16 @@
           "set": {
             "dos_hd_filter": "nearest"
           }
+        },
+        {
+          "label": "Bilinear (Soft)",
+          "set": {
+            "dos_hd_filter": "bilinear"
+          }
         }
       ],
       "defaults": {
-        "dos_hd_filter": "xbr2x"
+        "dos_hd_filter": "pixellate"
       }
     },
     {
@@ -801,7 +795,7 @@
         }
       ],
       "defaults": {
-        "dos_sharpen": "subtle"
+        "dos_sharpen": "off"
       }
     },
     {

@@ -111,8 +111,9 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
         self.assertIn("true_widescreen", settings)
         self.assertEqual(settings["true_widescreen"]["defaults"].get("dos_true_widescreen"), "false")
         hd_values = {c["set"].get("dos_hd_filter") for c in settings["hd_filter"]["choices"]}
-        self.assertIn("sharp-bilinear", hd_values)
-        self.assertIn("bandlimited-pixel", hd_values)
+        self.assertEqual(hd_values, {"pixellate", "pixel-aa", "bandlimited-pixel", "nearest", "bilinear"})
+        self.assertEqual(data["config"][0]["new"].get("dos_hd_filter"), "pixellate")
+        self.assertEqual(data["config"][0]["new"].get("dos_sharpen"), "off")
 
     def test_recomplauncher_manifest_exposes_expanded_display_and_graphics_suite(self) -> None:
         data = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
