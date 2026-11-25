@@ -8,8 +8,11 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.1.2` — Sharp Scaling & True 2D Widescreen `342×192`)
-- **Latest Feature (Sharp Scaling + True 2D Widescreen `342×192`):**
+### Current Technical State (`main` post-`v1.1.2` — Expanded Display/Graphics Suite, Sharp Scaling & True 2D Widescreen `342×192`)
+- **Latest Feature (Expanded Display & Graphics Suite — `ADR-016`):**
+  - Expanded `dos_postprocess.frag.hlsl` (`DosShaderParams` `80 B`, compiled to signed DXIL `ps_6_0` `16,496 B` + Vulkan 1.1 SPIR-V `33,420 B`) with live Gamma (`70..150%`), Color Temperature (`-30..+30`), 8-tap Soft Highlight Bloom (`0..50%`), Display Mask Intensity (`0..100%`), and `fwidth`-safe CRT Barrel Curvature & Bezel (`0..30%`), live-verified on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`.
+  - Added SDL3 multi-monitor selector (`dos_display_index`), windowed scale presets (`2x..6x`), `Ultrawide 21:9` aspect mode, overscan Safe Zone (`0..10%` with exact touch mapping), Widescreen HUD alignment (`Edge-Anchored` vs `Centered 4:3`), 3-mode VSync (`Off`/`On`/`Adaptive`), live `120 Hz` Frame Interpolation toggle, `3D MSAA` (`Off/2x/4x/8x`) persistence, and 4 one-click Visual Profiles (*Modern HD Crisp*, *Pixel Purist*, *Classic CRT*, *DS Handheld*) in `F1` + `recomplauncher.json`.
+- **Previous Features (PRs #31 & #32 — Sharp Scaling + True 2D Widescreen `342×192`):**
   - Upgraded `Sharp Bilinear` (`filter_mode = 2u`, auto integer prescale + `fwidth`) and added `Bandlimited Pixel` (`filter_mode = 5u`, C2 quintic anti-shimmer + gamma-2.0 blend) in `dos_postprocess.frag.hlsl`, compiled to both signed DXIL `ps_6_0` (`14,776 B`) and Vulkan 1.1 SPIR-V (`28,840 B`) — live-verified on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`.
   - Added opt-in **True 2D Widescreen `16:9` (`342×192`, Experimental)** (`dos_true_widescreen`, default `false`, live-togglable in `F1 -> Screen & Layout` and `recomplauncher.json`): 14 preflight-verified ARM9 hooks (`title_patches.cpp`) + direct `512px` BG2 wide tilemap sampling (`gpu2d.cpp`) + unsplit top-left HP/MP HUD (`center_width = 8`) + automatic `256×192` pillarbox on menus, prologues, and single-screen rooms (`g_state[0x08] == 0x02` && `width_screens >= 2`).
 - **Latest Release (`v1.1.2`):** Native MSVC 2022 build for `CastlevaniaDawnOfSorrow.exe` (`443 KB`, zero MinGW `-static` stub, `RT_MANIFEST` `asInvoker`+`UTF-8`), explicit 4-file `runtime/` allowlist in `tools/package_recomplauncher.py`, pinned SHA-256 for `dsd.exe` in `tools/setup_toolchains.py`, and portable `-march=x86-64 -mtune=generic` in `CMakePresets.json`.
@@ -46,8 +49,11 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`main` pós-`v1.1.2` — Sharp Scaling & Widescreen 2D Nativo `342×192`)
-- **Nova fatia (Sharp Scaling + Widescreen 2D Nativo `342×192`):**
+### Estado Técnico Atual (`main` pós-`v1.1.2` — Suíte Expandida de Gráficos/Display, Sharp Scaling & Widescreen 2D Nativo `342×192`)
+- **Nova fatia (Suíte Expandida de Gráficos e Display — `ADR-016`):**
+  - `dos_postprocess.frag.hlsl` expandido (`DosShaderParams` `80 B`, compilado em DXIL `ps_6_0` `16.496 B` + Vulkan 1.1 SPIR-V `33.420 B`) com Gama (`70..150%`), Temperatura de Cor (`-30..+30`), Bloom Suave (`0..50%`), Intensidade da Máscara (`0..100%`) e Curvatura CRT com bezel (`0..30%`), validado ao vivo na RTX 3060 em `dx12-gpu` e `vulkan-gpu`.
+  - Adicionados seletor de monitor SDL3 (`dos_display_index`), presets de escala em janela (`2x..6x`), aspecto `Ultrawide 21:9`, margem segura / overscan (`0..10%` mantendo toque exato), alinhamento de HUD widescreen (`Bordas 16:9` vs `Centralizado 4:3`), VSync 3 modos (`Desligado`/`Ligado`/`Adaptativo`), Interpolação `120 Hz` ao vivo, `3D MSAA` (`Off/2x/4x/8x`) persistente e 4 Perfis Visuais de 1 clique (*HD Moderno Nítido*, *Pixel Purista*, *CRT Clássico*, *Portátil DS*) no menu `F1` e em `recomplauncher.json`.
+- **Fatias anteriores (PRs #31 e #32 — Sharp Scaling + Widescreen 2D Nativo `342×192`):**
   - Shaders GPU atualizados em `dos_postprocess.frag.hlsl` e recompilados para DXIL `ps_6_0` (`14.776 B`) e Vulkan 1.1 SPIR-V (`28.840 B`): **Sharp Bilinear** com prescale inteiro automático por eixo + **Bandlimited Pixel** (`filter_mode = 5u`, degrau quíntico C2 anti-cintilação com blend gama 2.0), validados ao vivo em `dx12-gpu` e `vulkan-gpu`.
   - Modo opt-in **Widescreen 2D Nativo `16:9` (`342×192`, Experimental)** (`dos_true_widescreen`, padrão `false`, alternável ao vivo em `F1 -> Tela & Layout` e `recomplauncher.json`): 14 ganchos ARM9 com preflight (`title_patches.cpp`) + amostragem direta de BG2 `512px` (`gpu2d.cpp`) + HUD HP/MP coeso sem corte (`center_width = 8`) + pillarbox `256×192` automático em menus, prólogo e salas de 1 tela (`g_state[0x08] == 0x02` e `width_screens >= 2`).
 - **Release atual (`v1.1.2`):** `CastlevaniaDawnOfSorrow.exe` compilado nativamente com MSVC 2022 (`443 KB`, sem stub MinGW `-static`, com `RT_MANIFEST` `asInvoker`+`UTF-8`), allowlist explícita de 4 arquivos em `runtime/` (`tools/package_recomplauncher.py`), SHA-256 travado para `dsd.exe` (`tools/setup_toolchains.py`) e `-march=x86-64 -mtune=generic` em `CMakePresets.json`.

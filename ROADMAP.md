@@ -45,7 +45,8 @@
 ### Done (`v1.1.2` + Sharp Scaling & True 2D Widescreen `342×192`)
 - **PR #29 (`v1.1.2` Security & Packaging Hardening):** Native MSVC 2022 `CastlevaniaDawnOfSorrow.exe` (`443 KB`, 5 OS DLLs only), explicit 4-file `runtime/` packaging allowlist, pinned `dsd.exe` SHA-256, portable `-march=x86-64 -mtune=generic` preset.
 - **Sharp Bilinear + Bandlimited Pixel GPU Shaders (DXIL `ps_6_0` + SPIR-V Vulkan 1.1):** Automatic per-axis integer prescale + `fwidth` subpixel edge (`sharp-bilinear`) and C2 quintic Hermite anti-shimmer filter (`bandlimited-pixel`, `filter_mode = 5u`) for distortion-free crispness on any aspect ratio (`16:9`, `16:10`, `21:9`, non-integer windows).
-- **Opt-in True 2D Widescreen `16:9` (`342×192`, Experimental):** Live-togglable in `F1 -> Screen & Layout` and `recomplauncher.json` (`dos_true_widescreen`, default `false`). Expands *Dawn of Sorrow (USA ACVE)*'s 3D-ortho BG0 + hardware 2D BG2 (`64×32` 512px tilemap) + camera centering/clamping to true `342×192` in multi-screen rooms (`g_state[0x08] == 0x02`, `width_screens >= 2`), with automatic `256×192` pillarbox on titles, prologues, pause/equip menus, and single-screen rooms.
+- **Opt-in True 2D Widescreen `16:9` (`342×192`, Experimental):** Live-togglable in `F1 -> Screen & Layout` and `recomplauncher.json` (`dos_true_widescreen`, default `false`). Expands *Dawn of Sorrow (USA ACVE)*'s 3D-ortho BG0 + hardware 2D BG2 (`64×32` 512px tilemap) + camera centering/clamping to true `342×192` in multi-screen rooms (`g_state[0x08] == 0x02`, `width_screens >= 2`), with automatic `256×192` pillarbox on titles, prologues, pause/equip menus, and single-screen rooms, plus `wrap_x` sky-backdrop fix (`PR #32`).
+- **Expanded Display & Graphics Suite (`ADR-016`):** Multi-monitor selector, `2x..6x` windowed scale presets, `21:9 Ultrawide Cinema`, `0..10%` Display Safe Zone / Overscan margin, Widescreen HUD alignment (`Edge-Anchored` vs `Centered 4:3`), 3-mode VSync (`Off`/`On`/`Adaptive`), live `120 Hz` Frame Interpolation toggle, `3D MSAA` (`Off/2x/4x/8x`), 4 one-click Visual Profiles, and 80-byte GPU post-process shader (DXIL `ps_6_0` + Vulkan 1.1 SPIR-V) adding Gamma, Color Temperature, Highlight Bloom, Display Mask Intensity, and CRT Curvature.
 
 ### Planned (Future)
 - Investigate and fix *Albus Mode* inverted movement bug ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
@@ -94,10 +95,14 @@
   - **Música Customizada (Verificado):** Decodificadores nativos `.wav` / `.mp3` / `.ogg` (zero DLLs externas), catálogo das 30 BGMs (`00..29`), mute seletivo Nitro SDK 2.x PXI `MUTE_TRACK` (`BGM DS = 0`, `SFX DS = 100%`), **Seletor Visual por Estágio** no `F1 -> Áudio` (qualquer nome de arquivo -> qualquer estágio), **Modo Jukebox / Playlist Global** (muta todas as 30 BGMs + Aleatório/Anterior/Próxima) e assistente duplo-clique com Windows Explorer (`mods/music/Configurar_Musica.bat`).
   - **Widescreen 2D (Apresentação Verificada):** `WidescreenTheatre` (canvas 16:9 `342×192` com gameplay 4:3 + lateral acoplada de Mapa/Status), `SmartCrop16x9` (`OVERSCAN` 1:1 + offset vertical `-24..+24 px` + toque preciso) e `Balanced16x10`.
 
-### Planejado (Pós-`v1.1.0` / Futuro)
+### Feito (`v1.1.2` + Sharp Scaling, Widescreen 2D Nativo & Suíte Expandida de Gráficos/Display)
+- **PR #29 (`v1.1.2` Endurecimento de Segurança e Empacotamento):** `CastlevaniaDawnOfSorrow.exe` nativo MSVC 2022 (`443 KB`, 5 DLLs do Windows), allowlist explícita de 4 arquivos em `runtime/`, SHA-256 travado em `dsd.exe`, preset portável `-march=x86-64 -mtune=generic`.
+- **PRs #31 e #32 (Sharp Scaling & Widescreen 2D Nativo `342×192`):** Shaders GPU `Sharp Bilinear` (auto-integer) + `Bandlimited Pixel` (quíntico C2) em DXIL `ps_6_0` e SPIR-V Vulkan 1.1; modo opt-in Experimental `dos_true_widescreen` (`342×192`, 14 ganchos ARM9 com preflight, BG2 `512px`, HUD HP/MP coeso e correção de paralaxe `wrap_x`).
+- **Suíte Expandida de Gráficos e Display (`ADR-016`):** Seletor multi-monitor SDL3, escala em janela `2x..6x`, `21:9 Ultrawide Cinema`, margem segura / overscan (`0..10%`), alinhamento do HUD widescreen (`Bordas 16:9` vs `Zona Segura 4:3`), VSync 3 modos (`Desligado`/`Ligado`/`Adaptativo`), Interpolação `120 Hz` ao vivo, `3D MSAA` (`Off/2x/4x/8x`), 4 Perfis Visuais de 1 clique e shader GPU de 80 bytes (Gama, Temperatura de Cor, Bloom Suave, Intensidade da Máscara e Curvatura CRT).
+
+### Planejado (Futuro)
 - Investigar e corrigir bug de movimento invertido no *Albus Mode* ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
-- Validação completa de campanha (do início aos créditos) para promover *Eternity of Sorrow 1.2*, *Model ZX* e *Model Omega* de `unverified` para `verified`.
-- Possível descompilação de câmera/tilemap 2D nativa ARM9 para widescreen expandido real (ADR-014).
+- Validação completa de campanha (do início aos créditos) para promover *Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega* e *Widescreen 2D Nativo `342×192`* de experimental/`unverified` para `verified`.
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.
 
 [Voltar ao topo / Back to top](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)
