@@ -8,8 +8,11 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.1.2` — Seamless True 2D Widescreen `342×192` & Curated Linear-Light Upscalers)
-- **Latest Feature (Seamless True 2D Widescreen & Curated Linear-Light Upscalers — `ADR-017`):**
+### Current Technical State (`main` post-`v1.1.2` — Modern 2D Upscalers, Multi-Pass HD-2D Bloom & Seamless True 2D Widescreen `342×192`)
+- **Latest Feature (Modern 2D Upscalers & Multi-Pass HD-2D Pipeline — `ADR-018`):**
+  - Implemented multi-pass SDL3 GPU pipeline (`DosGpuShaderState::render_multipass` in `dos_gpu_shader.{h,cpp}`, 20-slot `SDL_GPURenderState*` pool + per-screen cached `SDL_TEXTUREACCESS_TARGET` textures) driven by a single compact ubershader (`dos_postprocess.frag.hlsl` -> `uint32_t` DXIL `ps_6_0` `56,148 B` + SPIR-V `-Os` `91,588 B`, keeping `patches/ndsrecomp-local.patch` at `1.54 MiB < 2.00 MiB`).
+  - Added **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Selective Anti-Dither (GDAPT, `dos_anti_dither`)**, **5-Pass Dual Kawase HD-2D Bloom** with CRT-aligned additive composite, and **HD-2D Remaster** / **Vector HD (ScaleFX)** one-click Visual Profiles in `F1 -> HD Graphics` & `recomplauncher.json`, verified live at `0.6..0.8 ms` GPU time on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`.
+- **Previous Feature (Seamless True 2D Widescreen & Curated Linear-Light Upscalers — `ADR-017`, PR #34):**
   - Fixed `1×N` (`256 px`) hardware 2D `BG2` sky/castle backdrop black cutoff at `x = 256` (`title_patches.cpp` + `gpu2d.cpp` modulo-256 wrap) and the `x = 271` vertical mist brightness seam (`native_3d_raster.cpp` + `GPU3D.cpp` untextured fullscreen atmospheric quad expansion, verified `delta = (0,0,0)` on Lost Village Bridge `0x022DD9F8` & Plaza `0x022DFCF8`).
   - Upgraded `dos_postprocess.frag.hlsl` (`DXIL ps_6_0` `20,940 B` + `Vulkan 1.1 SPIR-V` `38,284 B`, live-verified on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`) with IEC 61966-2-1 linear sRGB **`Pixellate`** (new default), **`Pixel-AA`**, upgraded TheMaister **`Bandlimited Pixel`**, moiré-free analytical cosine `Scanlines`/`CRT`/`LCD`, center-aligned `Sharpen` (`Off` default), and curated 5-filter `F1 -> HD Graphics` + `game.toml` + `recomplauncher.json`.
 - **Previous Feature (Expanded Display & Graphics Suite — `ADR-016`, PR #33):**
@@ -52,8 +55,11 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`main` pós-`v1.1.2` — Widescreen 2D Nativo Sem Cortes & Upscalers em Luz Linear Curados)
-- **Última fatia (Widescreen 2D Nativo Sem Cortes & Upscalers Curados — `ADR-017`):**
+### Estado Técnico Atual (`main` pós-`v1.1.2` — Escaladores 2D Modernos, Bloom HD-2D Multi-Passe & Widescreen 2D Nativo Sem Cortes)
+- **Última fatia (Escaladores 2D Modernos & Pipeline Multi-Passe HD-2D — `ADR-018`):**
+  - Implementado pipeline multi-passe SDL3 GPU (`DosGpuShaderState::render_multipass` em `dos_gpu_shader.{h,cpp}`, pool de 20 `SDL_GPURenderState*` + render targets em cache por tela) via ubershader único compacto (`dos_postprocess.frag.hlsl` -> `uint32_t` DXIL `ps_6_0` `56.148 B` + SPIR-V `-Os` `91.588 B`, mantendo `patches/ndsrecomp-local.patch` em `1,54 MiB < 2,00 MiB`).
+  - Adicionados **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Anti-Dither Seletivo (GDAPT, `dos_anti_dither`)**, **Bloom HD-2D Dual Kawase (5 passes)** com composição aditiva alinhada à curvatura CRT, e perfis **Remaster HD-2D** / **Vetor HD (ScaleFX)** no `F1 -> Gráficos HD` e `recomplauncher.json`, validados ao vivo em `0,6..0,8 ms` na RTX 3060 em `dx12-gpu` e `vulkan-gpu`.
+- **Fatia anterior (Widescreen 2D Nativo Sem Cortes & Upscalers Curados — `ADR-017`, PR #34):**
   - Corrigidos o corte preto em `x = 256` de fundos `1×N` (`256 px`) em `BG2` de hardware (`title_patches.cpp` + wrap módulo 256 em `gpu2d.cpp`) e a emenda vertical de brilho da névoa em `x = 271` (expansão de quads atmosféricos 3D sem textura em `native_3d_raster.cpp` + `GPU3D.cpp`, validado com `delta = (0,0,0)` na Ponte `0x022DD9F8` e Praça `0x022DFCF8` da Lost Village).
   - Atualizado `dos_postprocess.frag.hlsl` (`DXIL ps_6_0` `20.940 B` + `Vulkan 1.1 SPIR-V` `38.284 B`, validado ao vivo na RTX 3060 em `dx12-gpu` e `vulkan-gpu`) com **`Pixellate`** (novo padrão), **`Pixel-AA`** e **`Bandlimited Pixel`** (TheMaister) em sRGB linear IEC 61966-2-1, `Scanlines`/`CRT`/`LCD` analíticos sem moiré, `Sharpen` corrigido (`Off` padrão) e dropdown curado de 5 filtros no `F1 -> Gráficos HD`, `game.toml` e `recomplauncher.json`.
 - **Fatia anterior (Suíte Expandida de Gráficos e Display — `ADR-016`, PR #33):**
