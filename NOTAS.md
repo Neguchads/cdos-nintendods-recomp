@@ -8,7 +8,7 @@
   - **Anti-Dither Seletivo (GDAPT, `dos_anti_dither`):** pré-passe opcional em sRGB linear que suaviza padrões xadrez/listras de 1 px sem borrar contornos nem texto.
   - **Bloom HD-2D Dual Kawase (5 passes reais):** pirâmide `1/2 -> 1/4 -> 1/8 -> 1/4 -> 1/2` + composição aditiva (`pass_mode = 9`, `SDL_BLENDMODE_ADD`) alinhada à curvatura CRT, bezel e vinheta (`0,8 ms` total).
   - **Menu `F1 -> Gráficos HD` & `recomplauncher.json`:** 8 filtros curados (`Pixellate` continua padrão), toggle `Anti-Dither Seletivo`, e 2 novos Perfis Visuais de 1 clique (**Remaster HD-2D (Bloom)** e **Vetor HD (ScaleFX)**).
-- **Compactação do Ubershader & Patch:** headers DXIL (`56.148 B`) e SPIR-V `-Os` (`91.588 B`) gravados em `uint32_t` little-endian, mantendo `patches/ndsrecomp-local.patch` em **`1.618.309 B` (`1,54 MiB < 2,00 MiB`)** com `git apply --check --reverse` limpo.
+- **Compactação do Ubershader & Patch:** headers DXIL (`56.272 B`) e SPIR-V `-Os` (`91.884 B`) gravados em `uint32_t` little-endian, mantendo `patches/ndsrecomp-local.patch` em **`1.620.341 B` (`1,55 MiB < 2,00 MiB`)** com `git apply --check --reverse` limpo.
 - **Verificação:** `ctest` `3/3` PASS (0 warnings), 5 testes ao vivo na RTX 3060 PASS em `dx12-gpu` e `vulkan-gpu` (incluindo todos os 9 passes simultâneos), inspeção visual real de capturas DX12 (`hd2d_title.png`, `scalefx_title.png`, `mmpx_title.png`), `unittest` `55/55` PASS, `package_recomplauncher.py --validate-only` OK, `prepare_media_assets.py --check-only` OK, e `runtime/nds_runner.exe` atualizado.
 
 ## Falta / Próximos passos
