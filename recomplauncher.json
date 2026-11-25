@@ -121,15 +121,26 @@
         "dos_aspect_mode": "stretch",
         "dos_widescreen_crop_y": "0",
         "dos_true_widescreen": "false",
+        "dos_wide_hud_mode": "edge",
+        "dos_display_index": "-1",
+        "dos_window_scale": "0",
+        "dos_safe_zone": "0",
+        "dos_frame_interpolation": "false",
         "dos_render_driver": "direct3d12",
-        "dos_vsync": "false",
+        "dos_vsync": "off",
         "dos_hd_filter": "xbr2x",
         "dos_color_mode": "vivid",
         "dos_sharpen": "subtle",
         "dos_post_fx": "off",
+        "dos_post_fx_intensity": "100",
+        "dos_crt_curvature": "0",
+        "dos_antialiasing": "0",
         "dos_brightness": "100",
         "dos_contrast": "100",
         "dos_saturation": "100",
+        "dos_gamma": "100",
+        "dos_color_temp": "0",
+        "dos_bloom": "0",
         "dos_vignette": "0",
         "dos_hud_mode": "fps",
         "dos_dev_hud": "true",
@@ -457,6 +468,12 @@
           }
         },
         {
+          "label": "21:9 Ultrawide Cinema",
+          "set": {
+            "dos_aspect_mode": "ultrawide-21x9"
+          }
+        },
+        {
           "label": "Integer Scale",
           "set": {
             "dos_aspect_mode": "integer"
@@ -512,6 +529,112 @@
       }
     },
     {
+      "id": "wide_hud_mode",
+      "label": "Widescreen HUD Alignment",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Edge-Anchored (16:9 Wide)",
+          "set": {
+            "dos_wide_hud_mode": "edge"
+          }
+        },
+        {
+          "label": "Centered 4:3 Safe Zone",
+          "set": {
+            "dos_wide_hud_mode": "centered-4x3"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_wide_hud_mode": "edge"
+      }
+    },
+    {
+      "id": "window_scale",
+      "label": "Windowed Scale Preset",
+      "group": "Display",
+      "choices": [
+        {
+          "label": "Auto (Default)",
+          "set": {
+            "dos_window_scale": "0"
+          }
+        },
+        {
+          "label": "2x (512x384)",
+          "set": {
+            "dos_window_scale": "2"
+          }
+        },
+        {
+          "label": "3x (768x576)",
+          "set": {
+            "dos_window_scale": "3"
+          }
+        },
+        {
+          "label": "4x (1024x768)",
+          "set": {
+            "dos_window_scale": "4"
+          }
+        },
+        {
+          "label": "5x (1280x960)",
+          "set": {
+            "dos_window_scale": "5"
+          }
+        },
+        {
+          "label": "6x (1536x1152)",
+          "set": {
+            "dos_window_scale": "6"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_window_scale": "0"
+      }
+    },
+    {
+      "id": "safe_zone",
+      "label": "Display Safe Zone / Overscan (%)",
+      "group": "Display",
+      "slider": {
+        "key": "dos_safe_zone",
+        "min": 0,
+        "max": 10,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_safe_zone": "0"
+      }
+    },
+    {
+      "id": "frame_interpolation",
+      "label": "120 Hz Frame Interpolation",
+      "group": "Display",
+      "help": "Blends half-frames at 120 FPS on >= 100 Hz monitors without altering DS 60 Hz logic.",
+      "choices": [
+        {
+          "label": "Off (Native 60 FPS)",
+          "set": {
+            "dos_frame_interpolation": "false"
+          }
+        },
+        {
+          "label": "On (120 Hz Motion Smoothing)",
+          "set": {
+            "dos_frame_interpolation": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_frame_interpolation": "false"
+      }
+    },
+    {
       "id": "render_driver",
       "label": "GPU Render Backend",
       "group": "Graphics",
@@ -553,24 +676,30 @@
     },
     {
       "id": "vsync",
-      "label": "VSync",
+      "label": "VSync Mode",
       "group": "Graphics",
       "choices": [
         {
-          "label": "Off",
+          "label": "Off (Lowest Latency)",
           "set": {
-            "dos_vsync": "false"
+            "dos_vsync": "off"
           }
         },
         {
-          "label": "On",
+          "label": "On (Standard Sync)",
           "set": {
-            "dos_vsync": "true"
+            "dos_vsync": "on"
+          }
+        },
+        {
+          "label": "Adaptive (Tear-Free)",
+          "set": {
+            "dos_vsync": "adaptive"
           }
         }
       ],
       "defaults": {
-        "dos_vsync": "false"
+        "dos_vsync": "off"
       }
     },
     {
@@ -710,6 +839,70 @@
       }
     },
     {
+      "id": "post_fx_intensity",
+      "label": "Display Mask Intensity (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_post_fx_intensity",
+        "min": 0,
+        "max": 100,
+        "step": 5,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_post_fx_intensity": "100"
+      }
+    },
+    {
+      "id": "crt_curvature",
+      "label": "CRT Screen Curvature (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_crt_curvature",
+        "min": 0,
+        "max": 30,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_crt_curvature": "0"
+      }
+    },
+    {
+      "id": "antialiasing",
+      "label": "3D Anti-Aliasing (MSAA)",
+      "group": "Graphics",
+      "choices": [
+        {
+          "label": "Off (1x)",
+          "set": {
+            "dos_antialiasing": "0"
+          }
+        },
+        {
+          "label": "2x MSAA",
+          "set": {
+            "dos_antialiasing": "2"
+          }
+        },
+        {
+          "label": "4x MSAA",
+          "set": {
+            "dos_antialiasing": "4"
+          }
+        },
+        {
+          "label": "8x MSAA",
+          "set": {
+            "dos_antialiasing": "8"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_antialiasing": "0"
+      }
+    },
+    {
       "id": "brightness",
       "label": "Brightness (%)",
       "group": "Graphics",
@@ -752,6 +945,51 @@
       },
       "defaults": {
         "dos_saturation": "100"
+      }
+    },
+    {
+      "id": "gamma",
+      "label": "Gamma (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_gamma",
+        "min": 70,
+        "max": 150,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_gamma": "100"
+      }
+    },
+    {
+      "id": "color_temp",
+      "label": "Color Temperature (-30 Cool .. +30 Warm)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_color_temp",
+        "min": -30,
+        "max": 30,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_color_temp": "0"
+      }
+    },
+    {
+      "id": "bloom",
+      "label": "Soft Highlight Bloom (%)",
+      "group": "Graphics",
+      "slider": {
+        "key": "dos_bloom",
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "format": "%d"
+      },
+      "defaults": {
+        "dos_bloom": "0"
       }
     },
     {

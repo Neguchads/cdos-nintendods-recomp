@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- **Expanded Display & Graphics Suite (benchmarked against top GitHub recomps — `Zelda64Recomp`, `UnleashedRecomp`, `zelda3`):**
+  - **Display Controls (`F1 -> Screen & Layout` + `recomplauncher.json`):** live **Monitor Selector** (multi-monitor SDL3 display detection with resolution & Hz), **Windowed Scale Presets** (`Auto`, `2x..6x` with usable-bounds clamping), **21:9 Ultrawide Cinema** aspect mode (`ultrawide-21x9`), **Display Safe Zone / Overscan Margin** (`0..10%`, preserving exact pixel grid and touch mapping), **Widescreen HUD Alignment** (`Edge-Anchored 16:9` vs `Centered 4:3 Safe Zone`), **3-Mode VSync** (`Off`, `On`, `Adaptive` with automatic fallback), and live **120 Hz Frame Interpolation** toggle (`>= 100 Hz` monitors).
+  - **GPU Post-Processing Shader (`DosShaderParams` 80 B, compiled to DXIL `ps_6_0` + Vulkan 1.1 SPIR-V):** added live **Gamma** (`70..150%`), **Color Temperature** (`-30 Cool <-> +30 Warm`), **Soft Highlight Bloom** (`0..50%` 8-tap bright-pass), **Display Mask Intensity** (`0..100%`), **CRT Screen Curvature & Bezel** (`0..30%`, `fwidth`-safe non-divergent derivatives), **3D MSAA** (`Off / 2x / 4x / 8x`) persistence in `F1 -> HD Graphics`, and **4 One-Click Visual Profiles** (*Modern HD Crisp*, *Pixel Purist*, *Classic CRT*, *DS Handheld*).
 - **Anti-shimmer GPU scaling shaders (Direct3D 12 DXIL `ps_6_0` + Vulkan 1.1 SPIR-V):**
   - Upgraded **Sharp Bilinear** (`sharp-bilinear`) to automatic per-axis integer prescaling with `fwidth` subpixel edge blending so stretching to any aspect ratio (`16:9`, `16:10`, `21:9`, arbitrary window sizes) stays crisp without blur or uneven pixel widths.
   - Added **Bandlimited Pixel** (`bandlimited-pixel` / `filter_mode = 5u`), a C2-continuous quintic Hermite anti-shimmer filter with gamma-2.0 linear blending to eliminate scrolling shimmer and dark halos at non-integer scales.

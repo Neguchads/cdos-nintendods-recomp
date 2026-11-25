@@ -114,6 +114,44 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
         self.assertIn("sharp-bilinear", hd_values)
         self.assertIn("bandlimited-pixel", hd_values)
 
+    def test_recomplauncher_manifest_exposes_expanded_display_and_graphics_suite(self) -> None:
+        data = json.loads((ROOT / "recomplauncher.json").read_text(encoding="utf-8"))
+        new_cfg = data["config"][0]["new"]
+        for key, expected in [
+            ("dos_wide_hud_mode", "edge"),
+            ("dos_display_index", "-1"),
+            ("dos_window_scale", "0"),
+            ("dos_safe_zone", "0"),
+            ("dos_frame_interpolation", "false"),
+            ("dos_vsync", "off"),
+            ("dos_post_fx_intensity", "100"),
+            ("dos_crt_curvature", "0"),
+            ("dos_antialiasing", "0"),
+            ("dos_gamma", "100"),
+            ("dos_color_temp", "0"),
+            ("dos_bloom", "0"),
+        ]:
+            self.assertEqual(new_cfg.get(key), expected, f"missing/wrong default for {key}")
+
+        settings = {s["id"]: s for s in data["settings"]}
+        aspect_vals = {c["set"].get("dos_aspect_mode") for c in settings["aspect_mode"]["choices"]}
+        self.assertIn("ultrawide-21x9", aspect_vals)
+        vsync_vals = {c["set"].get("dos_vsync") for c in settings["vsync"]["choices"]}
+        self.assertEqual(vsync_vals, {"off", "on", "adaptive"})
+        for sid in [
+            "wide_hud_mode",
+            "window_scale",
+            "safe_zone",
+            "frame_interpolation",
+            "post_fx_intensity",
+            "crt_curvature",
+            "antialiasing",
+            "gamma",
+            "color_temp",
+            "bloom",
+        ]:
+            self.assertIn(sid, settings, f"missing setting {sid}")
+
 
 if __name__ == "__main__":
     unittest.main()
