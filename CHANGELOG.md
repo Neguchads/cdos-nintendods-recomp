@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Modular Stackable Patch Composition in Memory (Fatia 2, inspired by `cdos-patcher-tool` & `@leomontenegro6`):** split `mods/registry.json` into **Modular Add-Ons (`"addons"`)** (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) and exclusive **Campaigns (`"campaigns"`)**. Players can now combine any subset of installed modular add-ons via checkboxes in `F1 -> Mods & Campaigns`, using a **3-way byte-diff overlay merger against the clean USA `base_rom`** + automatic NDS header CRC-16/MODBUS (`0x15E..0x15F`) recomputation, persistent `dos_active_addons` INI key, isolated saves per stack (`modular-stack`), and full Python/C++ parity (`tools/mod_resolver.py`, `dos_mod_registry.cpp`).
+- **Homepage (`README.md`) Refresh:** updated both English and Portuguese (BR) sections with a concise *Key Features at a Glance* overview and refreshed Feature Status tables covering Modular Stackable Mods, Authorized PT-BR v1.1, bundled `xdelta3.exe`, GBA Slot-2 *Aria of Sorrow* Bonus, Exact `60.0 Hz` Pitch-Preserving VSync, Minimap HUD 16:9, and the community Discord.
+
 ## 1.2.2 (2026-11-26)
 
 ### Fixed & Added

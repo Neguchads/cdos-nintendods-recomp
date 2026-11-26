@@ -8,8 +8,12 @@
 
 ## English
 
-### Current Technical State (`v1.2.2` Release — `runtime/xdelta3.exe` DJW/LZMA Fix, GBA Slot-2 Bonus, Mod Preview Card & Modular Links)
-- **Latest Feature (Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
+### Current Technical State (Post-`v1.2.2` — Fatia 2: Modular Stackable Patch Composition & Homepage Refresh)
+- **Latest Feature (Fatia 2 — Modular Stackable Add-Ons & README Refresh):**
+  - Split `mods/registry.json` into stackable `"addons"` (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) and exclusive `"campaigns"`.
+  - Implemented 3-way byte-diff overlay merger in memory against clean USA `base_rom` + NDS header CRC-16/MODBUS recomputation (`0x15E..0x15F`) in `dos_mod_registry.cpp`, checkboxes in `F1 -> Mods & Campaigns`, `dos_active_addons` INI persistence, isolated saves per stack (`modular-stack`), and full parity in `tools/mod_resolver.py` + C++/Python tests.
+  - Refreshed `README.md` homepage (EN & PT-BR) with *Key Features at a Glance* and updated Feature Status tables.
+- **Previous Release (`v1.2.2` — Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
   - Bundled `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) via `tools/build.py`, `tools/package_recomplauncher.py`, and `tools/rbs_artifact.py` so DJW/FGK/LZMA `.xdelta` patches work out of the box (Issue #50).
   - Implemented clean-room GBA Slot-2 *Aria of Sorrow* (`A2CE`) bonus (`bus_set_gba_slot2_aria_bonus` in `bus.cpp`, `dos_gba_slot2_aria` in `F1 -> Mods` & `recomplauncher.json`) unlocking **Rare Ring** + **Mina's Doll** (Issue #51).
   - Added **Mod Info & Preview Card** inside `F1 -> Mods` (Issue #44), updated PT-BR v1.1 to **Authorized** (`leomontenegro6/cdos-traducao-ptbr#1`), added 4 modular `manual_import` slots (**Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**), credited `cdos-patcher-tool`, and added Discord (`https://discord.gg/s7CWbpZJ`).
@@ -64,9 +68,9 @@ python tools/prepare_media_assets.py --check-only
 ```
 
 ### Next Steps
-1. Publish patch release (`v1.2.1` or updated clean-room ZIP) containing zero bundled third-party mods and the updated `nds_runner.exe` + `recomplauncher.json` from PR #35.
-2. Implement 60 Hz exact vertical sync with smooth audio rate control (Issue #39).
-3. Evaluate roadmap feature requests (Issue #36 HD Texture Packs, #37 Cheat Manager, #38 Music Manager, #40 EUR multi-language, #30 optional local patch conversion) and native Linux/Steam Deck / Android builds.
+1. Optionally cut a new GitHub Release (`v1.2.3` or `v1.3.0`) packaging Fatia 2's modular stackable add-ons and updated `nds_runner.exe`.
+2. Evaluate community roadmap epics: HD Texture Packs ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Cheat Manager ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Advanced Music Manager ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)), and European multi-language support ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
+3. Full start-to-credits audit for *True 2D Widescreen `342×192`* (Beta -> Verified) and native Linux/Steam Deck / Android builds.
 
 ---
 
@@ -74,8 +78,12 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`v1.2.2` Release — Fix `runtime/xdelta3.exe` DJW/LZMA, Bônus Slot-2 GBA, Painel de Prévia de Mods & Links Modulares)
-- **Última fatia (Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
+### Estado Técnico Atual (Pós-`v1.2.2` — Fatia 2: Composição Modular Empilhável de Patches & Refresh da Homepage)
+- **Última fatia (Fatia 2 — Add-Ons Modulares Combináveis & Refresh do README):**
+  - `mods/registry.json` separado em `"addons"` empilháveis (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) e `"campaigns"` exclusivas.
+  - Implementado merger 3-way byte-diff em memória sobre a `base_rom` USA limpa + recálculo do CRC-16/MODBUS do cabeçalho NDS (`0x15E..0x15F`) em `dos_mod_registry.cpp`, checkboxes em `F1 -> Mods & Campanhas`, persistência `dos_active_addons` em INI, saves isolados por combinação (`modular-stack`) e paridade completa em `tools/mod_resolver.py` + testes C++/Python.
+  - `README.md` atualizado (EN e PT-BR) com *Principais Recursos em Destaque* e tabelas de status atualizadas.
+- **Release anterior (`v1.2.2` — Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
   - `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) incluído em `tools/build.py`, `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` para suportar `.xdelta` DJW/FGK/LZMA direto na release (Issue #50).
   - Bônus clean-room de Slot-2 GBA *Aria of Sorrow* (`A2CE`) em `bus.cpp` (`dos_gba_slot2_aria` no `F1 -> Mods` e `recomplauncher.json`), liberando **Rare Ring** e **Mina's Doll** (Issue #51).
   - Adicionado painel de **Detalhes e Prévia do Mod** no `F1 -> Mods` (Issue #44), PT-BR v1.1 atualizado para **Autorizado** (`leomontenegro6/cdos-traducao-ptbr#1`), 4 slots modulares `manual_import` (**Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**), créditos ao `cdos-patcher-tool` e link do Discord (`https://discord.gg/s7CWbpZJ`).
@@ -121,6 +129,6 @@ python tools/prepare_media_assets.py --check-only
   - Widescreen 2D Nativo `16:9` (`342×192`, opt-in Beta: wrap de `BG2` e expansão de névoa validados na Ponte/Praça da Lost Village; auditoria completa de salas em andamento).
 
 ### Próximos Passos
-1. Investigar e corrigir movimento invertido no *Albus Mode* ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
-2. Validar campanhas completas (*Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega*) para promoção a `verified`.
-3. Avaliar builds Linux / Steam Deck e Android com SDL3 pré-compilado.
+1. Avaliar publicação de nova GitHub Release (`v1.2.3` ou `v1.3.0`) com a Fatia 2 (add-ons modulares empilháveis) e `nds_runner.exe` atualizado.
+2. Avaliar épicos de roadmap da comunidade: Texturas HD ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Gerenciador de Cheats ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Gerenciador Avançado de Música ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)) e multi-idioma Europeu ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
+3. Auditoria de campanha completa para *Widescreen 2D Nativo `342×192`* (Beta -> Verificado) e builds Linux/Steam Deck e Android.

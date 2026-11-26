@@ -97,6 +97,7 @@ class SelectionRequest:
     runtime_compat: str = "cdos-recomp-v1"
     randomizer_seed: str = ""
     randomizer_preset: str = "standard"
+    addon_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -108,6 +109,7 @@ class ConflictDecision:
     active_version: str
     patch_file: str | None
     validation_level: str
+    addon_patch_files: tuple[str, ...] = ()
 
 
 class ModRegistry:
@@ -119,6 +121,7 @@ class ModRegistry:
         self.baselines = {str(x["id"]): x for x in data.get("baselines", [])}  # type: ignore[index]
         self.campaigns = {str(x["id"]): x for x in data.get("campaigns", [])}  # type: ignore[index]
         self.character_packs = {str(x["id"]): x for x in data.get("character_packs", [])}  # type: ignore[index]
+        self.addons = {str(x["id"]): x for x in data.get("addons", [])}  # type: ignore[index]
         self.verified_combinations = list(data.get("verified_combinations", []))  # type: ignore[arg-type]
         self.rescan_external_randomizers()
 
@@ -137,7 +140,7 @@ class ModRegistry:
             return
         registered_files = {
             str(entry.get("profile_file", "")).lower()
-            for group in (self.baselines, self.campaigns, self.character_packs)
+            for group in (self.baselines, self.campaigns, self.character_packs, self.addons)
             for entry in group.values()
             if entry.get("profile_file")
         }
@@ -150,7 +153,13 @@ class ModRegistry:
             if p.name.lower() in registered_files:
                 continue
             cid = slugify_profile_stem(p.stem)
-            if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns or cid in self.character_packs:
+            if (
+                not cid
+                or cid in RESERVED_PROFILE_IDS
+                or cid in self.campaigns
+                or cid in self.character_packs
+                or cid in self.addons
+            ):
                 continue
             ext_lc = p.suffix.lower()
             if cid.startswith("dsvrandom-") and len(cid) > len("dsvrandom-"):
@@ -342,6 +351,68 @@ class ModRegistry:
                     patch_file=None,
                     validation_level="none",
                 )
+
+        # 4.5. Modular stackable add-ons (somente sobre Dawn of Sorrow + Original USA + Default + English)
+        requested_addons = {aid for aid in req.addon_ids if aid}
+        if requested_addons:
+            if (
+                not camp.get("builtin", False)
+                or not pack.get("builtin", False)
+                or req.baseline_id != "original"
+                or req.language != "en"
+            ):
+                return ConflictDecision(
+                    state="incompatible",
+                    allowed=False,
+                    reason=(
+                        "Add-ons modulares so podem ser combinados sobre Dawn of Sorrow + "
+                        "Original USA + English (sem outra campanha exclusiva ativa)."
+                    ),
+                    active_profile_id="modular-stack",
+                    active_version="1.0",
+                    patch_file=None,
+                    validation_level="none",
+                )
+            for aid in requested_addons:
+                if aid not in self.addons:
+                    return ConflictDecision(
+                        state="incompatible",
+                        allowed=False,
+                        reason=f"Add-on modular desconhecido: {aid}",
+                        active_profile_id="modular-stack",
+                        active_version="1.0",
+                        patch_file=None,
+                        validation_level="none",
+                    )
+            resolved_paths: list[str] = []
+            for aid, addon in self.addons.items():
+                if aid not in requested_addons:
+                    continue
+                ok, apath = self._profile_installed(addon)
+                if not ok or apath is None:
+                    return ConflictDecision(
+                        state="incompatible",
+                        allowed=False,
+                        reason=(
+                            f"Add-on '{addon['name']}' ainda nao esta instalado em "
+                            "{data}/mods/profiles/ (use 'Patch...' no menu F1)."
+                        ),
+                        active_profile_id=aid,
+                        active_version=str(addon.get("version", "1.0")),
+                        patch_file=None,
+                        validation_level="none",
+                    )
+                resolved_paths.append(str(apath))
+            return ConflictDecision(
+                state="unverified",
+                allowed=req.allow_unverified,
+                reason=f"Combinacao modular ativa ({len(resolved_paths)} add-on(s)).",
+                active_profile_id="modular-stack",
+                active_version="1.0",
+                patch_file=resolved_paths[0] if resolved_paths else None,
+                validation_level="modular_stack",
+                addon_patch_files=tuple(resolved_paths),
+            )
 
         # 5. Determinar o perfil ativo e verificar presenca fisica em {data}/mods/profiles/
         active_entry: dict[str, object]
