@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.2 (2026-11-26)
 
 ### Fixed & Added
 - **Bundled `runtime/xdelta3.exe` (Apache-2.0, Issue #50):** `tools/build.py`, `tools/package_recomplauncher.py`, and `tools/rbs_artifact.py` now stage and verify `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) alongside `nds_runner.exe`, fixing `.xdelta` patches using DJW/FGK/LZMA secondary compressors (e.g., *Definitive Edition+ v2.3* and *Tradução PT-BR v1.1*) out of the box.
