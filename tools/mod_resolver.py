@@ -18,6 +18,15 @@ SAFE_SEED_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 RESERVED_PROFILE_IDS = frozenset({"original", "definitive", "default", "dawn-of-sorrow"})
 
 
+def slugify_profile_stem(value: str) -> str:
+    """Converte nomes reais de patches (ex: 'DoS Definitive+ (v2.0)') em ID seguro compativel com C++."""
+    slug = re.sub(r"[^a-z0-9_]+", "-", value.lower())
+    slug = slug[:48].strip("-_")
+    if not slug or not slug[0].isalnum():
+        return ""
+    return slug
+
+
 def sanitize_safe_id(value: str, *, fallback: str = "") -> str:
     """Valida/normaliza um identificador para impedir path traversal."""
     cleaned = value.strip().lower()
@@ -140,7 +149,7 @@ class ModRegistry:
         for p in candidates:
             if p.name.lower() in registered_files:
                 continue
-            cid = sanitize_safe_id(p.stem)
+            cid = slugify_profile_stem(p.stem)
             if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns:
                 continue
             ext_lc = p.suffix.lower()
