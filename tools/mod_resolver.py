@@ -202,11 +202,6 @@ class ModRegistry:
             return True, None
         if self.data_mods_dir is None:
             return False, None
-        rel = str(entry.get("profile_file", "")).strip()
-        if rel and "/" not in rel and "\\" not in rel and ".." not in rel:
-            candidate = safe_join_under(self.data_mods_dir, "profiles", rel)
-            if candidate.is_file():
-                return True, candidate
         entry_id = str(entry.get("id", "")).strip().lower()
         prof_dir = self.data_mods_dir / "profiles"
         if entry_id and prof_dir.is_dir():
@@ -221,6 +216,11 @@ class ModRegistry:
             if matches:
                 matches.sort(key=lambda p: (ext_priority[p.suffix.lower()], p.name.lower()))
                 return True, matches[0]
+        rel = str(entry.get("profile_file", "")).strip()
+        if rel and "/" not in rel and "\\" not in rel and ".." not in rel:
+            candidate = safe_join_under(self.data_mods_dir, "profiles", rel)
+            if candidate.is_file():
+                return True, candidate
         return False, None
 
     def is_verified_combination(self, req: SelectionRequest) -> tuple[bool, str]:

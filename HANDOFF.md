@@ -9,7 +9,10 @@
 ## English
 
 ### Current Technical State (`main` post-`v1.2.0` — In-Game Patch Importer, Samus Returns Minimap HUD, `60Hz` Pitch-Preserving VSync & Clean-Room Mod Support)
-- **Latest Feature (In-Game Patch Importer, Authorized Eternity of Sorrow Slot & Minimap HUD 16:9):**
+- **Latest Feature (Per-Mod Quick Patch Buttons, PT-BR v1.1 & Community `manual_import` Slots, Full Credits & Outreach):**
+  - Added inline **`Patch...`** (targeted `dos_mod_import_patch_file(..., target_profile_id)` installing any user-picked `.xdelta`/`.ips`/`.dospatch` straight into that mod's slot and cleaning stale extensions) and **`Official Page`** (`https://`-only `SDL_OpenURL`) buttons beside every non-builtin mod in `F1 -> Mods & Campaigns`.
+  - Added clean-room `manual_import: true` slots in `mods/registry.json` (zero files bundled/downloaded; `@OerstedLAL` mods remain permanently excluded per #43) for **Tradução PT-BR v1.1 (Vanilla & Definitive Edition)**, **Definitive Edition+**, **Eternity of Sorrow** (authorized #44), **Alucard's Requiem (SOTN/CV3)**, and **Dracula's Curse**, with complete attribution in `docs/CREDITS.md` (including `leomontenegro6/cdos-traducao-ptbr` & João13 Traduções) and ready-to-send creator permission requests in `docs/CREATOR_OUTREACH.md`.
+- **Previous Feature (In-Game Patch Importer, Authorized Eternity of Sorrow Slot & Minimap HUD 16:9 — PR #47):**
   - Added native SDL3 **`Import Patch (.xdelta / .ips / .dospatch)...`** and **`Open Mods Folder`** buttons in `F1 -> Mods & Campaigns` (`dos_mod_import_patch_file` validates VCDIFF/IPS/DOSPATCH magic, slugifies creator filenames, guards reserved IDs, and installs atomically into `{data}/mods/profiles/` followed by live rescan + toast).
   - Added authorized `manual_import: true` compatibility slot for **Eternity of Sorrow** (`@Wet-Band-Aid`, Issue #44, zero files bundled/downloaded, full credit in `docs/CREDITS.md`), matching user-imported `.xdelta`/`.ips`/`.dospatch` files by slug automatically.
   - Added **`NdsScreenLayout::MinimapHud`** (`minimap-hud`, compact `24%` top-right translucent map inset, `4 px` margin, `16..50%` PiP size) + **1-Click 16:9 Metroidvania HUD** preset in `F1 -> Screen & Layout`, `F2` layout cycling, and `recomplauncher.json`.
@@ -67,7 +70,10 @@ python tools/prepare_media_assets.py --check-only
 ## Português (BR)
 
 ### Estado Técnico Atual (`main` pós-`v1.2.0` — Importador In-Game de Patches, Minimap HUD Samus Returns, VSync 60Hz & Suporte Clean-Room a Mods)
-- **Última fatia (Importador In-Game, Slot Autorizado Eternity of Sorrow & Minimap HUD 16:9):**
+- **Última fatia (Botões Rápidos de Patch por Mod, Slots PT-BR v1.1 & Créditos/Permissões):**
+  - Adicionados botões inline **`Aplicar Patch...`** (`dos_mod_import_patch_file(..., target_profile_id)` instalando o `.xdelta`/`.ips`/`.dospatch` direto no slot do mod escolhido e limpando extensões antigas) e **`Site Oficial`** (`SDL_OpenURL` restrito a `https://`) ao lado de cada mod no `F1 -> Mods & Campanhas`.
+  - Adicionados slots clean-room `manual_import: true` em `mods/registry.json` (zero arquivos embutidos; mods de `@OerstedLAL` mantidos fora conforme #43) para **Tradução PT-BR v1.1 (Vanilla & DE)**, **Definitive Edition+**, **Eternity of Sorrow** (autorizado #44), **Alucard's Requiem (SOTN/CV3)** e **Dracula's Curse**, com créditos completos em `docs/CREDITS.md` (incluindo `leomontenegro6/cdos-traducao-ptbr` e João13 Traduções) e pedidos prontos de permissão em `docs/CREATOR_OUTREACH.md`.
+- **Fatia anterior (Importador In-Game, Slot Autorizado Eternity of Sorrow & Minimap HUD 16:9 — PR #47):**
   - Adicionados botões nativos SDL3 **`Importar Patch (.xdelta / .ips / .dospatch)...`** e **`Abrir Pasta de Mods`** em `F1 -> Mods & Campanhas` (`dos_mod_import_patch_file` valida magic bytes VCDIFF/IPS/DOSPATCH, gera slug de nomes reais de criadores, bloqueia IDs reservados e instala atomicamente em `{data}/mods/profiles/` com rescan e toast ao vivo).
   - Adicionado slot autorizado `manual_import: true` de **Eternity of Sorrow** (`@Wet-Band-Aid`, Issue #44, zero arquivos embutidos/baixados, crédito completo em `docs/CREDITS.md`), casando automaticamente `.xdelta`/`.ips`/`.dospatch` importados pelo usuário.
   - Adicionado layout **`NdsScreenLayout::MinimapHud`** (`minimap-hud`, minimapa translúcido `24%` no canto superior direito com margem `4 px`, tamanho `16..50%`) + preset **1 Clique: HUD Metroidvania 16:9** em `F1 -> Tela & Layout`, atalho `F2` e `recomplauncher.json`.
