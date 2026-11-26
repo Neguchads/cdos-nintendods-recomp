@@ -6,6 +6,8 @@
 
 ## English
 
+For current public listing copy, tags and release-selection guidance, see [CATALOG_PUBLICATION.md](CATALOG_PUBLICATION.md). The developer hub is separate from the runtime SDK manifest.
+
 This project follows the **RecompLauncher SDK, format 1** ([guide](https://github.com/elripalda/RecompLauncher-SDK/blob/main/docs/guide.md), [schema](https://recomplauncher.com/schema/recomplauncher.json)). Everything the launcher needs is one file, [`recomplauncher.json`](../recomplauncher.json), shipped at the top of each release next to the program.
 
 ### What the manifest declares
@@ -76,6 +78,8 @@ Engine, open-source library attribution, and our creator-permission policy (no b
 ---
 
 ## Português (BR)
+
+Para os textos atuais do catálogo, tags e seleção de releases, consulte [CATALOG_PUBLICATION.md](CATALOG_PUBLICATION.md). O painel do desenvolvedor é separado do manifesto de execução.
 
 Este projeto segue o **SDK do RecompLauncher, formato 1** ([guia](https://github.com/elripalda/RecompLauncher-SDK/blob/main/docs/guide.md), [schema](https://recomplauncher.com/schema/recomplauncher.json)). Tudo o que o launcher precisa é um arquivo, [`recomplauncher.json`](../recomplauncher.json), no topo de cada release, ao lado do programa.
 

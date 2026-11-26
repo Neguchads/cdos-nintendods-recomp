@@ -4,7 +4,7 @@
   "game": "Castlevania: Dawn of Sorrow",
   "origin": "ds",
   "repo": "Neguchads/cdos-nintendods-recomp",
-  "blurb": "Dawn of Sorrow as a native PC game: static ARM9/ARM7 recompilation, Direct3D 12 and Vulkan GPU shaders, an in-game F1 menu and an optional in-memory PT-BR translation.",
+  "blurb": "Play Castlevania: Dawn of Sorrow natively on PC with 60 FPS gameplay, HD-2D graphics, widescreen layouts, modular mods, custom music and modern controls. Your own original USA Nintendo DS ROM is required.",
   "author": "Neguchads",
   "icon": "https://raw.githubusercontent.com/Neguchads/cdos-nintendods-recomp/main/assets/recomplauncher/icon.png",
   "cover": "https://raw.githubusercontent.com/Neguchads/cdos-nintendods-recomp/main/assets/recomplauncher/cover.jpg",
@@ -15,10 +15,13 @@
   ],
   "tags": [
     "Widescreen",
-    "High FPS",
-    "Upscaling",
-    "HD Filters",
-    "PT-BR"
+    "60 FPS",
+    "Mods",
+    "HD-2D",
+    "Custom Music",
+    "Controller Support",
+    "Save States",
+    "Native PC"
   ],
   "genre": "action",
   "media_design": {
