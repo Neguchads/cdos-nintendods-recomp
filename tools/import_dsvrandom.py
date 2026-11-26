@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import build_ptbr_patch as bpp  # noqa: E402
 import diff_dos_mods as ddm  # noqa: E402
-import fetch_community_mods as fcm  # noqa: E402
+import import_local_mod as ilm  # noqa: E402
 import mod_resolver as mr  # noqa: E402
 
 USA_ROM_DEFAULT = ROOT.parent / "Roms" / "Castlevania - Dawn of Sorrow (USA).nds"
@@ -69,8 +69,8 @@ def import_dsvrandom_output(
         target_rom = raw_bytes
         input_kind = "nds_rom"
     else:
-        inner_name, fmt, patch_bytes = fcm.extract_first_compatible_patch(source_path.name, raw_bytes)
-        rep = fcm.compile_profile_from_patch(
+        inner_name, fmt, patch_bytes = ilm.extract_first_compatible_patch(source_path.name, raw_bytes)
+        rep = ilm.compile_profile_from_patch(
             profile_id,
             fmt,
             patch_bytes,

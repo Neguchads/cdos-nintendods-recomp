@@ -63,17 +63,11 @@ class TestDosPatch(unittest.TestCase):
             "c9a1552bcdcd8fdf3c052d975e6838da7ead08d1",
         )
 
-    def test_repo_patch_header_and_crc32_without_rom(self) -> None:
-        patch_path = ROOT / "mods" / "ptbr" / "dos-ptbr.dospatch"
-        self.assertTrue(patch_path.is_file(), f"Patch ausente: {patch_path}")
-        patch_bytes = patch_path.read_bytes()
-        meta = bpp.inspect_dospatch_header(patch_bytes)
-        self.assertEqual(meta["version"], 1)
-        self.assertEqual(meta["source_sha1"], "47530ff87e608f88105a314fdf36dc385f8dec94")
-        self.assertEqual(meta["target_sha1"], "c9a1552bcdcd8fdf3c052d975e6838da7ead08d1")
-        self.assertGreater(meta["chunk_count"], 0)
-        payload = patch_bytes[bpp.DOSPATCH_HEADER_STRUCT.size :]
-        self.assertEqual(zlib.crc32(payload) & 0xFFFFFFFF, meta["payload_crc32"])
+    def test_repo_does_not_bundle_third_party_dospatch_files(self) -> None:
+        # Clean-room & creator-permission guard: no third-party .dospatch bundled under mods/ptbr or mods/definitive.
+        self.assertFalse((ROOT / "mods" / "ptbr" / "dos-ptbr.dospatch").exists())
+        self.assertFalse((ROOT / "mods" / "definitive" / "dos-definitive-en.dospatch").exists())
+        self.assertFalse((ROOT / "mods" / "definitive" / "dos-definitive-ptbr.dospatch").exists())
 
 
 if __name__ == "__main__":

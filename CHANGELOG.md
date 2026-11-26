@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed & Removed (Creator Respect & Generic Mod Support — Issues #43, #44)
+- **Removed all bundled and listed third-party mods/translations:** removed `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py`, and all third-party community entries from `mods/registry.json` (`Albus Mode`, `Model ZX`, `Model Omega`, `Eternity of Sorrow`, `Alucard's Requiem`, `Dracula's Curse`, `Definitive Edition+`).
+- **Generic local mod support (`F1 -> Mods & Campaigns`):** `ndsrecomp` (`dos_mod_registry.cpp`) and `tools/mod_resolver.py` now automatically discover any user-supplied `*.dospatch` placed in `{data}/mods/profiles/` with isolated saves (`saves/profiles/<id>-v<ver>-<hash8>/dos.sav`), paired with the offline local patch importer [`tools/import_local_mod.py`](tools/import_local_mod.py) (`.xdelta`/`.ips`/`.dospatch`/`.zip`, zero hardcoded URLs or network downloads).
+- **Clean-room baseline default & packaging gates:** switched default content baseline to `Original USA (Retail ACVE)`, moved optional user-supplied patch arguments in `recomplauncher.json` to `{data}/mods/...`, and hardened `tools/package_recomplauncher.py` and `tools/rbs_artifact.py` to reject `.dospatch`/`.xdelta`/`.ips`/`.bps` files in release archives.
+- **RecompLauncher save backups & Windows-only manifest (PR #35 by `@Xarishark`):** added `{data}/saves/definitive` and `{data}/saves/profiles` to `recomplauncher.json` `saves`, removed unshipped `system.linux`, and linked the README badge directly to `recomplauncher.com/game/cdos-nintendods-recomp`.
+
 ## 1.2.0 (2026-11-25)
 
 ### Added

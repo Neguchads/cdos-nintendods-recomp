@@ -14,9 +14,9 @@ This project follows the **RecompLauncher SDK, format 1** ([guide](https://githu
 |---|---|
 | `$schema`, `format`, `name`, `repo` | official schema URL, `1`, *Castlevania: Dawn of Sorrow: Recompiled*, `Neguchads/cdos-nintendods-recomp` |
 | `inputs[game]` | one file, `.nds` only; `check.ids = ["ACVE"]`; `dumps`: USA (ACVE), 67,108,864 bytes, CRC32 `135737f6` (verified badge) |
-| `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, PT-BR & Definitive deltas (`{install}/mods/ptbr/dos-ptbr.dospatch`, `{install}/mods/definitive/dos-definitive-{en,ptbr}.dospatch`), optional opening video `{install}/mods/intro/opening.mp4`; BIOS identity, settings, saves and savestates under `{data}` |
-| `config` | INI at `{data}/saves/dos-settings.ini`; `new` writes all 32 defaults on first start (`en` for menu & game language, `definitive` content profile, enhanced intro enabled) |
-| `settings` | 32 options in groups Language, Content & Mods, General, Display, Graphics, Performance, Audio, Controls (choices and sliders) |
+| `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, clean mod registry `{install}/mods/registry.json`, optional user-supplied local patches and intro under `{data}/mods/...`; BIOS identity, settings, saves and savestates under `{data}` |
+| `config` | INI at `{data}/saves/dos-settings.ini`; `new` writes all defaults on first start (`en` for menu & game language, `original` clean USA baseline) |
+| `settings` | 47 options in groups Language, Content & Mods, General, Display, Graphics, Performance, Audio, Controls (choices and sliders) |
 | `saves`, `folders`, `actions` | EEPROM `.sav`, INI and savestates; buttons to open Saves, Screenshots and Logs |
 | `looks` | `graphics_key = dos_render_driver`, `lines = 192` (DS screen height) for the launcher's ReShade looks |
 | `system` | Windows 10+, Direct3D 12 / Vulkan 1.1 / Direct3D 11 / OpenGL 4.3 |
@@ -24,13 +24,13 @@ This project follows the **RecompLauncher SDK, format 1** ([guide](https://githu
 
 Notes:
 
-- The game is **never shipped**. The player picks their own USA `.nds`; the launcher checks the game code and the CRC32 and shows "Matches the verified USA (ACVE) disc".
-- There is **no `prepare` step**: the runner has no windowless setup mode, and the PT-BR translation is applied in memory at start, so nothing needs to be built from the ROM.
+- The game is **never shipped**, and **no third-party mods or translations are bundled**. The player picks their own USA `.nds`; the launcher checks the game code and the CRC32 and shows "Matches the verified USA (ACVE) disc".
+- There is **no `prepare` step**: the runner has no windowless setup mode, and any optional user-supplied local patches in `{data}/mods/` are applied in memory at start, so nothing needs to be built from the ROM.
 - The release has no `recompdata/` folder. The launcher creates `{data}` (`recompdata/`) and passes it as `RECOMPLAUNCHER_DATA`.
-- RecompLauncher starts `runtime/nds_runner.exe` with working directory `{install}/runtime`. Because of that, every path in `start.args` uses `{install}/...` (for `game.toml`, `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, and optional `mods/intro/opening.mp4`) or `{data}/...` (for `run/bios`, saves, savestates, and `firmware_state.bin`) instead of bare relative paths.
+- RecompLauncher starts `runtime/nds_runner.exe` with working directory `{install}/runtime`. Because of that, every path in `start.args` uses `{install}/...` (for `game.toml` and `mods/registry.json`) or `{data}/...` (for optional user-supplied `mods/...`, `run/bios`, saves, savestates, and `firmware_state.bin`) instead of bare relative paths.
 - `looks` can read the API from `dos_render_driver` only when its value contains `vulkan`, `d3d12`, `d3d11` or `opengl`. The default `direct3d12` does not contain `d3d12`, so for it the launcher falls back to detecting the API from the executable.
 - Only Windows is built and tested, so `system` lists Windows only. Add a `linux` part once a Linux build is released and tested.
-- `saves` also lists `{data}/saves/definitive` and `{data}/saves/profiles`: the default Definitive profile saves to `saves/definitive/dos.sav`, and mod profiles to `saves/profiles/...`, not to the `--save-path` file itself.
+- `saves` also lists `{data}/saves/definitive` and `{data}/saves/profiles`: optional local baseline patches save to `saves/definitive/dos.sav`, and local mod profiles in `{data}/mods/profiles/` save to `saves/profiles/...`, keeping your main `saves/dos.sav` isolated.
 
 ### Media kit
 
@@ -67,9 +67,9 @@ This validates the manifest (including that every media file exists) and builds 
 
 In RecompLauncher, open Settings, Developers, turn on Developer tools, use **Add a build** on the project folder and read the Developer tab.
 
-### Mod & translation credits
+### Credits & mod policy
 
-Full researched author attribution for Definitive Edition, Dawn of Dignity, No Required Touch Screen, Fixed Luck, AI Intro Video, and PT-BR T1.0 is documented in [`docs/CREDITS.md`](CREDITS.md).
+Engine, open-source library attribution, and our creator-permission policy (no bundled third-party mods) are documented in [`docs/CREDITS.md`](CREDITS.md).
 
 [Voltar ao topo / Back to top](#recomplauncher-integration--integração-com-o-recomplauncher)
 
@@ -85,9 +85,9 @@ Este projeto segue o **SDK do RecompLauncher, formato 1** ([guia](https://github
 |---|---|
 | `$schema`, `format`, `name`, `repo` | URL oficial do schema, `1`, *Castlevania: Dawn of Sorrow: Recompiled*, `Neguchads/cdos-nintendods-recomp` |
 | `inputs[game]` | um arquivo, só `.nds`; `check.ids = ["ACVE"]`; `dumps`: USA (ACVE), 67.108.864 bytes, CRC32 `135737f6` (selo de verificado) |
-| `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, deltas PT-BR e Definitive (`{install}/mods/ptbr/dos-ptbr.dospatch`, `{install}/mods/definitive/dos-definitive-{en,ptbr}.dospatch`), vídeo de abertura opcional `{install}/mods/intro/opening.mp4`; identidade de BIOS, configurações, saves e savestates em `{data}` |
-| `config` | INI em `{data}/saves/dos-settings.ini`; `new` grava todos os 32 padrões na primeira vez (`en` para menu e jogo, perfil `definitive`, abertura aprimorada ativa) |
-| `settings` | 32 opções nos grupos Language, Content & Mods, General, Display, Graphics, Performance, Audio, Controls (escolhas e sliders) |
+| `start` | `runtime/nds_runner.exe`; ROM via `--rom {input:game}`, config `{install}/game.toml`, registro limpo `{install}/mods/registry.json`, patches locais e abertura opcionais fornecidos pelo usuário em `{data}/mods/...`; identidade de BIOS, configurações, saves e savestates em `{data}` |
+| `config` | INI em `{data}/saves/dos-settings.ini`; `new` grava todos os padrões na primeira vez (`en` para menu e jogo, base limpa `original`) |
+| `settings` | 47 opções nos grupos Language, Content & Mods, General, Display, Graphics, Performance, Audio, Controls (escolhas e sliders) |
 | `saves`, `folders`, `actions` | `.sav` EEPROM, INI e savestates; botões para abrir Saves, Screenshots e Logs |
 | `looks` | `graphics_key = dos_render_driver`, `lines = 192` (altura da tela do DS) para os looks (ReShade) do launcher |
 | `system` | Windows 10+, Direct3D 12 / Vulkan 1.1 / Direct3D 11 / OpenGL 4.3 |
@@ -95,13 +95,13 @@ Este projeto segue o **SDK do RecompLauncher, formato 1** ([guia](https://github
 
 Notas:
 
-- O jogo **nunca é distribuído**. O jogador escolhe o próprio `.nds` USA; o launcher confere o código do jogo e o CRC32 e mostra "Matches the verified USA (ACVE) disc".
-- **Não há etapa `prepare`**: o runner não tem modo de preparo sem janela, e a tradução PT-BR é aplicada em memória ao iniciar, então nada precisa ser gerado a partir da ROM.
+- O jogo **nunca é distribuído**, e **nenhum mod ou tradução de terceiros é embutido**. O jogador escolhe o próprio `.nds` USA; o launcher confere o código do jogo e o CRC32 e mostra "Matches the verified USA (ACVE) disc".
+- **Não há etapa `prepare`**: o runner não tem modo de preparo sem janela, e eventuais patches locais fornecidos pelo usuário em `{data}/mods/` são aplicados em memória ao iniciar, então nada precisa ser gerado a partir da ROM.
 - A release não tem pasta `recompdata/`. O launcher cria `{data}` (`recompdata/`) e a repassa como `RECOMPLAUNCHER_DATA`.
-- O RecompLauncher executa `runtime/nds_runner.exe` com o diretório de trabalho em `{install}/runtime`. Por isso, todo caminho em `start.args` usa `{install}/...` (para `game.toml`, `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch` e o opcional `mods/intro/opening.mp4`) ou `{data}/...` (para `run/bios`, saves, savestates e `firmware_state.bin`), nunca caminhos relativos puros.
+- O RecompLauncher executa `runtime/nds_runner.exe` com o diretório de trabalho em `{install}/runtime`. Por isso, todo caminho em `start.args` usa `{install}/...` (para `game.toml` e `mods/registry.json`) ou `{data}/...` (para `mods/...` opcionais do usuário, `run/bios`, saves, savestates e `firmware_state.bin`), nunca caminhos relativos puros.
 - O `looks` só lê a API de `dos_render_driver` quando o valor contém `vulkan`, `d3d12`, `d3d11` ou `opengl`. O padrão `direct3d12` não contém `d3d12`, então nesse caso o launcher detecta a API pelo executável.
 - Só o Windows é compilado e testado, então `system` lista só o Windows. Adicione uma parte `linux` quando um build Linux for publicado e testado.
-- `saves` também lista `{data}/saves/definitive` e `{data}/saves/profiles`: o perfil padrão Definitive salva em `saves/definitive/dos.sav`, e os perfis de mod em `saves/profiles/...`, não no próprio arquivo de `--save-path`.
+- `saves` também lista `{data}/saves/definitive` e `{data}/saves/profiles`: patches base opcionais do usuário salvam em `saves/definitive/dos.sav`, e perfis locais em `{data}/mods/profiles/` salvam em `saves/profiles/...`, mantendo seu `saves/dos.sav` isolado.
 
 ### Kit de mídia
 

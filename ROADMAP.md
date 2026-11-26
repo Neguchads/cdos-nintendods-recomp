@@ -50,9 +50,14 @@
 - **Seamless True 2D Widescreen & Curated Linear-Light Upscalers (`ADR-017`):** Fixed `1×N` HW 2D `BG2` parallax backdrop cutoff at `x = 256` (`gpu2d.cpp` modulo-256 wrap) and `x = 271` 3D atmospheric fog quad seam (`native_3d_raster.cpp` / `GPU3D.cpp`, verified `delta = (0,0,0)` on Lost Village Bridge & Plaza); replaced blurry `xBR 2x` + `Sharpen: Subtle` defaults with linear-sRGB `Pixellate` (default), `Pixel-AA`, and upgraded `Bandlimited Pixel`, moiré-free analytical `Scanlines`/`CRT`/`LCD`, center-aligned `Sharpen` (`Off` default), and a decluttered `F1 -> HD Graphics` menu.
 - **Modern 2D Upscalers & Multi-Pass HD-2D Pipeline (`ADR-018`):** Multi-pass SDL3 GPU pipeline (`DosGpuShaderState::render_multipass`, DXIL `ps_6_0` + SPIR-V `-Os` compact ubershader) adding **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Selective Anti-Dither (GDAPT)**, **5-Pass Dual Kawase HD-2D Bloom** with CRT-aligned additive composite, and **HD-2D Remaster** / **Vector HD (ScaleFX)** one-click Visual Profiles (`<= 0.8 ms` GPU time).
 
+### Done (Post-`v1.2.0` — Generic Local Mod Support & Creator-Respect Cleanup)
+- **PR #35 (`@Xarishark`):** RecompLauncher save backup paths for `{data}/saves/definitive` & `{data}/saves/profiles`, Windows-only `system` manifest, and direct game-page badge link.
+- **Generic Local Mod Support (Issues #43, #44):** Removed all bundled/listed third-party mods and translations (`mods/ptbr/`, `mods/definitive/`, `mods/catalog.json`, `tools/fetch_community_mods.py`, third-party entries in `mods/registry.json`), generalized `dos_mod_registry.cpp` & `tools/mod_resolver.py` to auto-discover any user-supplied `{data}/mods/profiles/*.dospatch` with isolated saves, added offline `tools/import_local_mod.py`, switched default baseline to `Original USA`, and hardened release packaging against `.dospatch`/`.xdelta`/`.ips`/`.bps` leakage.
+
 ### Planned (Future)
-- Investigate and fix *Albus Mode* inverted movement bug ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
-- Full start-to-credits playthrough validation to promote *Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega*, and *True 2D Widescreen `342×192`* from experimental/unverified to verified.
+- Exact `60.0 Hz` vertical sync mode with smooth pitch-preserving audio rate control ([Issue #39](https://github.com/Neguchads/cdos-nintendods-recomp/issues/39)).
+- Full start-to-credits playthrough validation for *True 2D Widescreen `342×192`* (promote from Beta to Verified).
+- Community feature requests: HD Texture Dumping/Replacement ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Cheat Manager ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Advanced Custom Music Manager ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)), and European multi-language support ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
 - Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
 
 [Back to top / Voltar ao topo](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)
@@ -104,9 +109,14 @@
 - **Widescreen 2D Nativo Sem Cortes & Upscalers em Luz Linear Curados (`ADR-017`):** Corrigidos o corte preto de fundos `1×N` em `BG2` de hardware em `x = 256` (wrap módulo 256 em `gpu2d.cpp`) e a emenda de névoa em `x = 271` (expansão de quads atmosféricos 3D em `native_3d_raster.cpp` / `GPU3D.cpp`, validado `delta = (0,0,0)` na Ponte e Praça da Lost Village); padrão `xBR 2x` + `Sharpen: Subtle` substituído por `Pixellate` (padrão), `Pixel-AA` e `Bandlimited Pixel` em sRGB linear, máscaras `Scanlines`/`CRT`/`LCD` analíticas sem moiré, `Sharpen` corrigido (`Off` padrão) e menu `F1 -> Gráficos HD` enxuto.
 - **Escaladores 2D Modernos & Pipeline Multi-Passe HD-2D (`ADR-018`):** Pipeline multi-passe SDL3 GPU (`DosGpuShaderState::render_multipass`, ubershader compacto DXIL `ps_6_0` + SPIR-V `-Os`) adicionando **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Anti-Dither Seletivo (GDAPT)**, **Bloom HD-2D Dual Kawase (5 passes)** com composição aditiva alinhada à curvatura CRT, e perfis **Remaster HD-2D** / **Vetor HD (ScaleFX)** (`<= 0,8 ms` na GPU).
 
+### Feito (Pós-`v1.2.0` — Suporte Genérico a Mods Locais & Respeito aos Criadores)
+- **PR #35 (`@Xarishark`):** Backup de saves em `{data}/saves/definitive` e `{data}/saves/profiles`, manifesto `system` somente Windows e badge do RecompLauncher apontando direto para a página do jogo.
+- **Suporte Genérico a Mods Locais (Issues #43, #44):** Removidos todos os mods/traduções de terceiros embutidos ou listados (`mods/ptbr/`, `mods/definitive/`, `mods/catalog.json`, `tools/fetch_community_mods.py`, entradas de terceiros em `mods/registry.json`), generalizada a auto-descoberta em `dos_mod_registry.cpp` e `tools/mod_resolver.py` para qualquer `{data}/mods/profiles/*.dospatch` fornecido pelo usuário com saves isolados, adicionado importador offline `tools/import_local_mod.py`, alterado padrão para `Original USA` e travado empacotamento contra `.dospatch`/`.xdelta`/`.ips`/`.bps`.
+
 ### Planejado (Futuro)
-- Investigar e corrigir bug de movimento invertido no *Albus Mode* ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
-- Validação completa de campanha (do início aos créditos) para promover *Eternity of Sorrow 1.2*, *Model ZX*, *Model Omega* e *Widescreen 2D Nativo `342×192`* de experimental/`unverified` para `verified`.
+- Modo VSync exato `60,0 Hz` com controle dinâmico de taxa de áudio sem estalos nem mudança de tom ([Issue #39](https://github.com/Neguchads/cdos-nintendods-recomp/issues/39)).
+- Validação completa de campanha (do início aos créditos) para promover *Widescreen 2D Nativo `342×192`* de Beta para Verificado.
+- Pedidos da comunidade: Dump/Substituição de Texturas HD ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Gerenciador de Cheats ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Gerenciador Avançado de Música ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)) e suporte multi-idioma Europeu ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.
 
 [Voltar ao topo / Back to top](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)

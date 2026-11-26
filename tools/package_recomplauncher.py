@@ -52,7 +52,10 @@ REQUIRED_INI_KEYS = {
     "dos_stick_deadzone",
 }
 
-FORBIDDEN_EXTENSIONS = {".nds", ".rom", ".gba", ".cia", ".3ds", ".sav", ".state", ".savestate"}
+FORBIDDEN_EXTENSIONS = {
+    ".nds", ".rom", ".gba", ".cia", ".3ds", ".sav", ".state", ".savestate",
+    ".dospatch", ".xdelta", ".ips", ".bps",
+}
 
 SCHEMA_URL = "https://recomplauncher.com/schema/recomplauncher.json"
 REPO = "Neguchads/cdos-nintendods-recomp"
@@ -128,10 +131,10 @@ def validate_manifest(manifest_path: Path = MANIFEST_PATH) -> list[str]:
         errors.append("start.args[0] deve ser '{data}/run/bios' (cwd do RecompLauncher e runtime/)")
     for flag, expected in (
         ("--config", "{install}/game.toml"),
-        ("--ptbr-patch", "{install}/mods/ptbr/dos-ptbr.dospatch"),
-        ("--definitive-en-patch", "{install}/mods/definitive/dos-definitive-en.dospatch"),
-        ("--definitive-ptbr-patch", "{install}/mods/definitive/dos-definitive-ptbr.dospatch"),
-        ("--intro-video", "{install}/mods/intro/opening.mp4"),
+        ("--ptbr-patch", "{data}/mods/ptbr/dos-ptbr.dospatch"),
+        ("--definitive-en-patch", "{data}/mods/definitive/dos-definitive-en.dospatch"),
+        ("--definitive-ptbr-patch", "{data}/mods/definitive/dos-definitive-ptbr.dospatch"),
+        ("--intro-video", "{data}/mods/intro/opening.mp4"),
         ("--mod-registry", "{install}/mods/registry.json"),
         ("--mod-data-dir", "{data}/mods"),
         # Runtime user data must never be written into the read-only install tree.
@@ -220,11 +223,7 @@ def stage_release_tree(
         ("game.toml", False),
         ("play.bat", False),
         ("README.md", False),
-        ("mods/ptbr/dos-ptbr.dospatch", False),
-        ("mods/definitive/dos-definitive-en.dospatch", False),
-        ("mods/definitive/dos-definitive-ptbr.dospatch", False),
         ("mods/registry.json", False),
-        ("mods/catalog.json", True),
         ("mods/music/README.md", True),
         ("mods/music/configurar_musica.py", True),
         ("mods/music/Configurar_Musica.bat", True),

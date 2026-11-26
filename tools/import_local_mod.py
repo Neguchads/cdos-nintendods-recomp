@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""Baixa (de fontes oficiais HTTP 200), audita via diff semantico e compila perfis DOSPATCH locais em {data}/mods/profiles/."""
+"""Importador offline generico de patches locais (.xdelta/.ips/.dospatch/.zip) para {data}/mods/profiles/.
+
+Esta ferramenta nunca baixa nem redistribui mods de terceiros. O proprio jogador fornece
+o arquivo de patch obtido diretamente com o autor do mod e sua ROM retail USA ACVE limpa;
+o script valida o patch, audita as regioes alteradas da ROM e gera um perfil .dospatch
+local em {data}/mods/profiles/<id>.dospatch para descoberta automatica em F1 -> Mods.
+"""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
-import urllib.request
 import zipfile
 from pathlib import Path
 
@@ -26,57 +32,6 @@ import vcdiff_ips as vi  # noqa: E402
 USA_ROM_DEFAULT = ROOT.parent / "Roms" / "Castlevania - Dawn of Sorrow (USA).nds"
 USA_SHA1 = "47530ff87e608f88105a314fdf36dc385f8dec94"
 
-# Fontes publicas diretas (HTTP 200 sem anti-bot). Hashes SHA-256 verificados apos download e travados no manifesto local.
-COMMUNITY_SOURCES: dict[str, dict[str, str]] = {
-    "eternity-of-sorrow": {
-        "name": "Castlevania: Eternity of Sorrow 1.2 (final build)",
-        "author": "WetBandAid",
-        "version": "1.2",
-        "url": "https://raw.githubusercontent.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow/main/no%20touch%20screen/Castlevania%20-%20Eternity%20of%20Sorrow%201.2(final%20build).xdelta",
-        "download_name": "eternity_of_sorrow_1.2.xdelta",
-        "profile_file": "eternity-of-sorrow.dospatch",
-        "expected_patch_sha256": "f1ebfb44ca48796a84e5e13a7600a02e7d93c3be9ec1e463c25a8ad5446b0e72",
-    },
-    "albus-mode": {
-        "name": "Albus Mode (Julius Mode Pack)",
-        "author": "Oersted, DeadSkullzJr, Masked Dedede, DevAnj",
-        "version": "1.0",
-        "url": "https://files.gamebanana.com/mods/dawn_of_sorrow_-_albus_mode.zip",
-        "download_name": "dawn_of_sorrow_-_albus_mode.zip",
-        "inner_match": "Albus Mode",
-        "profile_file": "albus-mode.dospatch",
-        "expected_patch_sha256": "ddbc1e450a0c50e0ff5789a679ef7aeb1c67593ba88446e6f32b0c881f210d18",
-    },
-    "model-zx": {
-        "name": "Playable Model ZX (Julius Mode Pack)",
-        "author": "Oersted, DevAnj, Masked Dedede",
-        "version": "1.0.1",
-        "url": "https://files.gamebanana.com/mods/dos_-_playable_zx_omega_101_1_.zip",
-        "download_name": "dos_-_playable_zx_omega_101_1_.zip",
-        "inner_match": "Model ZX",
-        "profile_file": "model-zx.dospatch",
-        "expected_patch_sha256": "5ecdb77ead563aa976bc7dd782528d68da8fb65a65061a1603288462096ba3a7",
-    },
-    "model-omega": {
-        "name": "Playable Model Omega (Julius Mode Pack)",
-        "author": "Oersted, DevAnj, Masked Dedede",
-        "version": "1.0.1",
-        "url": "https://files.gamebanana.com/mods/dos_-_playable_zx_omega_101_1_.zip",
-        "download_name": "dos_-_playable_zx_omega_101_1_.zip",
-        "inner_match": "Model O",
-        "profile_file": "model-omega.dospatch",
-        "expected_patch_sha256": "5da254844a0883e3861619077e1e8cd340bb92936e06c6d8a6f0afe2fea3baa1",
-    },
-}
-
-
-def download_file(url: str, dst: Path) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "cdos-recomp-mod-fetcher/1.0"})
-    with urllib.request.urlopen(req, timeout=45) as resp:
-        data = resp.read()
-    mr.atomic_write_bytes(dst, data)
-    return data
-
 
 def extract_first_compatible_patch(
     raw_name: str,
@@ -87,8 +42,6 @@ def extract_first_compatible_patch(
     """Retorna (nome_interno, formato, bytes_patch) validando limites ZIP e assinatura binaria."""
     if raw_name.lower().endswith(".zip"):
         candidates: list[tuple[str, str, bytes]] = []
-        import io
-
         with zipfile.ZipFile(io.BytesIO(raw_bytes)) as zf:
             members = [m for m in sorted(zf.infolist(), key=lambda x: x.filename) if not m.is_dir()]
             if len(members) > imb.MAX_ZIP_ENTRIES:
@@ -110,7 +63,6 @@ def extract_first_compatible_patch(
             raise ValueError(
                 f"Nenhum patch VCDIFF/IPS/DOSPATCH valido encontrado dentro de {raw_name} (filtro='{inner_match}')"
             )
-        # Prefere VCDIFF sobre IPS se houver ambos
         candidates.sort(key=lambda item: (0 if item[1] == "vcdiff" else 1, item[0]))
         return candidates[0]
 
@@ -182,16 +134,13 @@ def compile_profile_from_patch(
     else:
         raise ValueError(f"Formato nao suportado: {patch_fmt}")
 
-    # Gera DOSPATCH deterministico e valida roundtrip integral
     dospatch_bytes = bpp.encode_dospatch(usa_rom, target_rom)
     hdr_info = bpp.inspect_dospatch_header(dospatch_bytes)
     verified_rom = bpp.decode_and_apply_dospatch(usa_rom, dospatch_bytes)
     if verified_rom != target_rom:
         raise RuntimeError(f"Falha no roundtrip DOSPATCH de {profile_id}")
     changed_bytes = sum(1 for a, b in zip(usa_rom, target_rom) if a != b) + abs(len(target_rom) - len(usa_rom))
-    stats = {"chunks": int(hdr_info["chunk_count"]), "changed_bytes": changed_bytes}
 
-    # Analise estrutural semantica (Header, ARM9, ARM7, Overlays, NitroFS)
     arm9_diff = 0
     arm7_diff = 0
     relocated_overlays: list[int] = []
@@ -202,16 +151,14 @@ def compile_profile_from_patch(
         reg_b = ddm.parse_nds_regions(target_rom)
         a9s_a, a9e_a, _ = reg_a["arm9"]  # type: ignore[misc]
         a9s_b, a9e_b, _ = reg_b["arm9"]  # type: ignore[misc]
-        a9_a = usa_rom[a9s_a:a9e_a]
-        a9_b = target_rom[a9s_b:a9e_b]
-        arm9_diff = sum(1 for x, y in zip(a9_a, a9_b) if x != y) + abs(len(a9_a) - len(a9_b))
-
+        arm9_diff = sum(1 for x, y in zip(usa_rom[a9s_a:a9e_a], target_rom[a9s_b:a9e_b]) if x != y) + abs(
+            (a9e_a - a9s_a) - (a9e_b - a9s_b)
+        )
         a7s_a, a7e_a, _ = reg_a["arm7"]  # type: ignore[misc]
         a7s_b, a7e_b, _ = reg_b["arm7"]  # type: ignore[misc]
-        a7_a = usa_rom[a7s_a:a7e_a]
-        a7_b = target_rom[a7s_b:a7e_b]
-        arm7_diff = sum(1 for x, y in zip(a7_a, a7_b) if x != y) + abs(len(a7_a) - len(a7_b))
-
+        arm7_diff = sum(1 for x, y in zip(usa_rom[a7s_a:a7e_a], target_rom[a7s_b:a7e_b]) if x != y) + abs(
+            (a7e_a - a7s_a) - (a7e_b - a7s_b)
+        )
         ov_a = reg_a["overlays_arm9"]  # type: ignore[assignment]
         ov_b = reg_b["overlays_arm9"]  # type: ignore[assignment]
         for ov_id in sorted(set(ov_a) | set(ov_b)):
@@ -224,13 +171,10 @@ def compile_profile_from_patch(
                 relocated_overlays.append(ov_id)
             if usa_rom[sa:ea] != target_rom[sb:eb]:
                 changed_overlays.append(ov_id)
-
         fat_a = reg_a["fat_entries"]  # type: ignore[assignment]
         fat_b = reg_b["fat_entries"]  # type: ignore[assignment]
         for fid in range(min(len(fat_a), len(fat_b))):
-            sa, ea = fat_a[fid]
-            sb, eb = fat_b[fid]
-            if usa_rom[sa:ea] != target_rom[sb:eb]:
+            if usa_rom[fat_a[fid][0] : fat_a[fid][1]] != target_rom[fat_b[fid][0] : fat_b[fid][1]]:
                 changed_files_count += 1
         structural_ok = True
         structural_err = ""
@@ -241,7 +185,7 @@ def compile_profile_from_patch(
     dst_patch = mr.safe_join_under(data_mods_dir, "profiles", profile_file)
     mr.atomic_write_bytes(dst_patch, dospatch_bytes)
 
-    report = {
+    return {
         "profile_id": profile_id,
         "source_rom_sha1": src_sha1,
         "target_rom_sha1": hashlib.sha1(target_rom).hexdigest(),
@@ -251,79 +195,73 @@ def compile_profile_from_patch(
         "dospatch_path": str(dst_patch),
         "dospatch_bytes": len(dospatch_bytes),
         "dospatch_sha256": hashlib.sha256(dospatch_bytes).hexdigest(),
-        "chunks": stats["chunks"],
-        "changed_bytes": stats["changed_bytes"],
+        "chunks": int(hdr_info["chunk_count"]),
+        "changed_bytes": changed_bytes,
         "structural_audit_ok": structural_ok,
         "structural_audit_error": structural_err,
         "arm9_changed_bytes": arm9_diff,
         "arm7_changed_bytes": arm7_diff,
-        "changed_files_count": changed_files_count,
         "changed_overlays": changed_overlays,
         "relocated_overlays": relocated_overlays,
-        "validation_state": "unverified",
+        "changed_nitrofs_files": changed_files_count,
     }
-    report_path = mr.safe_join_under(data_mods_dir, "cache", f"audit-{profile_id}.json")
-    mr.atomic_write_text(report_path, json.dumps(report, indent=2) + "\n")
-    return report
+
+
+def import_local_patch_file(
+    source_path: Path,
+    profile_id: str,
+    usa_rom: bytes,
+    *,
+    data_mods_dir: Path,
+    inner_match: str = "",
+) -> dict[str, object]:
+    """Importa um patch local fornecido pelo usuario para {data}/mods/profiles/<profile_id>.dospatch."""
+    if not source_path.is_file():
+        raise FileNotFoundError(f"Arquivo de patch nao encontrado: {source_path}")
+    clean_id = mr.sanitize_safe_id(profile_id)
+    if not clean_id:
+        raise ValueError(f"ID de perfil invalido: {profile_id!r}")
+    raw_bytes = source_path.read_bytes()
+    inner_name, fmt, patch_bytes = extract_first_compatible_patch(
+        source_path.name, raw_bytes, inner_match=inner_match
+    )
+    rep = compile_profile_from_patch(
+        clean_id,
+        fmt,
+        patch_bytes,
+        usa_rom,
+        data_mods_dir=data_mods_dir,
+        profile_file=f"{clean_id}.dospatch",
+    )
+    rep["input_name"] = inner_name
+    meta_path = mr.safe_join_under(data_mods_dir, "cache", f"audit-{clean_id}.json")
+    mr.atomic_write_text(meta_path, json.dumps(rep, indent=2) + "\n")
+    return rep
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--rom", type=Path, default=USA_ROM_DEFAULT)
-    ap.add_argument("--data-mods-dir", type=Path, default=ROOT / "mods")
-    ap.add_argument(
-        "--only",
-        nargs="+",
-        choices=sorted(COMMUNITY_SOURCES.keys()),
-        default=sorted(COMMUNITY_SOURCES.keys()),
-        help="Quais mods baixar e compilar",
-    )
-    ap.add_argument("--offline-cache", action="store_true", help="Usa arquivos ja baixados em local/ se presentes")
+    ap.add_argument("--file", type=Path, required=True, help="Patch local (.xdelta, .ips, .dospatch ou .zip)")
+    ap.add_argument("--id", required=True, help="ID local seguro do mod (ex: my-custom-mod)")
+    ap.add_argument("--inner-match", default="", help="Filtro opcional de nome interno quando --file e .zip")
+    ap.add_argument("--rom", type=Path, default=USA_ROM_DEFAULT, help="Caminho da ROM retail USA ACVE limpa")
+    ap.add_argument("--data-mods-dir", type=Path, default=ROOT / "mods", help="Diretorio destino {data}/mods")
     args = ap.parse_args(argv)
 
     if not args.rom.is_file():
-        raise SystemExit(f"[erro] ROM USA ausente: {args.rom}")
+        raise SystemExit(f"[erro] ROM USA limpa ausente: {args.rom}")
     usa_rom = args.rom.read_bytes()
-
-    results: list[dict[str, object]] = []
-    for mod_id in args.only:
-        spec = COMMUNITY_SOURCES[mod_id]
-        raw_path = mr.safe_join_under(args.data_mods_dir, "local", spec["download_name"])
-        if args.offline_cache and raw_path.is_file():
-            raw_bytes = raw_path.read_bytes()
-        else:
-            print(f"[fetch] baixando {mod_id} ({spec['name']}) de {spec['url']} ...", flush=True)
-            raw_bytes = download_file(spec["url"], raw_path)
-        dl_sha256 = hashlib.sha256(raw_bytes).hexdigest()
-        inner_name, fmt, patch_bytes = extract_first_compatible_patch(
-            spec["download_name"],
-            raw_bytes,
-            inner_match=spec.get("inner_match", ""),
-        )
-        expected_sha256 = spec.get("expected_patch_sha256", "").strip().lower()
-        actual_sha256 = hashlib.sha256(patch_bytes).hexdigest()
-        if expected_sha256 and actual_sha256 != expected_sha256:
-            raise ValueError(
-                f"SHA-256 divergente para {mod_id} ({inner_name}): esperado {expected_sha256}, obtido {actual_sha256}"
-            )
-        rep = compile_profile_from_patch(
-            mod_id,
-            fmt,
-            patch_bytes,
-            usa_rom,
-            data_mods_dir=args.data_mods_dir,
-            profile_file=spec["profile_file"],
-        )
-        rep["download_sha256"] = dl_sha256
-        rep["source_url"] = spec["url"]
-        rep["inner_patch_name"] = inner_name
-        results.append(rep)
-        print(
-            f"[fetch] OK {mod_id}: inner={inner_name} fmt={fmt} target_size={rep['target_rom_size']} "
-            f"dospatch={rep['dospatch_bytes']}B arm9_diff={rep['arm9_changed_bytes']}B "
-            f"overlays_changed={len(rep['changed_overlays'])} relocated={rep['relocated_overlays']} "
-            f"target_sha1={rep['target_rom_sha1']}"
-        )
+    rep = import_local_patch_file(
+        args.file,
+        args.id,
+        usa_rom,
+        data_mods_dir=args.data_mods_dir,
+        inner_match=args.inner_match,
+    )
+    print(
+        f"[import-mod] OK {rep['profile_id']}: {rep['dospatch_path']} "
+        f"({rep['dospatch_bytes']} B, chunks={rep['chunks']}, overlays={len(rep['changed_overlays'])})"
+    )
     return 0
 
 

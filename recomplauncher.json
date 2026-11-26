@@ -6,7 +6,7 @@
   "inputs": [
     {
       "id": "game",
-      "label": "Your copy of Castlevania: Dawn of Sorrow (USA, ACVE) for Nintendo DS: the 64 MiB .nds file (SHA-1 47530ff87e608f88105a314fdf36dc385f8dec94). The optional PT-BR translation is applied in memory.",
+      "label": "Your copy of Castlevania: Dawn of Sorrow (USA, ACVE) for Nintendo DS: the 64 MiB .nds file (SHA-1 47530ff87e608f88105a314fdf36dc385f8dec94). Optional user-supplied local mods can be placed in {data}/mods/profiles/.",
       "role": "game",
       "formats": [
         {
@@ -43,13 +43,13 @@
       "--rom",
       "{input:game}",
       "--ptbr-patch",
-      "{install}/mods/ptbr/dos-ptbr.dospatch",
+      "{data}/mods/ptbr/dos-ptbr.dospatch",
       "--definitive-en-patch",
-      "{install}/mods/definitive/dos-definitive-en.dospatch",
+      "{data}/mods/definitive/dos-definitive-en.dospatch",
       "--definitive-ptbr-patch",
-      "{install}/mods/definitive/dos-definitive-ptbr.dospatch",
+      "{data}/mods/definitive/dos-definitive-ptbr.dospatch",
       "--intro-video",
-      "{install}/mods/intro/opening.mp4",
+      "{data}/mods/intro/opening.mp4",
       "--mod-registry",
       "{install}/mods/registry.json",
       "--mod-data-dir",
@@ -111,7 +111,7 @@
       "new": {
         "dos_ui_language": "en",
         "dos_game_language": "en",
-        "dos_content_profile": "definitive",
+        "dos_content_profile": "original",
         "dos_enhanced_intro": "true",
         "dos_skip_launcher": "true",
         "dos_fullscreen": "borderless",
@@ -188,7 +188,7 @@
       "id": "game_language",
       "label": "Game Language (ROM) / Idioma do Jogo",
       "group": "Language",
-      "help": "Uses dos-ptbr.dospatch in memory without modifying your original USA .nds file.",
+      "help": "Applies an optional user-supplied translation patch ({data}/mods/ptbr/dos-ptbr.dospatch) in memory without modifying your original USA .nds file.",
       "choices": [
         {
           "label": "English (USA Original)",
@@ -197,7 +197,7 @@
           }
         },
         {
-          "label": "Portugues (BR) — romsportugues.com T1.0",
+          "label": "Portugues (BR) — User-Supplied Patch",
           "set": {
             "dos_game_language": "ptbr"
           }
@@ -211,23 +211,23 @@
       "id": "content_profile",
       "label": "Content Profile / Perfil de Conteudo",
       "group": "Content & Mods",
-      "help": "Definitive Edition combines Dawn of Dignity portraits, Fixed Luck, No Required Touch Screen, 100% Boss Souls fix, Black Panther and Alucard Sword in memory.",
+      "help": "Original USA is the clean default. Optional user-supplied baseline patches placed in {data}/mods/definitive/ can be enabled in memory without modifying your ROM.",
       "choices": [
         {
-          "label": "Definitive Edition (Recommended)",
+          "label": "Original USA (Default)",
           "set": {
-            "dos_content_profile": "definitive"
+            "dos_content_profile": "original"
           }
         },
         {
-          "label": "Original USA (Vanilla)",
+          "label": "Local Baseline Patch (User-Supplied)",
           "set": {
-            "dos_content_profile": "original"
+            "dos_content_profile": "definitive"
           }
         }
       ],
       "defaults": {
-        "dos_content_profile": "definitive"
+        "dos_content_profile": "original"
       }
     },
     {

@@ -103,8 +103,7 @@ class TestWindowsLauncherAndIcon(unittest.TestCase):
         self.assertIn("nds_runner.exe", proc.stdout)
         self.assertIn("--config", proc.stdout)
         self.assertIn("game.toml", proc.stdout)
-        self.assertIn("--ptbr-patch", proc.stdout)
-        self.assertIn("dos-ptbr.dospatch", proc.stdout)
+        self.assertIn("--mod-registry", proc.stdout)
         self.assertIn(str(fake_rom), proc.stdout)
 
     def test_launcher_setup_validates_rom_installs_locally_and_creates_shortcut(self) -> None:

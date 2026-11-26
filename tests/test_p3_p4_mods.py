@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 import import_dsvrandom as idsv  # noqa: E402
+import import_local_mod as ilm  # noqa: E402
 import import_mod_bundle as imb  # noqa: E402
 import mod_resolver as mr  # noqa: E402
 import vcdiff_ips as vi  # noqa: E402
@@ -62,51 +63,48 @@ class TestFoundation16A(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             data_mods = Path(tmp) / "mods"
             (data_mods / "profiles").mkdir(parents=True)
-            (data_mods / "profiles" / "eternity-of-sorrow.dospatch").write_bytes(b"DOSPATCH")
+            (data_mods / "profiles" / "sample-local-mod.dospatch").write_bytes(b"DOSPATCH")
 
             reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
 
-            # Verified: Dawn of Sorrow + Definitive + EN and PT-BR
-            for lang in ("en", "ptbr"):
-                for base in ("definitive", "original"):
-                    dec = reg.resolve(mr.SelectionRequest(baseline_id=base, language=lang))
-                    self.assertEqual(dec.state, "verified")
-                    self.assertTrue(dec.allowed)
+            # Repo registry must ship zero third-party mods; only clean Original USA baseline
+            self.assertEqual(set(reg.baselines), {"original"})
+            self.assertEqual(set(reg.character_packs), {"default"})
+            self.assertIn("dawn-of-sorrow", reg.campaigns)
+            self.assertIn("sample-local-mod", reg.campaigns)
 
-            # Unverified: Eternity installed, blocked without opt-in, allowed with opt-in, never promoted
+            # Verified: Dawn of Sorrow + Original USA + EN
+            dec = reg.resolve(mr.SelectionRequest(baseline_id="original", language="en"))
+            self.assertEqual(dec.state, "verified")
+            self.assertTrue(dec.allowed)
+
+            # Unverified: generic local user mod discovered in {data}/mods/profiles/
             dec_unv = reg.resolve(
-                mr.SelectionRequest(campaign_id="eternity-of-sorrow", baseline_id="original", allow_unverified=False)
+                mr.SelectionRequest(campaign_id="sample-local-mod", baseline_id="original", allow_unverified=False)
             )
             self.assertEqual(dec_unv.state, "unverified")
             self.assertFalse(dec_unv.allowed)
+            self.assertEqual(dec_unv.validation_level, "local_user_mod")
 
             dec_opt = reg.resolve(
-                mr.SelectionRequest(campaign_id="eternity-of-sorrow", baseline_id="original", allow_unverified=True)
+                mr.SelectionRequest(campaign_id="sample-local-mod", baseline_id="original", allow_unverified=True)
             )
             self.assertEqual(dec_opt.state, "unverified")
             self.assertTrue(dec_opt.allowed)
 
-            # Incompatible: stacking Eternity + Definitive, Eternity + Albus, Eternity + PT-BR, missing Albus
-            self.assertEqual(
-                reg.resolve(mr.SelectionRequest(campaign_id="eternity-of-sorrow", baseline_id="definitive")).state,
-                "incompatible",
-            )
+            # Incompatible: stacking local mod + PT-BR, or unknown baseline/pack
             self.assertEqual(
                 reg.resolve(
-                    mr.SelectionRequest(
-                        campaign_id="eternity-of-sorrow", character_pack_id="albus-mode", baseline_id="original"
-                    )
+                    mr.SelectionRequest(campaign_id="sample-local-mod", baseline_id="original", language="ptbr")
                 ).state,
                 "incompatible",
             )
             self.assertEqual(
-                reg.resolve(
-                    mr.SelectionRequest(campaign_id="eternity-of-sorrow", baseline_id="original", language="ptbr")
-                ).state,
+                reg.resolve(mr.SelectionRequest(campaign_id="sample-local-mod", baseline_id="definitive")).state,
                 "incompatible",
             )
             self.assertEqual(
-                reg.resolve(mr.SelectionRequest(character_pack_id="albus-mode", baseline_id="original")).state,
+                reg.resolve(mr.SelectionRequest(character_pack_id="missing-pack", baseline_id="original")).state,
                 "incompatible",
             )
 
@@ -119,67 +117,78 @@ class TestFoundation16A(unittest.TestCase):
             # Safe namespace & path traversal rejection
             self.assertEqual(mr.sanitize_safe_id("../hack"), "")
             self.assertEqual(
-                mr.profile_save_namespace("eternity-of-sorrow", "1.2", "deadbeefcafe"),
-                "eternity-of-sorrow-v1.2-deadbeef",
+                mr.profile_save_namespace("sample-local-mod", "1.2", "deadbeefcafe"),
+                "sample-local-mod-v1.2-deadbeef",
             )
 
 
-class TestCampaignsAndCharacterPacks16BC(unittest.TestCase):
-    def test_character_packs_exclusive_group_and_manual_slots_uninstalled(self) -> None:
+class TestGenericLocalModImport(unittest.TestCase):
+    def test_synthetic_registry_character_packs_and_local_patch_importer(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            data_mods = Path(tmp) / "mods"
+            t = Path(tmp)
+            data_mods = t / "mods"
             (data_mods / "profiles").mkdir(parents=True)
-            for fname in ("albus-mode.dospatch", "model-zx.dospatch", "model-omega.dospatch"):
-                (data_mods / "profiles" / fname).write_bytes(b"DOSPATCH")
+            (data_mods / "profiles" / "sample-pack-a.dospatch").write_bytes(b"DOSPATCH")
 
-            reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
+            synthetic_reg = {
+                "schema": "cdos.mod-registry.v1",
+                "base_rom_sha1": "47530ff87e608f88105a314fdf36dc385f8dec94",
+                "runtime_compat": "cdos-recomp-v1",
+                "baselines": [
+                    {"id": "original", "name": "Original USA", "version": "1.0", "builtin": True, "state": "verified", "validation_level": "full", "supports_ptbr": True},
+                ],
+                "campaigns": [
+                    {"id": "dawn-of-sorrow", "name": "Dawn of Sorrow", "version": "1.0", "builtin": True, "state": "verified", "validation_level": "full", "supports_ptbr": True, "definitive_compatible": True, "allowed_character_packs": ["default", "sample-pack-a", "sample-pack-missing"]},
+                ],
+                "character_packs": [
+                    {"id": "default", "name": "Native", "version": "1.0", "builtin": True, "state": "verified", "validation_level": "full", "compatible_campaigns": ["dawn-of-sorrow"], "supports_ptbr": True},
+                    {"id": "sample-pack-a", "name": "Sample Pack A", "version": "1.0", "builtin": False, "state": "unverified", "validation_level": "none", "exclusive_group": "custom-pack", "profile_file": "sample-pack-a.dospatch", "compatible_campaigns": ["dawn-of-sorrow"], "supports_ptbr": False},
+                    {"id": "sample-pack-missing", "name": "Missing Pack", "version": "1.0", "builtin": False, "state": "unverified", "validation_level": "none", "exclusive_group": "custom-pack", "profile_file": "missing.dospatch", "compatible_campaigns": ["dawn-of-sorrow"], "supports_ptbr": False},
+                ],
+                "verified_combinations": [
+                    {"campaign": "dawn-of-sorrow", "character_pack": "default", "baseline": "original", "language": "en", "validation_level": "full"},
+                ],
+            }
+            reg = mr.ModRegistry(synthetic_reg, data_mods_dir=data_mods)
 
-            # All three Julius Mode packs share exclusive_group "julius-pack" and remain unverified
-            for pack_id in ("albus-mode", "model-zx", "model-omega"):
-                pack = reg.character_packs[pack_id]
-                self.assertEqual(pack["exclusive_group"], "julius-pack")
-                self.assertEqual(pack["state"], "unverified")
-                self.assertTrue(reg._profile_installed(pack)[0])
-                dec_blocked = reg.resolve(
-                    mr.SelectionRequest(character_pack_id=pack_id, baseline_id="original", allow_unverified=False)
-                )
-                self.assertEqual(dec_blocked.state, "unverified")
-                self.assertFalse(dec_blocked.allowed)
-                dec_ok = reg.resolve(
-                    mr.SelectionRequest(character_pack_id=pack_id, baseline_id="original", allow_unverified=True)
-                )
-                self.assertEqual(dec_ok.state, "unverified")
-                self.assertTrue(dec_ok.allowed)
-                # Cannot stack Julius Mode pack over PT-BR or Eternity
-                self.assertEqual(
-                    reg.resolve(
-                        mr.SelectionRequest(character_pack_id=pack_id, baseline_id="original", language="ptbr")
-                    ).state,
-                    "incompatible",
-                )
-                self.assertEqual(
-                    reg.resolve(
-                        mr.SelectionRequest(
-                            campaign_id="eternity-of-sorrow", character_pack_id=pack_id, baseline_id="original"
-                        )
-                    ).state,
-                    "incompatible",
-                )
-
-            # Manual-import slots must report installed=False and be incompatible when absent
-            for manual_cid in ("alucards-requiem-sotn", "alucards-requiem-cv3", "draculas-curse"):
-                self.assertFalse(reg._profile_installed(reg.campaigns[manual_cid])[0])
-                dec = reg.resolve(
-                    mr.SelectionRequest(campaign_id=manual_cid, baseline_id="original", allow_unverified=True)
-                )
-                self.assertEqual(dec.state, "incompatible")
-                self.assertFalse(dec.allowed)
-
-            self.assertFalse(reg._profile_installed(reg.baselines["definitive-plus"])[0])
+            dec_blocked = reg.resolve(
+                mr.SelectionRequest(character_pack_id="sample-pack-a", baseline_id="original", allow_unverified=False)
+            )
+            self.assertEqual(dec_blocked.state, "unverified")
+            self.assertFalse(dec_blocked.allowed)
+            dec_ok = reg.resolve(
+                mr.SelectionRequest(character_pack_id="sample-pack-a", baseline_id="original", allow_unverified=True)
+            )
+            self.assertEqual(dec_ok.state, "unverified")
+            self.assertTrue(dec_ok.allowed)
             self.assertEqual(
-                reg.resolve(mr.SelectionRequest(baseline_id="definitive-plus", allow_unverified=True)).state,
+                reg.resolve(
+                    mr.SelectionRequest(character_pack_id="sample-pack-a", baseline_id="original", language="ptbr")
+                ).state,
                 "incompatible",
             )
+            self.assertEqual(
+                reg.resolve(
+                    mr.SelectionRequest(character_pack_id="sample-pack-missing", baseline_id="original", allow_unverified=True)
+                ).state,
+                "incompatible",
+            )
+
+            # Offline local patch importer (IPS -> DOSPATCH) without any network/hardcoded URLs
+            import hashlib
+
+            usa_rom = bytearray(4096)
+            usa_rom[0x0C:0x10] = b"ACVE"
+            ips_file = t / "custom.ips"
+            ips_file.write_bytes(b"PATCH\x00\x01\x00\x00\x04TESTEOF")
+            orig_sha1 = ilm.USA_SHA1
+            try:
+                ilm.USA_SHA1 = hashlib.sha1(usa_rom).hexdigest()
+                rep = ilm.import_local_patch_file(ips_file, "my-ips-mod", bytes(usa_rom), data_mods_dir=data_mods)
+                self.assertEqual(rep["profile_id"], "my-ips-mod")
+                self.assertTrue((data_mods / "profiles" / "my-ips-mod.dospatch").is_file())
+            finally:
+                ilm.USA_SHA1 = orig_sha1
 
 
 class TestRandomizer16D(unittest.TestCase):

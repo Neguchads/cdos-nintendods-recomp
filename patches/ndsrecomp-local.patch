@@ -2979,7 +2979,7 @@ index 0000000..e23c59b
 +}
 diff --git a/runner/src/dos_enhancements.h b/runner/src/dos_enhancements.h
 new file mode 100644
-index 0000000..6f8ba69
+index 0000000..9acf0b2
 --- /dev/null
 +++ b/runner/src/dos_enhancements.h
 @@ -0,0 +1,339 @@
@@ -3136,7 +3136,7 @@ index 0000000..6f8ba69
 +    bool mute_unfocused = false;
 +    DosLanguage ui_language = DosLanguage::English;
 +    DosLanguage game_language = DosLanguage::English;
-+    DosContentProfile content_profile = DosContentProfile::Definitive;
++    DosContentProfile content_profile = DosContentProfile::Original;
 +    bool enhanced_intro = true;
 +    std::string active_campaign = "dawn-of-sorrow";
 +    std::string active_character_pack = "default";
@@ -7663,7 +7663,7 @@ index 0000000..2f75d9f
 +inline constexpr size_t kDosPostProcessSpirvSize = sizeof(kDosPostProcessSpirv);
 diff --git a/runner/src/dos_i18n.cpp b/runner/src/dos_i18n.cpp
 new file mode 100644
-index 0000000..f1884e2
+index 0000000..ffcbbae
 --- /dev/null
 +++ b/runner/src/dos_i18n.cpp
 @@ -0,0 +1,334 @@
@@ -7899,16 +7899,16 @@ index 0000000..f1884e2
 +    {DosStrId::BtnStepFrame, "Step 1 Frame", "Avançar 1 Frame"},
 +    {DosStrId::BtnSoftReset, "Reset Game", "Reiniciar Jogo"},
 +
-+    {DosStrId::SecContentMods, "Content & Mods (Definitive + Intro)", "Conteúdo & Mods (Definitive + Abertura)"},
++    {DosStrId::SecContentMods, "Mods & Local Patches", "Mods & Patches Locais"},
 +    {DosStrId::LblContentProfile, "Content Profile (ROM)", "Perfil de Conteúdo (ROM)"},
-+    {DosStrId::ProfileDefinitive, "Definitive Edition (QoL + Portraits)", "Definitive Edition (QoL + Retratos)"},
-+    {DosStrId::ProfileOriginal, "Original USA (Vanilla)", "Original USA (Vanilla)"},
++    {DosStrId::ProfileDefinitive, "Local Baseline Patch (Optional)", "Patch Base Local (Opcional)"},
++    {DosStrId::ProfileOriginal, "Original USA (Retail)", "Original USA (Oficial)"},
 +    {DosStrId::ContentDefinitiveFeatures,
-+     "Integrated: Dawn of Dignity portraits, Fixed Luck, No Touch Seals, 100% Boss Souls fix, Black Panther & Alucard Sword.",
-+     "Integrado: Retratos Dawn of Dignity, Sorte Corrigida, Sem Selos Touch, Almas 100% de Chefes, Black Panther e Alucard Sword."},
++     "User-supplied local baseline patch active in memory (Original USA ROM remains unmodified on disk).",
++     "Patch base local fornecido pelo usuário ativo em memória (ROM Original USA intacta no disco)."},
 +    {DosStrId::ContentDefinitiveMissing,
-+     "Definitive patch not loaded. Supply --definitive-en-patch / --definitive-ptbr-patch to enable.",
-+     "Patch Definitive não carregado. Informe --definitive-en-patch / --definitive-ptbr-patch para habilitar."},
++     "No optional baseline patch loaded. Import your own .dospatch mods into {data}/mods/profiles/.",
++     "Nenhum patch base opcional carregado. Importe seus próprios mods .dospatch em {data}/mods/profiles/."},
 +    {DosStrId::LblEnhancedIntro, "Play Enhanced Opening Video on Launch", "Reproduzir Abertura Aprimorada ao Iniciar"},
 +    {DosStrId::BtnPlayIntroNow, "Play Opening Now", "Assistir Abertura Agora"},
 +    {DosStrId::IntroVideoReady, "Opening video ready (native Media Foundation decoder).", "Vídeo de abertura pronto (decodificador nativo Media Foundation)."},
@@ -10852,10 +10852,10 @@ index 0000000..b5a0dc8
 +std::string dos_profile_save_path(const std::string& base_save_path, DosContentProfile profile);
 diff --git a/runner/src/dos_mod_registry.cpp b/runner/src/dos_mod_registry.cpp
 new file mode 100644
-index 0000000..beb3088
+index 0000000..ada7e4e
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.cpp
-@@ -0,0 +1,804 @@
+@@ -0,0 +1,824 @@
 +#include "dos_mod_registry.h"
 +
 +#include <algorithm>
@@ -11127,21 +11127,9 @@ index 0000000..beb3088
 +    out->character_packs.clear();
 +    out->verified_combos.clear();
 +
-+    DosModEntry def{};
-+    def.id = "definitive";
-+    def.name = "Definitive Edition (Integrated Default)";
-+    def.version = "1.0";
-+    def.kind = "baseline";
-+    def.builtin = true;
-+    def.supports_ptbr = true;
-+    def.registry_state = "verified";
-+    def.validation_level = "full";
-+    def.installed = true;
-+    out->baselines.push_back(def);
-+
 +    DosModEntry orig{};
 +    orig.id = "original";
-+    orig.name = "Original USA (Advanced Compatibility Mode)";
++    orig.name = "Original USA (Retail ACVE)";
 +    orig.version = "1.0";
 +    orig.kind = "baseline";
 +    orig.builtin = true;
@@ -11150,6 +11138,18 @@ index 0000000..beb3088
 +    orig.validation_level = "full";
 +    orig.installed = true;
 +    out->baselines.push_back(orig);
++
++    DosModEntry def{};
++    def.id = "definitive";
++    def.name = "Optional Local Baseline Patch";
++    def.version = "1.0";
++    def.kind = "baseline";
++    def.builtin = true;
++    def.supports_ptbr = true;
++    def.registry_state = "verified";
++    def.validation_level = "full";
++    def.installed = true;
++    out->baselines.push_back(def);
 +
 +    DosModEntry camp{};
 +    camp.id = "dawn-of-sorrow";
@@ -11178,7 +11178,7 @@ index 0000000..beb3088
 +    pack.installed = true;
 +    out->character_packs.push_back(pack);
 +
-+    for (const char* b : {"definitive", "original"}) {
++    for (const char* b : {"original", "definitive"}) {
 +        for (const char* l : {"en", "ptbr"}) {
 +            out->verified_combos.push_back({"dawn-of-sorrow", "default", b, l, "full"});
 +        }
@@ -11284,12 +11284,12 @@ index 0000000..beb3088
 +
 +void dos_mod_registry_rescan_installed(DosModRegistry* reg) {
 +    if (!reg) return;
-+    // Remove entradas dinamicas antigas de dsvrandom antes de reescanear.
++    // Remove entradas dinamicas antigas (randomizer externo e mods locais) antes de reescanear.
 +    reg->campaigns.erase(
 +        std::remove_if(reg->campaigns.begin(), reg->campaigns.end(),
 +                       [](const DosModEntry& e) {
-+                           return e.validation_level == "external_randomizer" &&
-+                                  e.id.rfind("dsvrandom-", 0) == 0;
++                           return e.validation_level == "external_randomizer" ||
++                                  e.validation_level == "local_user_mod";
 +                       }),
 +        reg->campaigns.end());
 +
@@ -11315,7 +11315,18 @@ index 0000000..beb3088
 +    check_list(reg->campaigns);
 +    check_list(reg->character_packs);
 +
-+    // Descoberta automatica de seeds externas importadas do DSVania Randomizer (dsvrandom-*.dospatch).
++    // Descoberta generica automatica de qualquer patch *.dospatch colocado pelo usuario em {data}/mods/profiles/.
++    auto file_already_registered = [&](const std::string& fname) -> bool {
++        const std::string lc_name = lower_ascii(fname);
++        auto in_list = [&](const std::vector<DosModEntry>& list) {
++            for (const auto& e : list) {
++                if (!e.profile_file.empty() && lower_ascii(e.profile_file) == lc_name) return true;
++            }
++            return false;
++        };
++        return in_list(reg->baselines) || in_list(reg->campaigns) || in_list(reg->character_packs);
++    };
++
 +    if (!reg->data_mods_dir.empty()) {
 +        std::error_code ec;
 +        const fs::path prof_dir = fs::path(reg->data_mods_dir) / "profiles";
@@ -11326,27 +11337,36 @@ index 0000000..beb3088
 +                if (!entry.is_regular_file(ec)) continue;
 +                const std::string fname = entry.path().filename().string();
 +                const std::string lc = lower_ascii(fname);
-+                if (lc.rfind("dsvrandom-", 0) == 0 && lc.size() > 19 &&
-+                    lc.compare(lc.size() - 9, 9, ".dospatch") == 0) {
++                if (lc.size() > 9 && lc.compare(lc.size() - 9, 9, ".dospatch") == 0) {
 +                    found.push_back(entry.path());
 +                }
 +            }
 +            std::sort(found.begin(), found.end());
 +            for (const auto& p : found) {
++                const std::string fname = p.filename().string();
++                if (file_already_registered(fname)) continue;
 +                const std::string stem = p.stem().string();
 +                const std::string safe_id = dos_mod_sanitize_id(stem);
 +                if (safe_id.empty() || find_entry(reg->campaigns, safe_id) != nullptr) continue;
-+                const std::string seed_label = safe_id.size() > 10 ? safe_id.substr(10) : safe_id;
++
++                const bool is_dsvrandom = (safe_id.rfind("dsvrandom-", 0) == 0 && safe_id.size() > 10);
 +                DosModEntry e{};
 +                e.id = safe_id;
-+                e.name = "DSVania Randomizer (" + seed_label + ")";
 +                e.version = "1.0";
 +                e.kind = "campaign";
-+                e.profile_file = p.filename().string();
-+                e.author = "LagoLunatic (DSVania Randomizer external output)";
-+                e.summary = "Externally generated DSVania Randomizer seed imported as DOSPATCH.";
-+                e.source_url = "https://github.com/LagoLunatic/dsvrandom";
-+                e.validation_level = "external_randomizer";
++                e.profile_file = fname;
++                if (is_dsvrandom) {
++                    const std::string seed_label = safe_id.substr(10);
++                    e.name = "DSVania Randomizer (" + seed_label + ")";
++                    e.author = "Local randomizer output";
++                    e.summary = "Externally generated randomizer seed imported locally as DOSPATCH.";
++                    e.validation_level = "external_randomizer";
++                } else {
++                    e.name = "Local Mod: " + stem;
++                    e.author = "User local patch";
++                    e.summary = "User-supplied local DOSPATCH profile in {data}/mods/profiles/.";
++                    e.validation_level = "local_user_mod";
++                }
 +                e.registry_state = "unverified";
 +                e.allowed_character_packs = {"default"};
 +                e.builtin = false;
@@ -11662,7 +11682,7 @@ index 0000000..beb3088
 +}
 diff --git a/runner/src/dos_mod_registry.h b/runner/src/dos_mod_registry.h
 new file mode 100644
-index 0000000..595350e
+index 0000000..70740c2
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.h
 @@ -0,0 +1,124 @@
@@ -11726,7 +11746,7 @@ index 0000000..595350e
 +struct DosModSelection {
 +    std::string campaign_id = "dawn-of-sorrow";
 +    std::string character_pack_id = "default";
-+    std::string baseline_id = "definitive";
++    std::string baseline_id = "original";
 +    DosLanguage language = DosLanguage::English;
 +    bool allow_unverified = false;
 +    std::string randomizer_seed;
@@ -18670,10 +18690,10 @@ index 1fa4362..8ea2229 100644
  void nds_title_patches_start_frame();
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..a01611f
+index 0000000..3357695
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,1075 @@
+@@ -0,0 +1,1091 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -19312,18 +19332,18 @@ index 0000000..a01611f
 +
 +void test_mod_registry_and_conflict_engine() {
 +    // Path traversal sanitization
-+    assert(dos_mod_sanitize_id("eternity-of-sorrow") == "eternity-of-sorrow");
++    assert(dos_mod_sanitize_id("sample-campaign") == "sample-campaign");
 +    assert(dos_mod_sanitize_id("../evil").empty());
 +    assert(dos_mod_sanitize_id("a/b").empty());
 +    assert(dos_mod_sanitize_id("C:drive").empty());
 +    assert(dos_mod_sanitize_seed("CDOS-2026!@#../ok") == "CDOS-2026ok");
 +
-+    // Isolated save paths preserve PR #15 paths for original/definitive and namespace others
++    // Isolated save paths preserve base paths for original/definitive and namespace custom mods
 +    assert(dos_mod_isolated_save_path("saves/dos.sav", "original", "1.0", "abcd1234") == "saves/dos.sav");
 +    assert(dos_mod_isolated_save_path("saves/dos.sav", "definitive", "1.0", "abcd1234").find("definitive") != std::string::npos);
 +    const std::string custom_sav =
-+        dos_mod_isolated_save_path("saves/dos.sav", "eternity-of-sorrow", "1.2", "deadbeef9999");
-+    assert(custom_sav.find("eternity-of-sorrow-v1.2-deadbeef") != std::string::npos);
++        dos_mod_isolated_save_path("saves/dos.sav", "sample-campaign", "1.2", "deadbeef9999");
++    assert(custom_sav.find("sample-campaign-v1.2-deadbeef") != std::string::npos);
 +
 +    const auto tmp_dir = std::filesystem::temp_directory_path() / "dos_mod_reg_test";
 +    std::error_code ec;
@@ -19336,24 +19356,25 @@ index 0000000..a01611f
 +      "base_rom_sha1": "47530ff87e608f88105a314fdf36dc385f8dec94",
 +      "runtime_compat": "cdos-recomp-v1",
 +      "baselines": [
-+        {"id": "definitive", "name": "Definitive", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true},
-+        {"id": "original", "name": "Original", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true}
++        {"id": "original", "name": "Original", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true},
++        {"id": "definitive", "name": "Optional Baseline", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true}
 +      ],
 +      "campaigns": [
-+        {"id": "dawn-of-sorrow", "name": "DoS", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true, "definitive_compatible": true, "allowed_character_packs": ["default", "albus-mode"]},
-+        {"id": "eternity-of-sorrow", "name": "Eternity", "version": "1.2", "builtin": false, "state": "unverified", "validation_level": "boot_only", "profile_file": "eternity-of-sorrow.dospatch", "supports_ptbr": false, "definitive_compatible": false, "allowed_character_packs": ["default"]}
++        {"id": "dawn-of-sorrow", "name": "DoS", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "supports_ptbr": true, "definitive_compatible": true, "allowed_character_packs": ["default", "sample-char-pack"]},
++        {"id": "sample-campaign", "name": "Sample Campaign", "version": "1.2", "builtin": false, "state": "unverified", "validation_level": "boot_only", "profile_file": "sample-campaign.dospatch", "supports_ptbr": false, "definitive_compatible": false, "allowed_character_packs": ["default"]}
 +      ],
 +      "character_packs": [
-+        {"id": "default", "name": "Native", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "compatible_campaigns": ["dawn-of-sorrow", "eternity-of-sorrow"], "supports_ptbr": true},
-+        {"id": "albus-mode", "name": "Albus", "version": "1.0", "builtin": false, "state": "unverified", "validation_level": "none", "profile_file": "albus-mode.dospatch", "compatible_campaigns": ["dawn-of-sorrow"], "supports_ptbr": false}
++        {"id": "default", "name": "Native", "version": "1.0", "builtin": true, "state": "verified", "validation_level": "full", "compatible_campaigns": ["dawn-of-sorrow", "sample-campaign"], "supports_ptbr": true},
++        {"id": "sample-char-pack", "name": "Sample Pack", "version": "1.0", "builtin": false, "state": "unverified", "validation_level": "none", "profile_file": "sample-char-pack.dospatch", "compatible_campaigns": ["dawn-of-sorrow"], "supports_ptbr": false}
 +      ],
 +      "verified_combinations": [
++        {"campaign": "dawn-of-sorrow", "character_pack": "default", "baseline": "original", "language": "en", "validation_level": "full"},
 +        {"campaign": "dawn-of-sorrow", "character_pack": "default", "baseline": "definitive", "language": "en", "validation_level": "full"}
 +      ]
 +    })";
 +    assert(dos_write_text_atomic(reg_json, reg_body));
-+    // Install dummy eternity profile file; leave albus missing.
-+    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "eternity-of-sorrow.dospatch").string(), "DOSPATCH"));
++    // Install dummy sample campaign profile file; leave sample-char-pack missing.
++    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "sample-campaign.dospatch").string(), "DOSPATCH"));
 +
 +    DosModRegistry reg{};
 +    std::string err;
@@ -19365,14 +19386,15 @@ index 0000000..a01611f
 +    builtin.rom_definitive_en = {9, 9, 9, 1};
 +    const std::string sha = "47530ff87e608f88105a314fdf36dc385f8dec94";
 +
-+    // 1. Verified combination
++    // 1. Verified combination (default is now Original USA)
 +    DosModSelection s_ok{};
++    assert(s_ok.baseline_id == "original");
 +    auto dec = dos_mod_resolve_conflict(reg, s_ok, sha, builtin);
 +    assert(dec.state == DosCompatState::Verified && dec.allowed);
 +
 +    // 2. Unverified campaign: blocked without opt-in, allowed with opt-in, never promoted to Verified
 +    DosModSelection s_unv{};
-+    s_unv.campaign_id = "eternity-of-sorrow";
++    s_unv.campaign_id = "sample-campaign";
 +    s_unv.baseline_id = "original";
 +    s_unv.allow_unverified = false;
 +    dec = dos_mod_resolve_conflict(reg, s_unv, sha, builtin);
@@ -19381,19 +19403,19 @@ index 0000000..a01611f
 +    dec = dos_mod_resolve_conflict(reg, s_unv, sha, builtin);
 +    assert(dec.state == DosCompatState::Unverified && dec.allowed);
 +
-+    // 3. Incompatible: Eternity + Definitive, Eternity + Albus, Eternity + PT-BR, missing Albus
++    // 3. Incompatible: Sample Campaign + Definitive, Sample Campaign + Sample Pack, Sample Campaign + PT-BR, missing Pack
 +    DosModSelection s_bad = s_unv;
 +    s_bad.baseline_id = "definitive";
 +    assert(dos_mod_resolve_conflict(reg, s_bad, sha, builtin).state == DosCompatState::Incompatible);
 +    s_bad = s_unv;
-+    s_bad.character_pack_id = "albus-mode";
++    s_bad.character_pack_id = "sample-char-pack";
 +    assert(dos_mod_resolve_conflict(reg, s_bad, sha, builtin).state == DosCompatState::Incompatible);
 +    s_bad = s_unv;
 +    s_bad.language = DosLanguage::PtBr;
 +    assert(dos_mod_resolve_conflict(reg, s_bad, sha, builtin).state == DosCompatState::Incompatible);
 +
 +    DosModSelection s_missing{};
-+    s_missing.character_pack_id = "albus-mode";
++    s_missing.character_pack_id = "sample-char-pack";
 +    s_missing.baseline_id = "original";
 +    assert(dos_mod_resolve_conflict(reg, s_missing, sha, builtin).state == DosCompatState::Incompatible);
 +
@@ -19413,12 +19435,13 @@ index 0000000..a01611f
 +
 +    // Seed Mutator cannot be stacked on an overhaul campaign
 +    DosModSelection s_seed_bad = s_seed;
-+    s_seed_bad.campaign_id = "eternity-of-sorrow";
++    s_seed_bad.campaign_id = "sample-campaign";
 +    s_seed_bad.baseline_id = "original";
 +    assert(dos_mod_resolve_conflict(reg, s_seed_bad, sha, builtin).state == DosCompatState::Incompatible);
 +
-+    // 5. Dynamic discovery of externally generated DSVania Randomizer (dsvrandom-*.dospatch)
++    // 5. Dynamic discovery of externally generated randomizer AND generic user-supplied *.dospatch files
 +    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "dsvrandom-demo2026.dospatch").string(), "DOSPATCH"));
++    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "my-local-mod.dospatch").string(), "DOSPATCH"));
 +    dos_mod_registry_rescan_installed(&reg);
 +    DosModSelection s_dsv{};
 +    s_dsv.campaign_id = "dsvrandom-demo2026";
@@ -19430,6 +19453,19 @@ index 0000000..a01611f
 +    // Must reject stacking dsvrandom over Definitive or PT-BR
 +    s_dsv.baseline_id = "definitive";
 +    assert(dos_mod_resolve_conflict(reg, s_dsv, sha, builtin).state == DosCompatState::Incompatible);
++
++    // 5b. Generic user-supplied local mod auto-discovery
++    DosModSelection s_local{};
++    s_local.campaign_id = "my-local-mod";
++    s_local.baseline_id = "original";
++    s_local.allow_unverified = false;
++    dec = dos_mod_resolve_conflict(reg, s_local, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && !dec.allowed);
++    assert(dec.validation_level == "local_user_mod");
++    s_local.allow_unverified = true;
++    dec = dos_mod_resolve_conflict(reg, s_local, sha, builtin);
++    assert(dec.state == DosCompatState::Unverified && dec.allowed);
++    assert(dec.patch_path.find("my-local-mod.dospatch") != std::string::npos);
 +
 +    // 6. Seed Mutator binary safety: reject wrong game code and altered table signature
 +    std::vector<uint8_t> fake_rom(kDosEnemyDnaTableRomOffset + kDosEnemyDnaTableBytes + 64, 0);
