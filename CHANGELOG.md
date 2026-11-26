@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 (2026-11-26)
 
 ### Added
 - **Modular Stackable Patch Composition in Memory (Fatia 2, inspired by `cdos-patcher-tool` & `@leomontenegro6`):** split `mods/registry.json` into **Modular Add-Ons (`"addons"`)** (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) and exclusive **Campaigns (`"campaigns"`)**. Players can now combine any subset of installed modular add-ons via checkboxes in `F1 -> Mods & Campaigns`, using a **3-way byte-diff overlay merger against the clean USA `base_rom`** + automatic NDS header CRC-16/MODBUS (`0x15E..0x15F`) recomputation, persistent `dos_active_addons` INI key, isolated saves per stack (`modular-stack`), and full Python/C++ parity (`tools/mod_resolver.py`, `dos_mod_registry.cpp`).
