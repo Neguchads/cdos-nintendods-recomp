@@ -144,7 +144,7 @@
 
 ### Pesquisa comunitária exploratória (sem compromisso de entrega)
 
-- Buscar colaboradores e ferramentas open source para ports independentes da trilogia DS (contexto Dominus Collection) e da trilogia GBA (Circle of the Moon, Harmony of Dissonance, Aria of Sorrow). Avaliar viabilidade, procedência legal, infraestrutura compartilhada e trabalhos existentes. Consulte o [convite à comunidade](README.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Não são metas de release atuais nem funcionalidades verificadas.
+- Buscar colaboradores e ferramentas open source para ports independentes da trilogia DS (contexto Dominus Collection) e da trilogia GBA (Circle of the Moon, Harmony of Dissonance, Aria of Sorrow). Avaliar viabilidade, procedência legal, infraestrutura compartilhada e trabalhos existentes. Consulte o [convite à comunidade](README.pt-BR.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Não são metas de release atuais nem funcionalidades verificadas.
 
 ### Planejado (Futuro)
 - Validação completa de campanha (do início aos créditos) para promover *Widescreen 2D Nativo `342×192`* de Beta para Verificado.

@@ -20,8 +20,8 @@ We welcome research, ideas and contributions for the Dominus Collection / Ninten
 - Use [Discussions](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) or [Discord](https://discord.gg/s7CWbpZJ) for questions, brainstorming and community support.
 - For code or documentation changes, fork the repository, create a focused branch and open a [pull request](https://github.com/Neguchads/cdos-nintendods-recomp/pulls) describing the change, motivation, test results and known limitations. Reference the issue when applicable. Review existing PRs and offer constructive feedback.
 - Include OS, release or commit, relevant settings, reproduction steps and expected versus actual behavior in bug reports. Redact private information.
-- Follow the existing build and test instructions in [README.md](README.md). Update the [feature registry](quality/features.json) and regenerate the dashboard when feature status changes, following [the quality policy](docs/FEATURE_ASSURANCE.md).
-- Keep submissions clean-room: do not include commercial ROMs, BIOS, game data or third-party mods without permission. Follow the repository's [license](LICENSE) and [creator policy](docs/CREDITS.md). Respect other contributors.
+- Follow the existing build and test instructions in the [English technical guide](README.en.md#clone-and-dependencies). Update the [feature registry](quality/features.json) and regenerate the dashboard when feature status changes, following [the quality policy](docs/FEATURE_ASSURANCE.md).
+- Keep submissions clean-room: do not include commercial ROMs, BIOS, game data or third-party mods without permission. Follow the repository's [licensing review](docs/LICENSE_REVIEW.md) and [creator policy](docs/CREDITS.md). Respect other contributors.
 
 Contributions of any size are appreciated; proposals are reviewed for correctness, scope, compatibility and maintainability.
 
@@ -31,7 +31,7 @@ Toda ajuda, ideias, pull requests, revisão de código, testes, suporte à comun
 
 ### Pesquisa futura de Castlevania
 
-São bem-vindas pesquisas, ideias e contribuições para a Dominus Collection / trilogia Nintendo DS e os três Castlevania originais de GBA. Consulte o [convite à comunidade](README.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Discuta a viabilidade e os projetos open source existentes antes de propor uma implementação; não inclua ROMs comerciais nem recursos proprietários nas contribuições.
+São bem-vindas pesquisas, ideias e contribuições para a Dominus Collection / trilogia Nintendo DS e os três Castlevania originais de GBA. Consulte o [convite à comunidade](README.pt-BR.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Discuta a viabilidade e os projetos open source existentes antes de propor uma implementação; não inclua ROMs comerciais nem recursos proprietários nas contribuições.
 
 ### Antes de abrir uma issue
 
@@ -43,7 +43,7 @@ São bem-vindas pesquisas, ideias e contribuições para a Dominus Collection / 
 - Use [Discussions](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) ou [Discord](https://discord.gg/s7CWbpZJ) para perguntas, ideias e suporte comunitário.
 - Para alterar código ou documentação, faça um fork, crie uma branch específica e abra um [pull request](https://github.com/Neguchads/cdos-nintendods-recomp/pulls) descrevendo a alteração, motivação, resultados dos testes e limitações. Referencie a issue correspondente. Revisões construtivas de PRs também são bem-vindas.
 - Em relatos de bugs, informe sistema operacional, versão ou commit, configurações relevantes, passos para reproduzir e comportamento esperado e observado. Remova informações privadas.
-- Siga as instruções de compilação e testes do [README.md](README.md). Ao alterar o status de funcionalidades, atualize o [catálogo](quality/features.json) e regenere o dashboard conforme a [política de qualidade](docs/FEATURE_ASSURANCE.md).
-- Preserve a política clean-room: não inclua ROMs comerciais, BIOS, dados do jogo ou mods de terceiros sem autorização. Respeite a [licença](LICENSE), a [política de criadores](docs/CREDITS.md) e os demais colaboradores.
+- Siga as instruções de compilação e testes do [guia em português](README.pt-BR.md#clone-e-dependências). Ao alterar o status de funcionalidades, atualize o [catálogo](quality/features.json) e regenere o dashboard conforme a [política de qualidade](docs/FEATURE_ASSURANCE.md).
+- Preserve a política clean-room: não inclua ROMs comerciais, BIOS, dados do jogo ou mods de terceiros sem autorização. Respeite a [revisão de licenciamento](docs/LICENSE_REVIEW.md), a [política de criadores](docs/CREDITS.md) e os demais colaboradores.
 
 Contribuições de qualquer tamanho são valorizadas; propostas serão avaliadas por correção, escopo, compatibilidade e facilidade de manutenção.
