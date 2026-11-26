@@ -8,7 +8,7 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.2.0` — In-Game Patch Importer, Samus Returns Minimap HUD, `60Hz` Pitch-Preserving VSync & Clean-Room Mod Support)
+### Current Technical State (`v1.2.1` Clean-Room Release — In-Game Patch Importer, Quick Per-Mod Patch Buttons, Samus Returns Minimap HUD, `60Hz` Pitch-Preserving VSync)
 - **Latest Feature (Per-Mod Quick Patch Buttons, PT-BR v1.1 & Community `manual_import` Slots, Full Credits & Outreach):**
   - Added inline **`Patch...`** (targeted `dos_mod_import_patch_file(..., target_profile_id)` installing any user-picked `.xdelta`/`.ips`/`.dospatch` straight into that mod's slot and cleaning stale extensions) and **`Official Page`** (`https://`-only `SDL_OpenURL`) buttons beside every non-builtin mod in `F1 -> Mods & Campaigns`.
   - Added clean-room `manual_import: true` slots in `mods/registry.json` (zero files bundled/downloaded; `@OerstedLAL` mods remain permanently excluded per #43) for **Tradução PT-BR v1.1 (Vanilla & Definitive Edition)**, **Definitive Edition+**, **Eternity of Sorrow** (authorized #44), **Alucard's Requiem (SOTN/CV3)**, and **Dracula's Curse**, with complete attribution in `docs/CREDITS.md` (including `leomontenegro6/cdos-traducao-ptbr` & João13 Traduções) and ready-to-send creator permission requests in `docs/CREATOR_OUTREACH.md`.
@@ -69,7 +69,7 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`main` pós-`v1.2.0` — Importador In-Game de Patches, Minimap HUD Samus Returns, VSync 60Hz & Suporte Clean-Room a Mods)
+### Estado Técnico Atual (`v1.2.1` Release Clean-Room — Importador In-Game, Botões Rápidos por Mod, Minimap HUD Samus Returns & VSync 60Hz)
 - **Última fatia (Botões Rápidos de Patch por Mod, Slots PT-BR v1.1 & Créditos/Permissões):**
   - Adicionados botões inline **`Aplicar Patch...`** (`dos_mod_import_patch_file(..., target_profile_id)` instalando o `.xdelta`/`.ips`/`.dospatch` direto no slot do mod escolhido e limpando extensões antigas) e **`Site Oficial`** (`SDL_OpenURL` restrito a `https://`) ao lado de cada mod no `F1 -> Mods & Campanhas`.
   - Adicionados slots clean-room `manual_import: true` em `mods/registry.json` (zero arquivos embutidos; mods de `@OerstedLAL` mantidos fora conforme #43) para **Tradução PT-BR v1.1 (Vanilla & DE)**, **Definitive Edition+**, **Eternity of Sorrow** (autorizado #44), **Alucard's Requiem (SOTN/CV3)** e **Dracula's Curse**, com créditos completos em `docs/CREDITS.md` (incluindo `leomontenegro6/cdos-traducao-ptbr` e João13 Traduções) e pedidos prontos de permissão em `docs/CREATOR_OUTREACH.md`.
