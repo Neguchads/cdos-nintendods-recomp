@@ -157,7 +157,8 @@
         "dos_custom_music_volume": "100",
         "dos_mute_unfocused": "false",
         "dos_button_prompts": "auto",
-        "dos_stick_deadzone": "20"
+        "dos_stick_deadzone": "20",
+        "dos_gba_slot2_aria": "false"
       }
     }
   ],
@@ -251,6 +252,29 @@
       ],
       "defaults": {
         "dos_enhanced_intro": "true"
+      }
+    },
+    {
+      "id": "gba_slot2_aria",
+      "label": "GBA Slot-2 Bonus: Aria of Sorrow (Rare Ring + Mina's Doll)",
+      "group": "Content & Mods",
+      "help": "Simulates Castlevania: Aria of Sorrow (USA) in the Nintendo DS GBA Slot-2 to unlock the Rare Ring at start and Mina's Doll in Hammer's shop (clean-room header emulation, no GBA ROM needed).",
+      "choices": [
+        {
+          "label": "Disabled (Default)",
+          "set": {
+            "dos_gba_slot2_aria": "false"
+          }
+        },
+        {
+          "label": "Enabled (Unlock Rare Ring + Mina's Doll)",
+          "set": {
+            "dos_gba_slot2_aria": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_gba_slot2_aria": "false"
       }
     },
     {

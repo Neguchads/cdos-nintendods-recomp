@@ -232,6 +232,7 @@ def stage_release_tree(
         ("docs/MULTIPLATFORM.md", True),
         ("docs/LICENSE_REVIEW.md", True),
         ("runtime/nds_runner.exe", False),
+        ("runtime/xdelta3.exe", True),
         ("runtime/SDL3.dll", False),
         ("runtime/libc++.dll", False),
         ("runtime/libunwind.dll", False),

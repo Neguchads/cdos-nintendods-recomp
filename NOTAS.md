@@ -1,10 +1,12 @@
-# Notas de Sessão (Release Clean-Room `v1.2.1` & Pedido de Permissão PT-BR v1.1)
+# Notas de Sessão (Fatia 1 — Fix Issue #50 `xdelta3`, Bônus Slot-2 GBA #51, Prévia de Mods #44 & Links Modulares)
 
 ## Feito
-- **PRs integrados na `v1.2.1`:** PR #35 (`@Xarishark` saves/manifest), PR #45 (limpeza clean-room & respeito aos criadores), PR #46 (decodificadores `.xdelta`/`.ips` nativos & VSync exato 60Hz com áudio WSOLA sem alterar tom), PR #47 (importador in-game SDL3 + `Minimap HUD` Samus Returns 16:9), PR #48 (botões rápidos `Aplicar Patch...` + `Site Oficial` em cada mod, slots `manual_import` PT-BR v1.1 + comunidade, créditos completos e `docs/CREATOR_OUTREACH.md`).
-- **Pedido formal enviado no GitHub:** aberto [leomontenegro6/cdos-traducao-ptbr#1](https://github.com/leomontenegro6/cdos-traducao-ptbr/issues/1) para `@leomontenegro6` (Solid One) e equipe da Tradução PT-BR v1.1.
-- **Release clean-room `v1.2.1`:** pacote `CastlevaniaDawnOfSorrowRecomp-v1.2.1-Windows-x64.zip` + `.sha256` validado por `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` (zero `.dospatch`/`.xdelta`/`.ips`/`.bps`/ROMs embutidos).
+- **Issue #50 (`runtime/xdelta3.exe`):** `tools/build.py`, `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` agora incluem e validam `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) ao lado de `nds_runner.exe`, resolvendo `.xdelta` com compressor secundário DJW/FGK/LZMA (*Definitive Edition+ v2.3*, *Tradução PT-BR v1.1*).
+- **Issue #51 (Bônus Slot-2 GBA *Aria of Sorrow*):** `bus.cpp` (`bus_set_gba_slot2_aria_bonus`) expõe cabeçalho GBA clean-room de 192 bytes (`CASTLEVANIA2` / `A2CE`, maker `A4`, byte `0x96` e checksum válido) quando `dos_gba_slot2_aria=1` no `F1 -> Mods` ou `recomplauncher.json`, liberando **Rare Ring** e **Mina's Doll**.
+- **Issue #44 (`@Wet-Band-Aid`) & `@leomontenegro6` (`cdos-traducao-ptbr#1`):**
+  - Painel de **Detalhes e Prévia do Mod** dentro do `F1 -> Mods` com resumo, autores, link oficial e botão `Aplicar Patch...` antes da instalação.
+  - Slots modulares `manual_import: true` adicionados em `mods/registry.json` (**Dawn of Dignity** `#3356`, **No Magic Seals** `#3408`, **Fixed Luck** `#3407`, **Voice Restore Project** `#10040`), PT-BR v1.1 atualizado para **Autorizado**, créditos ao `cdos-patcher-tool` e badge do Discord (`https://discord.gg/s7CWbpZJ`) no `README.md`.
 
 ## Falta / Próximos passos
-- Acompanhar resposta em `leomontenegro6/cdos-traducao-ptbr#1` e enviar as mensagens #2–#4 de `docs/CREATOR_OUTREACH.md` nos fóruns externos (Romhacking.net / Castlevania Modding Forum).
-- Atacar próximas features de roadmap: Issue #36 (HD Texture Packs), #37 (Cheat Manager), #38 (Advanced Music Manager) e #40 (EUR Multi-language).
+- Compilar, testar (`ctest` + `unittest`), revisar PR, mergear na `main` e confirmar envio das respostas nas Issues `#50`, `#51`, `#44` e `leomontenegro6/cdos-traducao-ptbr#1` + publicação da release `v1.2.2`.
+- **Fatia 2:** Composição modular empilhável de patches em memória (combinar Tradução PT-BR v1.1 + QoL/Visuais/Áudio independentes).
