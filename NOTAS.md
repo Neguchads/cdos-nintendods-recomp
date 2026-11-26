@@ -1,12 +1,9 @@
-# Notas de Sessão (Fatia 1 — Fix Issue #50 `xdelta3`, Bônus Slot-2 GBA #51, Prévia de Mods #44 & Links Modulares)
+# Notas de Sessão (Release `v1.2.2` — Fix #50 `xdelta3.exe`, Bônus Slot-2 GBA #51, Prévia de Mods #44 & Respostas GitHub)
 
 ## Feito
-- **Issue #50 (`runtime/xdelta3.exe`):** `tools/build.py`, `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` agora incluem e validam `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) ao lado de `nds_runner.exe`, resolvendo `.xdelta` com compressor secundário DJW/FGK/LZMA (*Definitive Edition+ v2.3*, *Tradução PT-BR v1.1*).
-- **Issue #51 (Bônus Slot-2 GBA *Aria of Sorrow*):** `bus.cpp` (`bus_set_gba_slot2_aria_bonus`) expõe cabeçalho GBA clean-room de 192 bytes (`CASTLEVANIA2` / `A2CE`, maker `A4`, byte `0x96` e checksum válido) quando `dos_gba_slot2_aria=1` no `F1 -> Mods` ou `recomplauncher.json`, liberando **Rare Ring** e **Mina's Doll**.
-- **Issue #44 (`@Wet-Band-Aid`) & `@leomontenegro6` (`cdos-traducao-ptbr#1`):**
-  - Painel de **Detalhes e Prévia do Mod** dentro do `F1 -> Mods` com resumo, autores, link oficial e botão `Aplicar Patch...` antes da instalação.
-  - Slots modulares `manual_import: true` adicionados em `mods/registry.json` (**Dawn of Dignity** `#3356`, **No Magic Seals** `#3408`, **Fixed Luck** `#3407`, **Voice Restore Project** `#10040`), PT-BR v1.1 atualizado para **Autorizado**, créditos ao `cdos-patcher-tool` e badge do Discord (`https://discord.gg/s7CWbpZJ`) no `README.md`.
+- **Release clean-room `v1.2.2`:** inclui `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0 — resolve Issue #50 para patches `.xdelta` DJW/FGK/LZMA), bônus clean-room de Slot-2 GBA *Aria of Sorrow* (`A2CE` — Issue #51), painel de Detalhes e Prévia de Mods no `F1 -> Mods` (Issue #44), slots modulares `manual_import` (*Dawn of Dignity*, *No Magic Seals*, *Fixed Luck*, *Voice Restore*), PT-BR v1.1 autorizado (`leomontenegro6/cdos-traducao-ptbr#1`), créditos ao `cdos-patcher-tool` e Discord (`https://discord.gg/s7CWbpZJ`).
+- **Issues respondidas:** `leomontenegro6/cdos-traducao-ptbr#1`, `#44`, `#50` (fechada) e `#51`.
 
 ## Falta / Próximos passos
-- Compilar, testar (`ctest` + `unittest`), revisar PR, mergear na `main` e confirmar envio das respostas nas Issues `#50`, `#51`, `#44` e `leomontenegro6/cdos-traducao-ptbr#1` + publicação da release `v1.2.2`.
-- **Fatia 2:** Composição modular empilhável de patches em memória (combinar Tradução PT-BR v1.1 + QoL/Visuais/Áudio independentes).
+- **Fatia 2:** Composição modular empilhável de patches em memória (combinar Tradução PT-BR v1.1 + QoL/Visuais/Áudio independentes, inspirado no `cdos-patcher-tool`).
+- Próximos épicos de roadmap: `#36` (HD Texture Packs), `#37` (Cheat Manager), `#38` (Advanced Music Manager) e `#40` (EUR Multi-language).

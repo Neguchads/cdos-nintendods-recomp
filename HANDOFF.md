@@ -8,7 +8,7 @@
 
 ## English
 
-### Current Technical State (Post-`v1.2.1` — Fatia 1: `runtime/xdelta3.exe` DJW/LZMA Fix, GBA Slot-2 Bonus, Mod Preview Card & Modular Links)
+### Current Technical State (`v1.2.2` Release — `runtime/xdelta3.exe` DJW/LZMA Fix, GBA Slot-2 Bonus, Mod Preview Card & Modular Links)
 - **Latest Feature (Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
   - Bundled `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) via `tools/build.py`, `tools/package_recomplauncher.py`, and `tools/rbs_artifact.py` so DJW/FGK/LZMA `.xdelta` patches work out of the box (Issue #50).
   - Implemented clean-room GBA Slot-2 *Aria of Sorrow* (`A2CE`) bonus (`bus_set_gba_slot2_aria_bonus` in `bus.cpp`, `dos_gba_slot2_aria` in `F1 -> Mods` & `recomplauncher.json`) unlocking **Rare Ring** + **Mina's Doll** (Issue #51).
@@ -74,7 +74,7 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (Pós-`v1.2.1` — Fatia 1: Fix `runtime/xdelta3.exe` DJW/LZMA, Bônus Slot-2 GBA, Painel de Prévia de Mods & Links Modulares)
+### Estado Técnico Atual (`v1.2.2` Release — Fix `runtime/xdelta3.exe` DJW/LZMA, Bônus Slot-2 GBA, Painel de Prévia de Mods & Links Modulares)
 - **Última fatia (Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
   - `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) incluído em `tools/build.py`, `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` para suportar `.xdelta` DJW/FGK/LZMA direto na release (Issue #50).
   - Bônus clean-room de Slot-2 GBA *Aria of Sorrow* (`A2CE`) em `bus.cpp` (`dos_gba_slot2_aria` no `F1 -> Mods` e `recomplauncher.json`), liberando **Rare Ring** e **Mina's Doll** (Issue #51).
