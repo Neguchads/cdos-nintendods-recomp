@@ -1627,10 +1627,10 @@ index 0000000..0127d17
 +DosCustomMusicStatus dos_custom_music_status();
 diff --git a/runner/src/dos_enhancements.cpp b/runner/src/dos_enhancements.cpp
 new file mode 100644
-index 0000000..0661102
+index 0000000..bb5669a
 --- /dev/null
 +++ b/runner/src/dos_enhancements.cpp
-@@ -0,0 +1,1582 @@
+@@ -0,0 +1,1587 @@
 +#include "dos_enhancements.h"
 +
 +#include <algorithm>
@@ -3005,7 +3005,12 @@ index 0000000..0661102
 +            size_t start = 0;
 +            while (start < val.size()) {
 +                const size_t sep = val.find(',', start);
-+                const std::string tok = (sep == std::string::npos) ? val.substr(start) : val.substr(start, sep - start);
++                std::string tok = (sep == std::string::npos) ? val.substr(start) : val.substr(start, sep - start);
++                size_t l = 0;
++                while (l < tok.size() && (tok[l] == ' ' || tok[l] == '\t' || tok[l] == '\r' || tok[l] == '\n')) ++l;
++                size_t r = tok.size();
++                while (r > l && (tok[r - 1] == ' ' || tok[r - 1] == '\t' || tok[r - 1] == '\r' || tok[r - 1] == '\n')) --r;
++                tok = tok.substr(l, r - l);
 +                if (!tok.empty() && tok.size() <= 48 && tok.find("..") == std::string::npos &&
 +                    tok.find('/') == std::string::npos && tok.find('\\') == std::string::npos) {
 +                    if (std::find(dos->active_addons.begin(), dos->active_addons.end(), tok) == dos->active_addons.end()) {
@@ -8577,10 +8582,10 @@ index 0000000..814495c
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..cfe043b
+index 0000000..3000a8d
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
-@@ -0,0 +1,2006 @@
+@@ -0,0 +1,2014 @@
 +#include "dos_imgui_menu.h"
 +
 +#if defined(NDS_HAVE_SDL3)
@@ -8789,6 +8794,9 @@ index 0000000..cfe043b
 +        if (combo_enum(dos_tr(lang, DosStrId::LblGameLanguage),
 +                       &opt->dos.game_language, kLangs, kLangNames, lang)) {
 +            if (opt->dos.game_language != prev_game) {
++                if (opt->dos.game_language == DosLanguage::PtBr) {
++                    opt->dos.active_addons.clear();
++                }
 +                mark_dirty(ctx, false);
 +                if (ctx.language_swap_requested) *ctx.language_swap_requested = true;
 +            }
@@ -10011,6 +10019,7 @@ index 0000000..cfe043b
 +            if (ImGui::RadioButton(label, selected)) {
 +                opt->dos.active_character_pack = p.id;
 +                if (!p.builtin) {
++                    opt->dos.active_addons.clear();
 +                    opt->dos.content_profile = DosContentProfile::Original;
 +                }
 +                if (!p.supports_ptbr) {
@@ -10053,6 +10062,9 @@ index 0000000..cfe043b
 +        if (!ctx.definitive_patch_available) ImGui::BeginDisabled();
 +        if (combo_enum(dos_tr(lang, DosStrId::LblContentProfile),
 +                       &opt->dos.content_profile, kProfiles, kProfileNames, lang)) {
++            if (opt->dos.content_profile != DosContentProfile::Original) {
++                opt->dos.active_addons.clear();
++            }
 +            mark_dirty(ctx, false);
 +        }
 +        if (!ctx.definitive_patch_available) ImGui::EndDisabled();
@@ -10144,7 +10156,8 @@ index 0000000..cfe043b
 +    const bool seed_can_apply =
 +        !opt->dos.randomizer_seed.empty() && opt->dos.allow_unverified_mods &&
 +        opt->dos.active_campaign == "dawn-of-sorrow" &&
-+        opt->dos.active_character_pack == "default";
++        opt->dos.active_character_pack == "default" &&
++        opt->dos.active_addons.empty();
 +    if (!seed_can_apply) ImGui::BeginDisabled();
 +    if (ImGui::Button(dos_tr(lang, DosStrId::BtnApplySeed), ImVec2(190.0f, 0.0f))) {
 +        if (ctx.content_swap_requested) *ctx.content_swap_requested = true;
@@ -11339,10 +11352,10 @@ index 0000000..b5a0dc8
 +std::string dos_profile_save_path(const std::string& base_save_path, DosContentProfile profile);
 diff --git a/runner/src/dos_mod_registry.cpp b/runner/src/dos_mod_registry.cpp
 new file mode 100644
-index 0000000..dacc522
+index 0000000..6f60807
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.cpp
-@@ -0,0 +1,1270 @@
+@@ -0,0 +1,1279 @@
 +#include "dos_mod_registry.h"
 +
 +#include <algorithm>
@@ -12127,7 +12140,11 @@ index 0000000..dacc522
 +    }
 +
 +    // Modular stackable add-ons (e.g. PT-BR v1.1 + Dawn of Dignity + No Magic Seals + Fixed Luck + Voice Restore)
-+    if (!sel.addon_ids.empty()) {
++    std::vector<std::string> requested_addons;
++    for (const auto& req_id : sel.addon_ids) {
++        if (!req_id.empty()) requested_addons.push_back(req_id);
++    }
++    if (!requested_addons.empty()) {
 +        if (!camp->builtin || !pack->builtin || base->id != "original") {
 +            dec.state = DosCompatState::Incompatible;
 +            dec.allowed = false;
@@ -12140,8 +12157,14 @@ index 0000000..dacc522
 +            dec.reason = "Legacy PT-BR baseline cannot be combined with modular add-ons; use Game Language = English and check the PT-BR v1.1 add-on instead.";
 +            return dec;
 +        }
++        if (!dos_mod_sanitize_seed(sel.randomizer_seed).empty()) {
++            dec.state = DosCompatState::Incompatible;
++            dec.allowed = false;
++            dec.reason = "Native Seed Mutator cannot be stacked with modular add-ons; clear the seed or uncheck add-ons.";
++            return dec;
++        }
 +        // Validate every requested add-on ID and collect in deterministic registry order.
-+        for (const auto& req_id : sel.addon_ids) {
++        for (const auto& req_id : requested_addons) {
 +            const DosModEntry* addon = find_entry(reg.addons, req_id);
 +            if (!addon) {
 +                dec.state = DosCompatState::Incompatible;
@@ -12157,19 +12180,18 @@ index 0000000..dacc522
 +            }
 +        }
 +        std::string combined_label;
-+        std::string single_id;
 +        for (const auto& addon : reg.addons) {
-+            if (contains_str(sel.addon_ids, addon.id)) {
++            if (contains_str(requested_addons, addon.id)) {
 +                dec.addon_patch_paths.push_back(addon.resolved_patch_path);
 +                dec.addon_names.push_back(addon.name);
 +                if (!combined_label.empty()) combined_label += " + ";
 +                combined_label += addon.name;
-+                single_id = addon.id;
 +            }
 +        }
-+        dec.active_profile_id = (dec.addon_patch_paths.size() == 1u) ? single_id : "modular-stack";
++        dec.active_profile_id = "modular-stack";
 +        dec.active_profile_name = combined_label;
 +        dec.active_version = "1.0";
++        dec.patch_path = dec.addon_patch_paths.empty() ? std::string() : dec.addon_patch_paths.front();
 +        dec.validation_level = "modular_stack";
 +        dec.uses_builtin_rom = false;
 +        dec.state = DosCompatState::Unverified;
@@ -12303,11 +12325,11 @@ index 0000000..dacc522
 +                return false;
 +            }
 +            if (patched.size() > composed.size()) {
-+                composed.resize(patched.size(), 0u);
++                composed.resize(patched.size(), 0xFFu);
 +                touched.resize(patched.size(), 0u);
 +            }
 +            for (size_t k = 0; k < patched.size(); ++k) {
-+                const uint8_t base_b = (k < base_rom.size()) ? base_rom[k] : 0u;
++                const uint8_t base_b = (k < base_rom.size()) ? base_rom[k] : 0xFFu;
 +                if (patched[k] != base_b) {
 +                    if (k != 0x15Eu && k != 0x15Fu && touched[k] && composed[k] != patched[k]) {
 +                        ++overlap_bytes;
@@ -12615,7 +12637,7 @@ index 0000000..dacc522
 +}
 diff --git a/runner/src/dos_mod_registry.h b/runner/src/dos_mod_registry.h
 new file mode 100644
-index 0000000..4e45cb0
+index 0000000..cf7c1be
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.h
 @@ -0,0 +1,141 @@
@@ -12638,7 +12660,7 @@ index 0000000..4e45cb0
 +    std::string id;
 +    std::string name;
 +    std::string version = "1.0";
-+    std::string kind;  // "baseline", "campaign", "character_pack"
++    std::string kind;  // "baseline", "campaign", "character_pack", "addon"
 +    std::string profile_file;
 +    std::string author;
 +    std::string summary;
@@ -14813,7 +14835,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..0a07be4 100644
+index 7ff4316..76f8c85 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,18 +14,27 @@
@@ -18101,7 +18123,7 @@ index 7ff4316..0a07be4 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5932,414 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5932,418 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -18315,6 +18337,9 @@ index 7ff4316..0a07be4 100644
 +                        for (const auto& c : g_mod_registry->campaigns) {
 +                            if (c.id == last_target_id && c.installed) {
 +                                options.dos.active_campaign = c.id;
++                                if (!c.builtin) {
++                                    options.dos.active_addons.clear();
++                                }
 +                                if (!c.definitive_compatible) {
 +                                    options.dos.content_profile = DosContentProfile::Original;
 +                                    options.dos.active_character_pack = "default";
@@ -18352,6 +18377,7 @@ index 7ff4316..0a07be4 100644
 +                                if (p.id == last_target_id && p.installed) {
 +                                    options.dos.active_character_pack = p.id;
 +                                    if (!p.builtin) {
++                                        options.dos.active_addons.clear();
 +                                        options.dos.content_profile = DosContentProfile::Original;
 +                                    }
 +                                    if (!p.supports_ptbr) {
@@ -18516,7 +18542,7 @@ index 7ff4316..0a07be4 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +6351,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +6355,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -18598,7 +18624,7 @@ index 7ff4316..0a07be4 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +6402,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +6406,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -18607,7 +18633,7 @@ index 7ff4316..0a07be4 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6638,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6642,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -18617,7 +18643,7 @@ index 7ff4316..0a07be4 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6650,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6654,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -18626,7 +18652,7 @@ index 7ff4316..0a07be4 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6664,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6668,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -18637,7 +18663,7 @@ index 7ff4316..0a07be4 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4213,16 +6685,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4213,16 +6689,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              {
                  for (unsigned screen = 0; screen < 2; ++screen) {
                      pixels[screen] = nds_gpu2d_framebuffer(screen);
@@ -18669,7 +18695,7 @@ index 7ff4316..0a07be4 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4393,7 +6877,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4393,7 +6881,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              if (((options.adaptive_screens & NDS_ADAPTIVE_TOP) || native_hd) && !direct_present)
                  top_pixels=nds_gpu2d_adaptive_framebuffer(0,&top_width);
              else if (direct_present) top_width=nds_gpu3d_output_width();
@@ -18680,7 +18706,7 @@ index 7ff4316..0a07be4 100644
                  bottom_pixels=nds_gpu2d_adaptive_framebuffer(1,&bottom_width);
              phase_adaptive_ticks+=SDL_GetPerformanceCounter()-adaptive_start;
              observe_top_black_bands(native_top,shown_frames);
-@@ -4417,12 +6903,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6907,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -18701,7 +18727,7 @@ index 7ff4316..0a07be4 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6932,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6936,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -18736,7 +18762,7 @@ index 7ff4316..0a07be4 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,23 +7038,82 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,23 +7042,82 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -18823,7 +18849,7 @@ index 7ff4316..0a07be4 100644
          }
          const uint64_t frame_drain_ticks =
              SDL_GetPerformanceCounter() - phase2;
-@@ -4620,17 +7185,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +7189,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -18881,7 +18907,7 @@ index 7ff4316..0a07be4 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,12 +7292,23 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,12 +7296,23 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -18905,7 +18931,7 @@ index 7ff4316..0a07be4 100644
      destroy_presentation(presentation);
      SDL_Quit();
      std::fprintf(stderr, "[sdl] closed after %llu presented frames\n",
-@@ -5053,3 +7666,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7670,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -19649,7 +19675,7 @@ index 7c9f618..ac6a74d 100644
  
  bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..6312fce 100644
+index afa9e18..41c314d 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
 @@ -55,6 +55,11 @@
@@ -19871,7 +19897,7 @@ index afa9e18..6312fce 100644
      if (interactive &&
          (frontend_options.adaptive_screens &
           ~frontend_options.adaptive_supported) != 0u) {
-@@ -2151,6 +2259,177 @@ int main(int argc, char** argv) {
+@@ -2151,6 +2259,178 @@ int main(int argc, char** argv) {
              "(LLE-faithful, reads real firmware dump over SPI)\n");
      }
  
@@ -20010,6 +20036,7 @@ index afa9e18..6312fce 100644
 +                         build_err.c_str());
 +            frontend_options.dos.active_campaign = "dawn-of-sorrow";
 +            frontend_options.dos.active_character_pack = "default";
++            frontend_options.dos.active_addons.clear();
 +            dos_build_active_rom(dos_patch_set,
 +                                 frontend_options.dos.content_profile,
 +                                 frontend_options.dos.game_language,
@@ -20049,7 +20076,7 @@ index afa9e18..6312fce 100644
      // Full power-on init, reusable so the debug server can honour `reset`
      // (the bisector compares fresh-from-reset at each event count).
      auto boot = [&]() {
-@@ -2183,11 +2462,13 @@ int main(int argc, char** argv) {
+@@ -2183,11 +2463,13 @@ int main(int argc, char** argv) {
                                    g_dispatch_freebios_arm9_len, 0xFFFF0000u);
              nds_register_dispatch(NDS_ARM7, g_dispatch_freebios_arm7,
                                    g_dispatch_freebios_arm7_len, 0x00000000u);
@@ -20063,7 +20090,7 @@ index afa9e18..6312fce 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2366,6 +2647,7 @@ int main(int argc, char** argv) {
+@@ -2366,6 +2648,7 @@ int main(int argc, char** argv) {
          nds_gpu3d_set_threaded(gpu3d_threaded);
          nds_gpu2d_set_threaded(gpu2d_threaded, gpu2d_workers);
          nds_gpu2d_set_adaptive_workers(gpu2d_adaptive_workers);
@@ -20071,7 +20098,7 @@ index afa9e18..6312fce 100644
      };
      boot();
      auto reset_machine = [&]() {
-@@ -2449,9 +2731,123 @@ int main(int argc, char** argv) {
+@@ -2449,9 +2732,123 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
@@ -20686,10 +20713,10 @@ index 1fa4362..8ea2229 100644
  void nds_title_patches_start_frame();
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..41a1cdd
+index 0000000..b892e23
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,1467 @@
+@@ -0,0 +1,1489 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -22108,7 +22135,23 @@ index 0000000..41a1cdd
 +        assert(std::memcmp(merged_rom.data() + 0x180, "PTBR", 4) == 0);
 +        assert(std::memcmp(merged_rom.data() + 0x190, "LUCK", 4) == 0);
 +        assert(merged_rom[0x170] == 0x11u);
-+        // INI roundtrip for dos_active_addons
++        // Verify NDS header CRC-16/MODBUS recomputation at 0x15E..0x15F
++        uint16_t exp_crc = 0xFFFFu;
++        for (size_t i = 0; i < 0x15Eu; ++i) {
++            exp_crc ^= merged_rom[i];
++            for (int b = 0; b < 8; ++b) {
++                exp_crc = (exp_crc & 1u) ? static_cast<uint16_t>((exp_crc >> 1u) ^ 0xA001u)
++                                         : static_cast<uint16_t>(exp_crc >> 1u);
++            }
++        }
++        assert(merged_rom[0x15Eu] == static_cast<uint8_t>(exp_crc & 0xFFu));
++        assert(merged_rom[0x15Fu] == static_cast<uint8_t>((exp_crc >> 8u) & 0xFFu));
++        // Reject combining modular add-ons with randomizer seed
++        DosModSelection sel_seed = sel;
++        sel_seed.randomizer_seed = "SEED1234";
++        const DosConflictDecision dec_seed = dos_mod_resolve_conflict(sreg, sel_seed, "", bp);
++        assert(dec_seed.state == DosCompatState::Incompatible && !dec_seed.allowed);
++        // INI roundtrip for dos_active_addons (including whitespace trimming)
 +        DosEnhancementSettings s_add{};
 +        s_add.active_addons = {"cdos-ptbr-v1-1", "fixed-luck"};
 +        const std::string add_ini = (tmp_dir / "addons.ini").string();
@@ -22120,6 +22163,12 @@ index 0000000..41a1cdd
 +                                     nullptr, nullptr, nullptr, nullptr, nullptr, &s_add_out));
 +        assert(s_add_out.active_addons.size() == 2u);
 +        assert(s_add_out.active_addons[0] == "cdos-ptbr-v1-1" && s_add_out.active_addons[1] == "fixed-luck");
++        const std::string spaced_ini = (tmp_dir / "addons_spaced.ini").string();
++        assert(dos_write_text_atomic(spaced_ini, "dos_active_addons= cdos-ptbr-v1-1 , fixed-luck \n"));
++        DosEnhancementSettings s_spaced{};
++        assert(dos_load_settings_ini(spaced_ini, nullptr, nullptr, nullptr, nullptr,
++                                     nullptr, nullptr, nullptr, nullptr, nullptr, &s_spaced));
++        assert(s_spaced.active_addons.size() == 2u && s_spaced.active_addons[1] == "fixed-luck");
 +    }
 +
 +    // Reject legacy XDELTA1, reserved ID, and unknown magic

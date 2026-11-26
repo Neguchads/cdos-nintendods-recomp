@@ -373,6 +373,19 @@ class ModRegistry:
                     patch_file=None,
                     validation_level="none",
                 )
+            if sanitize_seed(req.randomizer_seed):
+                return ConflictDecision(
+                    state="incompatible",
+                    allowed=False,
+                    reason=(
+                        "Seed Mutator nativo nao pode ser combinado com add-ons modulares; "
+                        "limpe a seed ou desmarque os add-ons."
+                    ),
+                    active_profile_id="modular-stack",
+                    active_version="1.0",
+                    patch_file=None,
+                    validation_level="none",
+                )
             for aid in requested_addons:
                 if aid not in self.addons:
                     return ConflictDecision(
