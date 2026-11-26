@@ -18,6 +18,15 @@ SAFE_SEED_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 RESERVED_PROFILE_IDS = frozenset({"original", "definitive", "default", "dawn-of-sorrow"})
 
 
+def slugify_profile_stem(value: str) -> str:
+    """Converte nomes reais de patches (ex: 'DoS Definitive+ (v2.0)') em ID seguro compativel com C++."""
+    slug = re.sub(r"[^a-z0-9_]+", "-", value.lower())
+    slug = slug[:48].strip("-_")
+    if not slug or not slug[0].isalnum():
+        return ""
+    return slug
+
+
 def sanitize_safe_id(value: str, *, fallback: str = "") -> str:
     """Valida/normaliza um identificador para impedir path traversal."""
     cleaned = value.strip().lower()
@@ -132,14 +141,18 @@ class ModRegistry:
             for entry in group.values()
             if entry.get("profile_file")
         }
-        for p in sorted(prof_dir.glob("*.dospatch")):
-            if not p.is_file():
-                continue
+        ext_priority = {".dospatch": 0, ".xdelta": 1, ".vcdiff": 2, ".xdelta3": 3, ".ips": 4}
+        candidates = [
+            p for p in prof_dir.iterdir() if p.is_file() and p.suffix.lower() in ext_priority
+        ]
+        candidates.sort(key=lambda p: (ext_priority[p.suffix.lower()], p.name.lower()))
+        for p in candidates:
             if p.name.lower() in registered_files:
                 continue
-            cid = sanitize_safe_id(p.stem)
+            cid = slugify_profile_stem(p.stem)
             if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns:
                 continue
+            ext_lc = p.suffix.lower()
             if cid.startswith("dsvrandom-") and len(cid) > len("dsvrandom-"):
                 seed_lbl = cid[len("dsvrandom-") :]
                 self.campaigns[cid] = {
@@ -157,9 +170,10 @@ class ModRegistry:
                     "author": "Local randomizer output",
                 }
             else:
+                suffix_lbl = "" if ext_lc == ".dospatch" else f" ({ext_lc})"
                 self.campaigns[cid] = {
                     "id": cid,
-                    "name": f"Local Mod: {p.stem}",
+                    "name": f"Local Mod: {p.stem}{suffix_lbl}",
                     "version": "1.0",
                     "builtin": False,
                     "manual_import": True,

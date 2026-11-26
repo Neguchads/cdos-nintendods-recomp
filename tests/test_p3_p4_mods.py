@@ -64,7 +64,9 @@ class TestFoundation16A(unittest.TestCase):
             data_mods = Path(tmp) / "mods"
             (data_mods / "profiles").mkdir(parents=True)
             (data_mods / "profiles" / "sample-local-mod.dospatch").write_bytes(b"DOSPATCH")
-            (data_mods / "profiles" / "original.dospatch").write_bytes(b"DOSPATCH")
+            (data_mods / "profiles" / "DoS Definitive+ (v2.0).xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
+            (data_mods / "profiles" / "No Required Touch v1.1.ips").write_bytes(b"PATCHEOF")
+            (data_mods / "profiles" / "original.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
             (data_mods / "profiles" / "definitive.dospatch").write_bytes(b"DOSPATCH")
 
             reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
@@ -74,6 +76,10 @@ class TestFoundation16A(unittest.TestCase):
             self.assertEqual(set(reg.character_packs), {"default"})
             self.assertIn("dawn-of-sorrow", reg.campaigns)
             self.assertIn("sample-local-mod", reg.campaigns)
+            self.assertIn("dos-definitive-v2-0", reg.campaigns)
+            self.assertIn("no-required-touch-v1-1", reg.campaigns)
+            self.assertEqual(reg.campaigns["dos-definitive-v2-0"]["profile_file"], "DoS Definitive+ (v2.0).xdelta")
+            self.assertEqual(reg.campaigns["no-required-touch-v1-1"]["profile_file"], "No Required Touch v1.1.ips")
             self.assertNotIn("original", reg.campaigns)
             self.assertNotIn("definitive", reg.campaigns)
 

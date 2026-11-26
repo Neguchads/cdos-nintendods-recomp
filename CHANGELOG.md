@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+- **Native `.xdelta` / `.vcdiff` & `.ips` Patch Loading in `nds_runner.exe`:** built-in RFC 3284 VCDIFF (with automatic `xdelta3.exe` fallback for DJW/FGK/LZMA secondary compressors) and IPS decoders in `dos_rom_patch.cpp`, plus automatic discovery of `.dospatch`, `.xdelta`, `.vcdiff`, `.xdelta3`, and `.ips` files dropped directly into `{data}/mods/profiles/` with isolated saves (`saves/profiles/<id>-v1.0-<hash8>/dos.sav`). Players can load any mod obtained directly from its creator without Python conversion.
+- **Exact `60.0 Hz` Vertical Sync with Pitch-Preserving Audio (`sync60`, Issue #39):** added `DosVsyncMode::Sync60Hz` (`F1 -> HD Graphics -> VSync Mode -> 60Hz Exact Sync (Pitch-Preserving)` & `recomplauncher.json`), pairing VSync + exact `60.000 Hz` frame pacing with a real-time WSOLA (Waveform Similarity Overlap-Add) Hann-windowed micro-splicer so the DS's `59.8261 Hz` clock syncs stutter-free to 60 Hz LCDs without audio crackles or pitch shift.
+
 ### Changed & Removed (Creator Respect & Generic Mod Support — Issues #43, #44)
 - **Removed all bundled and listed third-party mods/translations:** removed `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py`, and all third-party community entries from `mods/registry.json` (`Albus Mode`, `Model ZX`, `Model Omega`, `Eternity of Sorrow`, `Alucard's Requiem`, `Dracula's Curse`, `Definitive Edition+`).
 - **Generic local mod support (`F1 -> Mods & Campaigns`):** `ndsrecomp` (`dos_mod_registry.cpp`) and `tools/mod_resolver.py` now automatically discover any user-supplied `*.dospatch` placed in `{data}/mods/profiles/` with isolated saves (`saves/profiles/<id>-v<ver>-<hash8>/dos.sav`), paired with the offline local patch importer [`tools/import_local_mod.py`](tools/import_local_mod.py) (`.xdelta`/`.ips`/`.dospatch`/`.zip`, zero hardcoded URLs or network downloads).
