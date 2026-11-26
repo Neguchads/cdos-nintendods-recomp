@@ -8551,10 +8551,10 @@ index 0000000..b546af3
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..9798cbf
+index 0000000..b82a603
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
-@@ -0,0 +1,1937 @@
+@@ -0,0 +1,1941 @@
 +#include "dos_imgui_menu.h"
 +
 +#if defined(NDS_HAVE_SDL3)
@@ -9873,14 +9873,17 @@ index 0000000..9798cbf
 +        }
 +        if (preview_entry) {
 +            begin_section(dos_tr(lang, DosStrId::SecModPreview), heading_font);
-+            if (ImGui::BeginChild("##mod_preview_card", ImVec2(0.0f, 118.0f), true)) {
++            if (ImGui::BeginChild("##mod_preview_card", ImVec2(0.0f, 136.0f), true)) {
 +                ImGui::TextColored(ImVec4(0.95f, 0.84f, 0.45f, 1.0f), "%s  v%s  [%s]",
 +                                   preview_entry->name.c_str(), preview_entry->version.c_str(),
 +                                   dos_tr(lang, preview_entry->installed
 +                                                    ? DosStrId::BadgeInstalled
 +                                                    : DosStrId::BadgeNotInstalled));
 +                if (!preview_entry->author.empty()) {
-+                    ImGui::TextDisabled("Author: %s", preview_entry->author.c_str());
++                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
++                    ImGui::TextWrapped(lang == DosLanguage::PtBr ? "Autor: %s" : "Author: %s",
++                                       preview_entry->author.c_str());
++                    ImGui::PopStyleColor();
 +                }
 +                if (!preview_entry->summary.empty()) {
 +                    ImGui::TextWrapped("%s", preview_entry->summary.c_str());
@@ -9896,8 +9899,9 @@ index 0000000..9798cbf
 +                        if (ImGui::SmallButton(dos_tr(lang, DosStrId::BtnOpenModPage))) {
 +                            if (ctx.open_url_requested) *ctx.open_url_requested = preview_entry->source_url;
 +                        }
-+                        ImGui::SameLine();
-+                        ImGui::TextDisabled("%s", preview_entry->source_url.c_str());
++                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
++                        ImGui::TextWrapped("%s", preview_entry->source_url.c_str());
++                        ImGui::PopStyleColor();
 +                    }
 +                    ImGui::PopID();
 +                }
@@ -14587,7 +14591,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..11d7376 100644
+index 7ff4316..42dc587 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,18 +14,27 @@
@@ -17875,7 +17879,7 @@ index 7ff4316..11d7376 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5932,389 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5932,395 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -17926,6 +17930,12 @@ index 7ff4316..11d7376 100644
 +        if (imgui_presentation_dirty) {
 +            imgui_presentation_dirty = false;
 +            sync_live_display();
++        }
++        if (imgui_settings_dirty) {
++            bus_set_gba_slot2_aria_bonus(options.dos.gba_slot2_aria);
++            if (imgui_settings_dirty_at == 0) {
++                imgui_settings_dirty_at = SDL_GetPerformanceCounter();
++            }
 +        }
 +        if (imgui_settings_dirty && imgui_settings_dirty_at != 0 &&
 +            (SDL_GetPerformanceCounter() - imgui_settings_dirty_at) >= (frequency * 2u) / 5u) {
@@ -18265,7 +18275,7 @@ index 7ff4316..11d7376 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +6326,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +6332,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -18347,7 +18357,7 @@ index 7ff4316..11d7376 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +6377,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +6383,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -18356,7 +18366,7 @@ index 7ff4316..11d7376 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6613,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6619,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -18366,7 +18376,7 @@ index 7ff4316..11d7376 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6625,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6631,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -18375,7 +18385,7 @@ index 7ff4316..11d7376 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6639,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6645,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -18386,7 +18396,7 @@ index 7ff4316..11d7376 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4213,16 +6660,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4213,16 +6666,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              {
                  for (unsigned screen = 0; screen < 2; ++screen) {
                      pixels[screen] = nds_gpu2d_framebuffer(screen);
@@ -18418,7 +18428,7 @@ index 7ff4316..11d7376 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4393,7 +6852,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4393,7 +6858,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              if (((options.adaptive_screens & NDS_ADAPTIVE_TOP) || native_hd) && !direct_present)
                  top_pixels=nds_gpu2d_adaptive_framebuffer(0,&top_width);
              else if (direct_present) top_width=nds_gpu3d_output_width();
@@ -18429,7 +18439,7 @@ index 7ff4316..11d7376 100644
                  bottom_pixels=nds_gpu2d_adaptive_framebuffer(1,&bottom_width);
              phase_adaptive_ticks+=SDL_GetPerformanceCounter()-adaptive_start;
              observe_top_black_bands(native_top,shown_frames);
-@@ -4417,12 +6878,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6884,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -18450,7 +18460,7 @@ index 7ff4316..11d7376 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6907,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6913,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -18485,7 +18495,7 @@ index 7ff4316..11d7376 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,23 +7013,82 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,23 +7019,82 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -18572,7 +18582,7 @@ index 7ff4316..11d7376 100644
          }
          const uint64_t frame_drain_ticks =
              SDL_GetPerformanceCounter() - phase2;
-@@ -4620,17 +7160,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +7166,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -18630,7 +18640,7 @@ index 7ff4316..11d7376 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,12 +7267,23 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,12 +7273,23 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -18654,7 +18664,7 @@ index 7ff4316..11d7376 100644
      destroy_presentation(presentation);
      SDL_Quit();
      std::fprintf(stderr, "[sdl] closed after %llu presented frames\n",
-@@ -5053,3 +7641,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7647,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -19398,7 +19408,7 @@ index 7c9f618..ac6a74d 100644
  
  bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..7233f1e 100644
+index afa9e18..67bf3e2 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
 @@ -55,6 +55,11 @@
@@ -19811,7 +19821,15 @@ index afa9e18..7233f1e 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2449,9 +2729,123 @@ int main(int argc, char** argv) {
+@@ -2366,6 +2646,7 @@ int main(int argc, char** argv) {
+         nds_gpu3d_set_threaded(gpu3d_threaded);
+         nds_gpu2d_set_threaded(gpu2d_threaded, gpu2d_workers);
+         nds_gpu2d_set_adaptive_workers(gpu2d_adaptive_workers);
++        bus_set_gba_slot2_aria_bonus(frontend_options.dos.gba_slot2_aria);
+     };
+     boot();
+     auto reset_machine = [&]() {
+@@ -2449,9 +2730,123 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
