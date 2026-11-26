@@ -1,20 +1,16 @@
-# Notas de Sessão (PR #35, Resposta aos Modders & Suporte Genérico a Mods Locais)
+# Notas de Sessão (Suporte Nativo `.xdelta`/`.ips` & VSync 60Hz Sem Mudar Tom)
 
 ## Feito
-- **PR #35 (`@Xarishark`) mergeado na `main` (`43d81e1`):** backup automático de `{data}/saves/definitive` e `{data}/saves/profiles`, `system` somente Windows e badge do RecompLauncher apontando direto para a página do jogo.
-- **Issues `#43` (`@OerstedLAL`) e `#44` (`@Wet-Band-Aid`):** respostas respeitosas publicadas pedindo desculpas, esclarecendo que a intenção era suporte genérico a mods, confirmando a remoção de todos os mods de terceiros e perguntando canal de contato para futuras permissões formais.
-- **Issue `#7` (Widescreen):** respondida e fechada (`completed`) referenciando a release `v1.2.0`.
-- **Remoção completa de mods de terceiros & suporte genérico (`refactor/generic-mod-support`):**
-  - Removidos do Git: `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py` e todas as entradas de terceiros em `mods/registry.json`.
-  - Adicionado importador offline genérico `tools/import_local_mod.py` (zero URLs/downloads).
-  - `ndsrecomp/runner/src/dos_mod_registry.cpp` e `tools/mod_resolver.py` generalizados para descobrir automaticamente qualquer `*.dospatch` colocado pelo jogador em `{data}/mods/profiles/` com saves isolados; padrão alterado para `Original USA`.
-  - `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` endurecidos para rejeitar `.dospatch`/`.xdelta`/`.ips`/`.bps` em releases.
-  - Verificado: `ctest` C++ `3/3` PASS (`0.55s`), `unittest` Python `55/55` PASS, `package_recomplauncher.py --validate-only` OK, `prepare_media_assets.py --check-only` OK, `patches/ndsrecomp-local.patch` (`1.55 MiB`, reverse-apply OK).
+- **Suporte nativo `.xdelta` / `.vcdiff` e `.ips` direto no `nds_runner.exe` (`dos_rom_patch.cpp`, `dos_mod_registry.cpp`, `tools/mod_resolver.py`):**
+  - Decodificadores C++ puros RFC 3284 VCDIFF (COPY/ADD/RUN + Adler32, com fallback automático para `xdelta3.exe` via `CreateProcessW` quando usa compressor secundário DJW/LZMA) e IPS (Hunk + RLE + truncation), além de diagnóstico claro para XDELTA1 legado (`%XDZ00x%`).
+  - Auto-descoberta em `{data}/mods/profiles/` para `.dospatch`, `.xdelta`, `.vcdiff`, `.xdelta3` e `.ips` com saves/savestates isolados e proteção de IDs reservados.
+- **Issue `#39` — Modo VSync Exato `60.0 Hz` (`sync60`):**
+  - Novo `DosVsyncMode::Sync60Hz` em `dos_enhancements.{h,cpp}`, `dos_i18n.{h,cpp}`, `dos_imgui_menu.cpp`, `frontend.cpp` e `recomplauncher.json`.
+  - `DosPitchPreservingAudioSync` (WSOLA overlap-add de janela Hann 128 frames): elimina o micro-stutter do clock DS `59.8261 Hz` em LCD 60 Hz com zero crackle e 0.00% alteração de pitch (validado em teste de 600 frames a 440 Hz).
 
 ## Falta / Próximos passos
-- Revisar diff, abrir PR, passar CI e mergear `refactor/generic-mod-support` na `main`; em seguida fechar `#43`, `#44` e `#19` com o commit exato de remoção.
-- Decidir publicação de patch release `v1.2.1` clean-room (sem `.dospatch` de terceiros + `recomplauncher.json` do PR #35).
-- Avaliar implementação da Issue `#39` (60Hz vertical sync sem crackle/pitch shift) e triagem das features de roadmap (`#30`, `#36`, `#37`, `#38`, `#40`).
+- Abrir PR, passar revisão + CI e mergear `feat/xdelta-ips-and-60hz-vsync`, respondendo/fechando `#39` e respondendo `#30` com instruções de uso do `.xdelta` local.
+- Atacar próximas fatias das issues abertas: `#37` (Cheat Manager), `#38` (Advanced Custom Music Manager), `#36` (Texture Dumping/HD Packs) e análise/resposta técnica de `#40` (Multi-idioma EUR), além da patch release clean-room `v1.2.1`.
 
 ## Decisões
-- Nenhum mod ou tradução de terceiros será embutido, listado ou baixado automaticamente sem permissão explícita do autor; o projeto fornece exclusivamente suporte genérico local (`{data}/mods/profiles/*.dospatch` e `{data}/mods/music/`).
+- WSOLA de janela Hann (128 samples, busca de fase correlacionada em `[96..256]`) escolhido em vez de `SDL_SetAudioStreamFrequencyRatio` para cumprir literalmente o requisito de **0.00% alteração de tom** na Issue `#39`.

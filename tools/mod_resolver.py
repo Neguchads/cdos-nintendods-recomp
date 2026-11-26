@@ -132,14 +132,18 @@ class ModRegistry:
             for entry in group.values()
             if entry.get("profile_file")
         }
-        for p in sorted(prof_dir.glob("*.dospatch")):
-            if not p.is_file():
-                continue
+        ext_priority = {".dospatch": 0, ".xdelta": 1, ".vcdiff": 2, ".xdelta3": 3, ".ips": 4}
+        candidates = [
+            p for p in prof_dir.iterdir() if p.is_file() and p.suffix.lower() in ext_priority
+        ]
+        candidates.sort(key=lambda p: (ext_priority[p.suffix.lower()], p.name.lower()))
+        for p in candidates:
             if p.name.lower() in registered_files:
                 continue
             cid = sanitize_safe_id(p.stem)
             if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns:
                 continue
+            ext_lc = p.suffix.lower()
             if cid.startswith("dsvrandom-") and len(cid) > len("dsvrandom-"):
                 seed_lbl = cid[len("dsvrandom-") :]
                 self.campaigns[cid] = {
@@ -157,9 +161,10 @@ class ModRegistry:
                     "author": "Local randomizer output",
                 }
             else:
+                suffix_lbl = "" if ext_lc == ".dospatch" else f" ({ext_lc})"
                 self.campaigns[cid] = {
                     "id": cid,
-                    "name": f"Local Mod: {p.stem}",
+                    "name": f"Local Mod: {p.stem}{suffix_lbl}",
                     "version": "1.0",
                     "builtin": False,
                     "manual_import": True,

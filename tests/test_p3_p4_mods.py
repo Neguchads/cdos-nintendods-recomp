@@ -64,6 +64,8 @@ class TestFoundation16A(unittest.TestCase):
             data_mods = Path(tmp) / "mods"
             (data_mods / "profiles").mkdir(parents=True)
             (data_mods / "profiles" / "sample-local-mod.dospatch").write_bytes(b"DOSPATCH")
+            (data_mods / "profiles" / "custom-xdelta-mod.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
+            (data_mods / "profiles" / "custom-ips-mod.ips").write_bytes(b"PATCHEOF")
             (data_mods / "profiles" / "original.dospatch").write_bytes(b"DOSPATCH")
             (data_mods / "profiles" / "definitive.dospatch").write_bytes(b"DOSPATCH")
 
@@ -74,6 +76,10 @@ class TestFoundation16A(unittest.TestCase):
             self.assertEqual(set(reg.character_packs), {"default"})
             self.assertIn("dawn-of-sorrow", reg.campaigns)
             self.assertIn("sample-local-mod", reg.campaigns)
+            self.assertIn("custom-xdelta-mod", reg.campaigns)
+            self.assertIn("custom-ips-mod", reg.campaigns)
+            self.assertEqual(reg.campaigns["custom-xdelta-mod"]["profile_file"], "custom-xdelta-mod.xdelta")
+            self.assertEqual(reg.campaigns["custom-ips-mod"]["profile_file"], "custom-ips-mod.ips")
             self.assertNotIn("original", reg.campaigns)
             self.assertNotIn("definitive", reg.campaigns)
 

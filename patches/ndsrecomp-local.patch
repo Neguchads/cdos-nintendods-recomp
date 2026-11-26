@@ -1549,10 +1549,10 @@ index 0000000..0127d17
 +DosCustomMusicStatus dos_custom_music_status();
 diff --git a/runner/src/dos_enhancements.cpp b/runner/src/dos_enhancements.cpp
 new file mode 100644
-index 0000000..e23c59b
+index 0000000..b8da72d
 --- /dev/null
 +++ b/runner/src/dos_enhancements.cpp
-@@ -0,0 +1,1424 @@
+@@ -0,0 +1,1554 @@
 +#include "dos_enhancements.h"
 +
 +#include <algorithm>
@@ -1634,10 +1634,12 @@ index 0000000..e23c59b
 +constexpr const char* kVsyncOffAliases[] = {"0", "false", "no", "disabled"};
 +constexpr const char* kVsyncOnAliases[] = {"1", "true", "yes", "enabled", "sync"};
 +constexpr const char* kVsyncAdaptiveAliases[] = {"-1", "tear", "late-swap", "dynamic"};
-+const std::array<EnumMapping<DosVsyncMode, 3>, 3> kVsyncModeTable = {{
++constexpr const char* kVsyncSync60Aliases[] = {"60hz", "60", "exact60", "drc", "sync-60"};
++const std::array<EnumMapping<DosVsyncMode, 4>, 4> kVsyncModeTable = {{
 +    {DosVsyncMode::Off, "off", kVsyncOffAliases, 4},
 +    {DosVsyncMode::On, "on", kVsyncOnAliases, 5},
 +    {DosVsyncMode::Adaptive, "adaptive", kVsyncAdaptiveAliases, 4},
++    {DosVsyncMode::Sync60Hz, "sync60", kVsyncSync60Aliases, 5},
 +}};
 +
 +constexpr const char* kWideHudEdgeAliases[] = {"edges", "wide", "0", "anchored"};
@@ -2622,6 +2624,134 @@ index 0000000..e23c59b
 +    }
 +}
 +
++void DosPitchPreservingAudioSync::reset() {
++    staging_.clear();
++    cooldown_frames_ = 0;
++    shrink_splices_ = 0;
++    stretch_splices_ = 0;
++}
++
++void DosPitchPreservingAudioSync::process(const int16_t* in_stereo,
++                                          size_t in_frames,
++                                          uint32_t sdl_queued_frames,
++                                          uint32_t target_queue_frames,
++                                          std::vector<int16_t>* out_stereo) {
++    if (!out_stereo) return;
++    out_stereo->clear();
++    if (!in_stereo || in_frames == 0) return;
++
++    const size_t prev_samples = staging_.size();
++    staging_.resize(prev_samples + in_frames * 2u);
++    std::memcpy(staging_.data() + prev_samples, in_stereo, in_frames * 2u * sizeof(int16_t));
++
++    constexpr size_t kOverlap = 128u;
++    constexpr size_t kMinLag = 96u;
++    constexpr size_t kMaxLag = 256u;
++    constexpr size_t kMinSpliceFrames = kOverlap + kMaxLag + 16u;
++    constexpr uint32_t kDeadband = 384u;
++    constexpr uint32_t kCooldownAfterSplice = 640u;
++    constexpr double kPi = 3.14159265358979323846;
++
++    const auto find_best_lag = [&](const int16_t* buf, size_t total_frames) -> size_t {
++        size_t best_lag = 160u;
++        double best_score = -2.0;
++        const size_t max_lag = std::min(kMaxLag, total_frames - kOverlap);
++        for (size_t lag = kMinLag; lag <= max_lag; lag += 2u) {
++            double dot = 0.0;
++            double e0 = 1.0;
++            double e1 = 1.0;
++            for (size_t i = 0; i < kOverlap; i += 2u) {
++                const double a = static_cast<double>(buf[i * 2u]) +
++                                 static_cast<double>(buf[i * 2u + 1u]);
++                const double b = static_cast<double>(buf[(i + lag) * 2u]) +
++                                 static_cast<double>(buf[(i + lag) * 2u + 1u]);
++                dot += a * b;
++                e0 += a * a;
++                e1 += b * b;
++            }
++            const double score = dot / std::sqrt(e0 * e1);
++            if (score > best_score) {
++                best_score = score;
++                best_lag = lag;
++            }
++        }
++        return best_lag;
++    };
++
++    const size_t staged_frames = staging_.size() / 2u;
++    if (cooldown_frames_ > 0) {
++        cooldown_frames_ = (in_frames >= cooldown_frames_)
++                               ? 0u
++                               : cooldown_frames_ - static_cast<uint32_t>(in_frames);
++    }
++
++    const bool need_shrink = (sdl_queued_frames > target_queue_frames + kDeadband);
++    const bool need_stretch =
++        (sdl_queued_frames + kDeadband < target_queue_frames) && (sdl_queued_frames > 0u);
++
++    if ((need_shrink || need_stretch) && cooldown_frames_ == 0u && staged_frames >= kMinSpliceFrames) {
++        const size_t lag = find_best_lag(staging_.data(), staged_frames);
++        if (need_shrink) {
++            const size_t out_frames = staged_frames - lag;
++            out_stereo->resize(out_frames * 2u);
++            for (size_t i = 0; i < kOverlap; ++i) {
++                const double w = 0.5 * (1.0 - std::cos(kPi * static_cast<double>(i) / static_cast<double>(kOverlap)));
++                const double a_l = static_cast<double>(staging_[i * 2u]);
++                const double a_r = static_cast<double>(staging_[i * 2u + 1u]);
++                const double b_l = static_cast<double>(staging_[(i + lag) * 2u]);
++                const double b_r = static_cast<double>(staging_[(i + lag) * 2u + 1u]);
++                (*out_stereo)[i * 2u] = static_cast<int16_t>(
++                    std::clamp(static_cast<int>(std::lround(a_l * (1.0 - w) + b_l * w)), -32768, 32767));
++                (*out_stereo)[i * 2u + 1u] = static_cast<int16_t>(
++                    std::clamp(static_cast<int>(std::lround(a_r * (1.0 - w) + b_r * w)), -32768, 32767));
++            }
++            const size_t tail_frames = staged_frames - (lag + kOverlap);
++            if (tail_frames > 0u) {
++                std::memcpy(out_stereo->data() + kOverlap * 2u,
++                            staging_.data() + (lag + kOverlap) * 2u,
++                            tail_frames * 2u * sizeof(int16_t));
++            }
++            staging_.clear();
++            cooldown_frames_ = kCooldownAfterSplice;
++            ++shrink_splices_;
++            return;
++        } else if (need_stretch) {
++            const size_t out_frames = staged_frames + lag;
++            out_stereo->resize(out_frames * 2u);
++            std::memcpy(out_stereo->data(), staging_.data(), lag * 2u * sizeof(int16_t));
++            for (size_t i = 0; i < kOverlap; ++i) {
++                const double w = 0.5 * (1.0 - std::cos(kPi * static_cast<double>(i) / static_cast<double>(kOverlap)));
++                const double a_l = static_cast<double>(staging_[(lag + i) * 2u]);
++                const double a_r = static_cast<double>(staging_[(lag + i) * 2u + 1u]);
++                const double b_l = static_cast<double>(staging_[i * 2u]);
++                const double b_r = static_cast<double>(staging_[i * 2u + 1u]);
++                (*out_stereo)[(lag + i) * 2u] = static_cast<int16_t>(
++                    std::clamp(static_cast<int>(std::lround(a_l * (1.0 - w) + b_l * w)), -32768, 32767));
++                (*out_stereo)[(lag + i) * 2u + 1u] = static_cast<int16_t>(
++                    std::clamp(static_cast<int>(std::lround(a_r * (1.0 - w) + b_r * w)), -32768, 32767));
++            }
++            const size_t tail_frames = staged_frames - kOverlap;
++            if (tail_frames > 0u) {
++                std::memcpy(out_stereo->data() + (lag + kOverlap) * 2u,
++                            staging_.data() + kOverlap * 2u,
++                            tail_frames * 2u * sizeof(int16_t));
++            }
++            staging_.clear();
++            cooldown_frames_ = kCooldownAfterSplice;
++            ++stretch_splices_;
++            return;
++        }
++    }
++
++    if (!need_shrink && !need_stretch) {
++        out_stereo->swap(staging_);
++        staging_.clear();
++    } else if (staged_frames >= kMinSpliceFrames) {
++        out_stereo->swap(staging_);
++        staging_.clear();
++    }
++}
++
 +namespace {
 +
 +void render_hud_impl(uint32_t* pixels, int width, int height,
@@ -2979,10 +3109,10 @@ index 0000000..e23c59b
 +}
 diff --git a/runner/src/dos_enhancements.h b/runner/src/dos_enhancements.h
 new file mode 100644
-index 0000000..9acf0b2
+index 0000000..694f018
 --- /dev/null
 +++ b/runner/src/dos_enhancements.h
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,355 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -3006,6 +3136,7 @@ index 0000000..9acf0b2
 +    Off,
 +    On,
 +    Adaptive,
++    Sync60Hz,
 +};
 +
 +enum class DosWideHudMode : uint8_t {
@@ -3274,6 +3405,21 @@ index 0000000..9acf0b2
 +    void process(int16_t* interleaved_stereo, uint32_t frames,
 +                 DosAudioMode mode, bool enabled, uint8_t volume_pct,
 +                 uint8_t fx_intensity_pct = 100);
++};
++
++// Pitch-preserving WSOLA micro-splicer for exact 60.0 Hz vertical sync (Issue #39):
++// keeps the SDL audio queue centered without changing playback sample rate / pitch
++// and without hard sample drops or clicks.
++struct DosPitchPreservingAudioSync {
++    std::vector<int16_t> staging_;
++    uint32_t cooldown_frames_ = 0;
++    uint64_t shrink_splices_ = 0;
++    uint64_t stretch_splices_ = 0;
++
++    void reset();
++    void process(const int16_t* in_stereo, size_t in_frames,
++                 uint32_t sdl_queued_frames, uint32_t target_queue_frames,
++                 std::vector<int16_t>* out_stereo);
 +};
 +
 +struct DosHudMetrics {
@@ -7663,10 +7809,10 @@ index 0000000..2f75d9f
 +inline constexpr size_t kDosPostProcessSpirvSize = sizeof(kDosPostProcessSpirv);
 diff --git a/runner/src/dos_i18n.cpp b/runner/src/dos_i18n.cpp
 new file mode 100644
-index 0000000..ffcbbae
+index 0000000..56a8bae
 --- /dev/null
 +++ b/runner/src/dos_i18n.cpp
-@@ -0,0 +1,334 @@
+@@ -0,0 +1,335 @@
 +#include "dos_i18n.h"
 +
 +#include <array>
@@ -7801,6 +7947,7 @@ index 0000000..ffcbbae
 +    {DosStrId::VsyncOff, "Off (Lowest Latency)", "Desligado (Menor Latência)"},
 +    {DosStrId::VsyncOn, "On (Standard Sync)", "Ligado (Sincronização Padrão)"},
 +    {DosStrId::VsyncAdaptive, "Adaptive (Tear-Free / Auto Fallback)", "Adaptativo (Sem Rasgos / Fallback Auto)"},
++    {DosStrId::VsyncSync60Hz, "60Hz Exact Sync (Pitch-Preserving)", "Sincronia Exata 60Hz (Tom Preservado)"},
 +    {DosStrId::SecVisualPresets, "Quick Visual Profiles", "Perfis Visuais Rápidos"},
 +    {DosStrId::PresetModernHd, "Modern HD Crisp", "HD Moderno Nítido"},
 +    {DosStrId::PresetHd2dRemaster, "HD-2D Remaster (Bloom)", "Remaster HD-2D (Bloom)"},
@@ -7907,8 +8054,8 @@ index 0000000..ffcbbae
 +     "User-supplied local baseline patch active in memory (Original USA ROM remains unmodified on disk).",
 +     "Patch base local fornecido pelo usuário ativo em memória (ROM Original USA intacta no disco)."},
 +    {DosStrId::ContentDefinitiveMissing,
-+     "No optional baseline patch loaded. Import your own .dospatch mods into {data}/mods/profiles/.",
-+     "Nenhum patch base opcional carregado. Importe seus próprios mods .dospatch em {data}/mods/profiles/."},
++     "No optional baseline patch loaded. Drop your own .xdelta, .vcdiff, .ips, or .dospatch mods into {data}/mods/profiles/.",
++     "Nenhum patch base opcional carregado. Coloque seus mods .xdelta, .vcdiff, .ips ou .dospatch em {data}/mods/profiles/."},
 +    {DosStrId::LblEnhancedIntro, "Play Enhanced Opening Video on Launch", "Reproduzir Abertura Aprimorada ao Iniciar"},
 +    {DosStrId::BtnPlayIntroNow, "Play Opening Now", "Assistir Abertura Agora"},
 +    {DosStrId::IntroVideoReady, "Opening video ready (native Media Foundation decoder).", "Vídeo de abertura pronto (decodificador nativo Media Foundation)."},
@@ -8003,10 +8150,10 @@ index 0000000..ffcbbae
 +}
 diff --git a/runner/src/dos_i18n.h b/runner/src/dos_i18n.h
 new file mode 100644
-index 0000000..917f984
+index 0000000..0ff48f3
 --- /dev/null
 +++ b/runner/src/dos_i18n.h
-@@ -0,0 +1,288 @@
+@@ -0,0 +1,289 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -8117,6 +8264,7 @@ index 0000000..917f984
 +    VsyncOff,
 +    VsyncOn,
 +    VsyncAdaptive,
++    VsyncSync60Hz,
 +    SecVisualPresets,
 +    PresetModernHd,
 +    PresetHd2dRemaster,
@@ -8297,7 +8445,7 @@ index 0000000..917f984
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..f8818ef
+index 0000000..8d8ebf5
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
 @@ -0,0 +1,1803 @@
@@ -8940,10 +9088,10 @@ index 0000000..f8818ef
 +        opt->dos.render_driver == DosRenderDriver::OpenGL) {
 +        ImGui::TextDisabled("%s", dos_tr(lang, DosStrId::HintCpuFallbackDriver));
 +    }
-+    static constexpr std::array<DosVsyncMode, 3> kVsyncModes = {
-+        DosVsyncMode::Off, DosVsyncMode::On, DosVsyncMode::Adaptive};
-+    static constexpr std::array<DosStrId, 3> kVsyncNames = {
-+        DosStrId::VsyncOff, DosStrId::VsyncOn, DosStrId::VsyncAdaptive};
++    static constexpr std::array<DosVsyncMode, 4> kVsyncModes = {
++        DosVsyncMode::Off, DosVsyncMode::On, DosVsyncMode::Adaptive, DosVsyncMode::Sync60Hz};
++    static constexpr std::array<DosStrId, 4> kVsyncNames = {
++        DosStrId::VsyncOff, DosStrId::VsyncOn, DosStrId::VsyncAdaptive, DosStrId::VsyncSync60Hz};
 +    if (combo_enum(dos_tr(lang, DosStrId::LblVsync), &opt->dos.vsync_mode,
 +                   kVsyncModes, kVsyncNames, lang)) {
 +        opt->dos.vsync = (opt->dos.vsync_mode != DosVsyncMode::Off);
@@ -10852,10 +11000,10 @@ index 0000000..b5a0dc8
 +std::string dos_profile_save_path(const std::string& base_save_path, DosContentProfile profile);
 diff --git a/runner/src/dos_mod_registry.cpp b/runner/src/dos_mod_registry.cpp
 new file mode 100644
-index 0000000..edf983b
+index 0000000..07711f3
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.cpp
-@@ -0,0 +1,842 @@
+@@ -0,0 +1,861 @@
 +#include "dos_mod_registry.h"
 +
 +#include <algorithm>
@@ -11331,6 +11479,19 @@ index 0000000..edf983b
 +        return in_list(reg->baselines) || in_list(reg->campaigns) || in_list(reg->character_packs);
 +    };
 +
++    auto patch_ext_priority = [](const std::string& lc_name) -> int {
++        auto ends = [&](const char* ext) {
++            const size_t elen = std::strlen(ext);
++            return lc_name.size() > elen && lc_name.compare(lc_name.size() - elen, elen, ext) == 0;
++        };
++        if (ends(".dospatch")) return 0;
++        if (ends(".xdelta")) return 1;
++        if (ends(".vcdiff")) return 2;
++        if (ends(".xdelta3")) return 3;
++        if (ends(".ips")) return 4;
++        return -1;
++    };
++
 +    if (!reg->data_mods_dir.empty()) {
 +        std::error_code ec;
 +        const fs::path prof_dir = fs::path(reg->data_mods_dir) / "profiles";
@@ -11342,15 +11503,21 @@ index 0000000..edf983b
 +                if (!entry.is_regular_file(file_ec) || file_ec) continue;
 +                const std::string fname = entry.path().filename().string();
 +                const std::string lc = lower_ascii(fname);
-+                if (lc.size() > 9 && lc.compare(lc.size() - 9, 9, ".dospatch") == 0) {
++                if (patch_ext_priority(lc) >= 0) {
 +                    found.push_back(entry.path());
 +                }
 +            }
-+            std::sort(found.begin(), found.end());
++            std::sort(found.begin(), found.end(), [&](const fs::path& a, const fs::path& b) {
++                const int pa = patch_ext_priority(lower_ascii(a.filename().string()));
++                const int pb = patch_ext_priority(lower_ascii(b.filename().string()));
++                if (pa != pb) return pa < pb;
++                return a.filename().string() < b.filename().string();
++            });
 +            for (const auto& p : found) {
 +                const std::string fname = p.filename().string();
 +                if (file_already_registered(fname)) continue;
 +                const std::string stem = p.stem().string();
++                const std::string ext_lc = lower_ascii(p.extension().string());
 +                const std::string safe_id = dos_mod_sanitize_id(stem);
 +                if (safe_id.empty() || is_reserved_profile_id(safe_id) ||
 +                    find_entry(reg->campaigns, safe_id) != nullptr) {
@@ -11367,12 +11534,12 @@ index 0000000..edf983b
 +                    const std::string seed_label = safe_id.substr(10);
 +                    e.name = "DSVania Randomizer (" + seed_label + ")";
 +                    e.author = "Local randomizer output";
-+                    e.summary = "Externally generated randomizer seed imported locally as DOSPATCH.";
++                    e.summary = "Externally generated randomizer seed imported locally.";
 +                    e.validation_level = "external_randomizer";
 +                } else {
-+                    e.name = "Local Mod: " + stem;
++                    e.name = "Local Mod: " + stem + (ext_lc == ".dospatch" ? "" : " (" + ext_lc + ")");
 +                    e.author = "User local patch";
-+                    e.summary = "User-supplied local DOSPATCH profile in {data}/mods/profiles/.";
++                    e.summary = "User-supplied local patch (" + ext_lc + ") in {data}/mods/profiles/.";
 +                    e.validation_level = "local_user_mod";
 +                }
 +                e.registry_state = "unverified";
@@ -12664,29 +12831,108 @@ index 0000000..d9932b0
 +}
 diff --git a/runner/src/dos_rom_patch.cpp b/runner/src/dos_rom_patch.cpp
 new file mode 100644
-index 0000000..025df40
+index 0000000..d6ab6f3
 --- /dev/null
 +++ b/runner/src/dos_rom_patch.cpp
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,694 @@
 +#include "dos_rom_patch.h"
 +
 +#include <algorithm>
 +#include <array>
 +#include <cstring>
++#include <filesystem>
 +#include <fstream>
++#include <string>
++#include <vector>
++
++#if defined(_WIN32)
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
++#include <windows.h>
++#endif
 +
 +#include "sha1.h"
 +
 +namespace {
 +
-+constexpr uint8_t kMagic[8] = {'D', 'O', 'S', 'P', 'A', 'T', 'C', 'H'};
-+constexpr size_t kHeaderSize = 64u;
-+constexpr uint32_t kSupportedVersion = 1u;
++constexpr uint8_t kMagicDosPatch[8] = {'D', 'O', 'S', 'P', 'A', 'T', 'C', 'H'};
++constexpr uint8_t kMagicVcdiff[4] = {0xD6u, 0xC3u, 0xC4u, 0x00u};
++constexpr uint8_t kMagicIps[5] = {'P', 'A', 'T', 'C', 'H'};
++constexpr uint8_t kMagicXdelta1[6] = {'%', 'X', 'D', 'Z', '0', '0'};
++
++constexpr size_t kDosPatchHeaderSize = 64u;
++constexpr uint32_t kSupportedDosPatchVersion = 1u;
 +constexpr uint32_t kMaxTargetRomSize = 512u * 1024u * 1024u;
++
++// RFC 3284 VCDIFF flags
++constexpr uint8_t kVcdDecompress = 0x01u;
++constexpr uint8_t kVcdCodetable = 0x02u;
++constexpr uint8_t kVcdAppHeader = 0x04u;
++constexpr uint8_t kVcdSource = 0x01u;
++constexpr uint8_t kVcdTarget = 0x02u;
++constexpr uint8_t kVcdAdler32 = 0x04u;
++
++constexpr uint8_t kOpNoop = 0u;
++constexpr uint8_t kOpAdd = 1u;
++constexpr uint8_t kOpRun = 2u;
++constexpr uint8_t kOpCopy = 3u;
++
++struct VcdCodeEntry {
++    uint8_t t1, s1, m1;
++    uint8_t t2, s2, m2;
++};
++
++const std::array<VcdCodeEntry, 256>& vcd_default_code_table() {
++    static const std::array<VcdCodeEntry, 256> kTable = []() {
++        std::array<VcdCodeEntry, 256> t{};
++        size_t idx = 0;
++        t[idx++] = {kOpRun, 0, 0, kOpNoop, 0, 0};
++        for (uint8_t sz = 0; sz <= 17; ++sz) {
++            t[idx++] = {kOpAdd, sz, 0, kOpNoop, 0, 0};
++        }
++        for (uint8_t mode = 0; mode < 9; ++mode) {
++            t[idx++] = {kOpCopy, 0, mode, kOpNoop, 0, 0};
++            for (uint8_t sz = 4; sz <= 18; ++sz) {
++                t[idx++] = {kOpCopy, sz, mode, kOpNoop, 0, 0};
++            }
++        }
++        for (uint8_t mode = 0; mode < 6; ++mode) {
++            for (uint8_t add_s = 1; add_s <= 4; ++add_s) {
++                for (uint8_t copy_s = 4; copy_s <= 6; ++copy_s) {
++                    t[idx++] = {kOpAdd, add_s, 0, kOpCopy, copy_s, mode};
++                }
++            }
++        }
++        for (uint8_t mode = 6; mode < 9; ++mode) {
++            for (uint8_t add_s = 1; add_s <= 4; ++add_s) {
++                t[idx++] = {kOpAdd, add_s, 0, kOpCopy, 4, mode};
++            }
++        }
++        for (uint8_t mode = 0; mode < 9; ++mode) {
++            t[idx++] = {kOpCopy, 4, mode, kOpAdd, 1, 0};
++        }
++        return t;
++    }();
++    return kTable;
++}
 +
 +uint32_t read_le32(const uint8_t* p) {
 +    return uint32_t{p[0]} | (uint32_t{p[1]} << 8) |
 +           (uint32_t{p[2]} << 16) | (uint32_t{p[3]} << 24);
++}
++
++uint32_t read_be32(const uint8_t* p) {
++    return (uint32_t{p[0]} << 24) | (uint32_t{p[1]} << 16) |
++           (uint32_t{p[2]} << 8) | uint32_t{p[3]};
++}
++
++uint32_t read_be24(const uint8_t* p) {
++    return (uint32_t{p[0]} << 16) | (uint32_t{p[1]} << 8) | uint32_t{p[2]};
++}
++
++uint16_t read_be16(const uint8_t* p) {
++    return static_cast<uint16_t>((uint16_t{p[0]} << 8) | uint16_t{p[1]});
 +}
 +
 +uint32_t ieee_crc32(const uint8_t* data, size_t len) {
@@ -12701,28 +12947,55 @@ index 0000000..025df40
 +    return ~crc;
 +}
 +
++uint32_t compute_adler32(const uint8_t* data, size_t len) {
++    constexpr uint32_t kModAdler = 65521u;
++    uint32_t a = 1u;
++    uint32_t b = 0u;
++    size_t i = 0;
++    while (i < len) {
++        const size_t block = std::min<size_t>(5552u, len - i);
++        for (size_t j = 0; j < block; ++j) {
++            a += data[i + j];
++            b += a;
++        }
++        a %= kModAdler;
++        b %= kModAdler;
++        i += block;
++    }
++    return (b << 16) | a;
++}
++
 +bool set_err(std::string* error, const char* msg) {
 +    if (error) *error = msg ? msg : "";
 +    return false;
 +}
 +
-+}  // namespace
++bool read_vcd_varint(const uint8_t* buf, size_t len, size_t* pos, uint64_t* out) {
++    uint64_t val = 0;
++    int count = 0;
++    while (*pos < len) {
++        if (count >= 9) return false;
++        const uint8_t byte = buf[(*pos)++];
++        val = (val << 7) | (byte & 0x7Fu);
++        ++count;
++        if ((byte & 0x80u) == 0u) {
++            *out = val;
++            return true;
++        }
++    }
++    return false;
++}
 +
-+bool dos_rom_patch_apply_bytes(const std::vector<uint8_t>& base_rom,
-+                               const uint8_t* patch_data,
-+                               size_t patch_size,
-+                               std::vector<uint8_t>* out_rom,
-+                               std::string* error) {
-+    if (!out_rom) return set_err(error, "out_rom nulo");
-+    if (!patch_data || patch_size < kHeaderSize) {
++bool apply_dospatch_bytes(const std::vector<uint8_t>& base_rom,
++                          const uint8_t* patch_data,
++                          size_t patch_size,
++                          std::vector<uint8_t>* out_rom,
++                          std::string* error) {
++    if (patch_size < kDosPatchHeaderSize) {
 +        return set_err(error, "patch DOSPATCH truncado ou invalido");
 +    }
-+    if (std::memcmp(patch_data, kMagic, sizeof(kMagic)) != 0) {
-+        return set_err(error, "assinatura DOSPATCH invalida");
-+    }
-+
 +    const uint32_t version = read_le32(patch_data + 8);
-+    if (version != kSupportedVersion) {
++    if (version != kSupportedDosPatchVersion) {
 +        return set_err(error, "versao DOSPATCH nao suportada");
 +    }
 +    const uint32_t target_size = read_le32(patch_data + 12);
@@ -12739,10 +13012,10 @@ index 0000000..025df40
 +
 +    const auto actual_src_sha1 = gba::sha1(base_rom.data(), base_rom.size()).bytes;
 +    if (actual_src_sha1 != expected_src_sha1) {
-+        return set_err(error, "SHA-1 da ROM base nao corresponde ao patch PT-BR");
++        return set_err(error, "SHA-1 da ROM base nao corresponde ao patch DOSPATCH");
 +    }
 +
-+    const uint32_t actual_crc = ieee_crc32(patch_data + kHeaderSize, patch_size - kHeaderSize);
++    const uint32_t actual_crc = ieee_crc32(patch_data + kDosPatchHeaderSize, patch_size - kDosPatchHeaderSize);
 +    if (actual_crc != expected_crc) {
 +        return set_err(error, "CRC32 do payload DOSPATCH corrompido");
 +    }
@@ -12753,7 +13026,7 @@ index 0000000..025df40
 +        std::memcpy(patched.data(), base_rom.data(), copy_len);
 +    }
 +
-+    size_t cursor = kHeaderSize;
++    size_t cursor = kDosPatchHeaderSize;
 +    for (uint32_t i = 0; i < chunk_count; ++i) {
 +        if (cursor + 8u > patch_size) {
 +            return set_err(error, "bloco DOSPATCH truncado");
@@ -12787,27 +13060,478 @@ index 0000000..025df40
 +    return true;
 +}
 +
++bool apply_ips_bytes(const std::vector<uint8_t>& base_rom,
++                     const uint8_t* patch_data,
++                     size_t patch_size,
++                     std::vector<uint8_t>* out_rom,
++                     std::string* error) {
++    if (patch_size < 8u || std::memcmp(patch_data, kMagicIps, sizeof(kMagicIps)) != 0) {
++        return set_err(error, "assinatura IPS invalida (esperado PATCH)");
++    }
++    std::vector<uint8_t> patched = base_rom;
++    size_t pos = 5u;
++    bool found_eof = false;
++    while (pos + 3u <= patch_size) {
++        if (patch_data[pos] == 'E' && patch_data[pos + 1] == 'O' && patch_data[pos + 2] == 'F') {
++            pos += 3u;
++            found_eof = true;
++            if (pos + 3u == patch_size) {
++                const uint32_t trunc_size = read_be24(patch_data + pos);
++                if (trunc_size > kMaxTargetRomSize) {
++                    return set_err(error, "truncamento IPS excede limite de tamanho");
++                }
++                patched.resize(trunc_size, 0u);
++                pos += 3u;
++            }
++            break;
++        }
++        const uint32_t offset = read_be24(patch_data + pos);
++        pos += 3u;
++        if (pos + 2u > patch_size) {
++            return set_err(error, "registro IPS truncado (tamanho)");
++        }
++        const uint16_t size = read_be16(patch_data + pos);
++        pos += 2u;
++        if (size == 0u) {
++            if (pos + 3u > patch_size) {
++                return set_err(error, "registro IPS RLE truncado");
++            }
++            const uint16_t rle_len = read_be16(patch_data + pos);
++            const uint8_t rle_byte = patch_data[pos + 2u];
++            pos += 3u;
++            const uint64_t end = static_cast<uint64_t>(offset) + static_cast<uint64_t>(rle_len);
++            if (end > kMaxTargetRomSize) {
++                return set_err(error, "registro IPS RLE excede tamanho maximo de ROM");
++            }
++            if (end > patched.size()) patched.resize(static_cast<size_t>(end), 0u);
++            std::memset(patched.data() + offset, rle_byte, rle_len);
++        } else {
++            if (pos + size > patch_size) {
++                return set_err(error, "registro IPS truncado (dados)");
++            }
++            const uint64_t end = static_cast<uint64_t>(offset) + static_cast<uint64_t>(size);
++            if (end > kMaxTargetRomSize) {
++                return set_err(error, "registro IPS excede tamanho maximo de ROM");
++            }
++            if (end > patched.size()) patched.resize(static_cast<size_t>(end), 0u);
++            std::memcpy(patched.data() + offset, patch_data + pos, size);
++            pos += size;
++        }
++    }
++    if (!found_eof) {
++        return set_err(error, "patch IPS sem marcador EOF");
++    }
++    *out_rom = std::move(patched);
++    return true;
++}
++
++bool vcdiff_needs_secondary_compressor(const uint8_t* patch_data, size_t patch_size) {
++    return patch_size >= 5u &&
++           std::memcmp(patch_data, kMagicVcdiff, sizeof(kMagicVcdiff)) == 0 &&
++           ((patch_data[4] & kVcdDecompress) != 0u);
++}
++
++bool apply_vcdiff_bytes(const std::vector<uint8_t>& base_rom,
++                        const uint8_t* patch_data,
++                        size_t patch_size,
++                        std::vector<uint8_t>* out_rom,
++                        std::string* error) {
++    if (patch_size < 5u || std::memcmp(patch_data, kMagicVcdiff, sizeof(kMagicVcdiff)) != 0) {
++        return set_err(error, "assinatura VCDIFF (.xdelta) invalida");
++    }
++    const uint8_t hdr_ind = patch_data[4];
++    size_t pos = 5u;
++    if (hdr_ind & kVcdDecompress) {
++        return set_err(error,
++                       "VCDIFF usa compressor secundario (DJW/FGK/LZMA); instale xdelta3 ou converta via tools/import_local_mod.py");
++    }
++    if (hdr_ind & kVcdCodetable) {
++        return set_err(error, "tabela de codigos customizada VCDIFF nao suportada");
++    }
++    if (hdr_ind & kVcdAppHeader) {
++        uint64_t app_len = 0;
++        if (!read_vcd_varint(patch_data, patch_size, &pos, &app_len) ||
++            app_len > patch_size - pos) {
++            return set_err(error, "cabecalho de aplicacao VCDIFF truncado");
++        }
++        pos += static_cast<size_t>(app_len);
++    }
++
++    const auto& table = vcd_default_code_table();
++    std::vector<uint8_t> out;
++    out.reserve(base_rom.size());
++
++    while (pos < patch_size) {
++        const uint8_t win_ind = patch_data[pos++];
++        const uint8_t* seg_ptr = nullptr;
++        size_t seg_len = 0;
++        std::vector<uint8_t> target_seg_copy;
++
++        if (win_ind & kVcdSource) {
++            uint64_t src_len = 0, src_pos = 0;
++            if (!read_vcd_varint(patch_data, patch_size, &pos, &src_len) ||
++                !read_vcd_varint(patch_data, patch_size, &pos, &src_pos)) {
++                return set_err(error, "janela VCDIFF truncada (VCD_SOURCE)");
++            }
++            if (src_pos > base_rom.size() || src_len > base_rom.size() - src_pos) {
++                return set_err(error, "segmento VCD_SOURCE fora dos limites da ROM base");
++            }
++            seg_ptr = base_rom.data() + static_cast<size_t>(src_pos);
++            seg_len = static_cast<size_t>(src_len);
++        } else if (win_ind & kVcdTarget) {
++            uint64_t src_len = 0, src_pos = 0;
++            if (!read_vcd_varint(patch_data, patch_size, &pos, &src_len) ||
++                !read_vcd_varint(patch_data, patch_size, &pos, &src_pos)) {
++                return set_err(error, "janela VCDIFF truncada (VCD_TARGET)");
++            }
++            if (src_pos > out.size() || src_len > out.size() - src_pos) {
++                return set_err(error, "segmento VCD_TARGET fora dos limites");
++            }
++            target_seg_copy.assign(out.begin() + static_cast<ptrdiff_t>(src_pos),
++                                   out.begin() + static_cast<ptrdiff_t>(src_pos + src_len));
++            seg_ptr = target_seg_copy.data();
++            seg_len = target_seg_copy.size();
++        }
++
++        uint64_t delta_len = 0;
++        if (!read_vcd_varint(patch_data, patch_size, &pos, &delta_len) ||
++            delta_len > patch_size - pos) {
++            return set_err(error, "janela VCDIFF truncada (delta_len)");
++        }
++        const size_t win_end = pos + static_cast<size_t>(delta_len);
++
++        uint64_t tgt_len_u64 = 0;
++        if (!read_vcd_varint(patch_data, win_end, &pos, &tgt_len_u64) ||
++            tgt_len_u64 > kMaxTargetRomSize ||
++            out.size() + static_cast<size_t>(tgt_len_u64) > kMaxTargetRomSize) {
++            return set_err(error, "tamanho alvo de janela VCDIFF invalido");
++        }
++        const size_t tgt_len = static_cast<size_t>(tgt_len_u64);
++
++        if (pos >= win_end) return set_err(error, "del_ind ausente na janela VCDIFF");
++        const uint8_t del_ind = patch_data[pos++];
++        if (del_ind != 0u) {
++            return set_err(error, "secoes comprimidas por janela VCDIFF nao suportadas sem xdelta3");
++        }
++
++        uint64_t data_len = 0, inst_len = 0, addr_len = 0;
++        if (!read_vcd_varint(patch_data, win_end, &pos, &data_len) ||
++            !read_vcd_varint(patch_data, win_end, &pos, &inst_len) ||
++            !read_vcd_varint(patch_data, win_end, &pos, &addr_len)) {
++            return set_err(error, "tamanhos de secao VCDIFF truncados");
++        }
++
++        bool has_adler = false;
++        uint32_t expected_adler = 0;
++        if (win_ind & kVcdAdler32) {
++            if (win_end - pos < 4u) return set_err(error, "Adler32 VCDIFF truncado");
++            expected_adler = read_be32(patch_data + pos);
++            pos += 4u;
++            has_adler = true;
++        }
++
++        if (data_len > win_end - pos) return set_err(error, "secao data VCDIFF truncada");
++        const uint8_t* data_s = patch_data + pos;
++        pos += static_cast<size_t>(data_len);
++        if (inst_len > win_end - pos) return set_err(error, "secao inst VCDIFF truncada");
++        const uint8_t* inst_s = patch_data + pos;
++        pos += static_cast<size_t>(inst_len);
++        if (addr_len > win_end - pos) return set_err(error, "secao addr VCDIFF truncada");
++        const uint8_t* addr_s = patch_data + pos;
++        pos += static_cast<size_t>(addr_len);
++        if (pos != win_end) {
++            return set_err(error, "tamanho inconsistente de janela VCDIFF");
++        }
++
++        std::array<uint64_t, 4> near_cache{0, 0, 0, 0};
++        size_t near_next = 0;
++        std::array<uint64_t, 3 * 256> same_cache{};
++        size_t dp = 0, ip = 0, ap = 0;
++        const size_t data_n = static_cast<size_t>(data_len);
++        const size_t inst_n = static_cast<size_t>(inst_len);
++        const size_t addr_n = static_cast<size_t>(addr_len);
++
++        std::vector<uint8_t> tgt;
++        tgt.reserve(tgt_len);
++
++        auto decode_addr = [&](uint64_t here, uint8_t mode, uint64_t* addr_out) -> bool {
++            uint64_t addr = 0;
++            if (mode == 0u) {
++                if (!read_vcd_varint(addr_s, addr_n, &ap, &addr)) return false;
++            } else if (mode == 1u) {
++                uint64_t d = 0;
++                if (!read_vcd_varint(addr_s, addr_n, &ap, &d) || d > here) return false;
++                addr = here - d;
++            } else if (mode < 6u) {
++                uint64_t d = 0;
++                if (!read_vcd_varint(addr_s, addr_n, &ap, &d)) return false;
++                addr = near_cache[mode - 2u] + d;
++            } else if (mode < 9u) {
++                if (ap >= addr_n) return false;
++                const uint8_t b = addr_s[ap++];
++                addr = same_cache[static_cast<size_t>(mode - 6u) * 256u + b];
++            } else {
++                return false;
++            }
++            near_cache[near_next] = addr;
++            near_next = (near_next + 1u) & 3u;
++            same_cache[static_cast<size_t>(addr % 768u)] = addr;
++            *addr_out = addr;
++            return true;
++        };
++
++        auto exec_op = [&](uint8_t op_t, uint8_t op_sz, uint8_t mode) -> bool {
++            if (op_t == kOpNoop) return true;
++            uint64_t sz = op_sz;
++            if (sz == 0u) {
++                if (!read_vcd_varint(inst_s, inst_n, &ip, &sz)) return false;
++            }
++            if (sz > tgt_len - tgt.size()) return false;
++            if (op_t == kOpAdd) {
++                if (sz > data_n - dp) return false;
++                tgt.insert(tgt.end(), data_s + dp, data_s + dp + static_cast<size_t>(sz));
++                dp += static_cast<size_t>(sz);
++                return true;
++            }
++            if (op_t == kOpRun) {
++                if (dp >= data_n) return false;
++                const uint8_t b = data_s[dp++];
++                tgt.insert(tgt.end(), static_cast<size_t>(sz), b);
++                return true;
++            }
++            if (op_t == kOpCopy) {
++                const uint64_t here = static_cast<uint64_t>(seg_len) + static_cast<uint64_t>(tgt.size());
++                uint64_t addr = 0;
++                if (!decode_addr(here, mode, &addr)) return false;
++                if (addr + sz <= static_cast<uint64_t>(seg_len)) {
++                    tgt.insert(tgt.end(),
++                               seg_ptr + static_cast<size_t>(addr),
++                               seg_ptr + static_cast<size_t>(addr + sz));
++                } else {
++                    for (uint64_t k = 0; k < sz; ++k) {
++                        if (addr < static_cast<uint64_t>(seg_len)) {
++                            tgt.push_back(seg_ptr[static_cast<size_t>(addr)]);
++                        } else {
++                            const uint64_t t_idx = addr - static_cast<uint64_t>(seg_len);
++                            if (t_idx >= tgt.size()) return false;
++                            tgt.push_back(tgt[static_cast<size_t>(t_idx)]);
++                        }
++                        ++addr;
++                    }
++                }
++                return true;
++            }
++            return false;
++        };
++
++        while (ip < inst_n) {
++            const uint8_t code = inst_s[ip++];
++            const VcdCodeEntry& ce = table[code];
++            if (!exec_op(ce.t1, ce.s1, ce.m1)) {
++                return set_err(error, "erro ao executar instrucao 1 VCDIFF");
++            }
++            if (!exec_op(ce.t2, ce.s2, ce.m2)) {
++                return set_err(error, "erro ao executar instrucao 2 VCDIFF");
++            }
++        }
++
++        if (tgt.size() != tgt_len) {
++            return set_err(error, "tamanho alvo gerado VCDIFF diverge do esperado");
++        }
++        if (has_adler) {
++            const uint32_t actual = compute_adler32(tgt.data(), tgt.size());
++            if (actual != expected_adler) {
++                return set_err(error, "checksum Adler32 VCDIFF falhou (ROM base incorreta ou patch corrompido)");
++            }
++        }
++        out.insert(out.end(), tgt.begin(), tgt.end());
++    }
++
++    if (out.empty()) {
++        return set_err(error, "patch VCDIFF nao produziu nenhum byte");
++    }
++    *out_rom = std::move(out);
++    return true;
++}
++
++#if defined(_WIN32)
++std::wstring utf8_to_wide(const std::string& s) {
++    if (s.empty()) return {};
++    const int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
++    if (n <= 0) return {};
++    std::wstring w(static_cast<size_t>(n), L'\0');
++    MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), w.data(), n);
++    return w;
++}
++
++std::wstring quote_win32_arg(const std::wstring& arg) {
++    std::wstring out = L"\"";
++    for (wchar_t ch : arg) {
++        if (ch == L'"') out += L"\\\"";
++        else out.push_back(ch);
++    }
++    out.push_back(L'"');
++    return out;
++}
++
++std::filesystem::path find_xdelta3_binary() {
++    namespace fs = std::filesystem;
++    std::error_code ec;
++    wchar_t exe_buf[MAX_PATH]{};
++    const DWORD len = GetModuleFileNameW(nullptr, exe_buf, MAX_PATH);
++    if (len > 0 && len < MAX_PATH) {
++        const fs::path exe_dir = fs::path(exe_buf).parent_path();
++        const std::array<fs::path, 4> candidates = {{
++            exe_dir / L"xdelta3.exe",
++            exe_dir.parent_path() / L"toolchains" / L"xdelta3" / L"xdelta3.exe",
++            exe_dir / L"toolchains" / L"xdelta3" / L"xdelta3.exe",
++            fs::current_path(ec) / L"toolchains" / L"xdelta3" / L"xdelta3.exe",
++        }};
++        for (const auto& c : candidates) {
++            ec.clear();
++            if (fs::is_regular_file(c, ec) && !ec) return c;
++        }
++    }
++    wchar_t path_hit[MAX_PATH]{};
++    if (SearchPathW(nullptr, L"xdelta3.exe", nullptr, MAX_PATH, path_hit, nullptr) > 0) {
++        return fs::path(path_hit);
++    }
++    return {};
++}
++
++bool apply_vcdiff_via_external_xdelta3(const std::vector<uint8_t>& base_rom,
++                                       const std::string& patch_path,
++                                       std::vector<uint8_t>* out_rom,
++                                       std::string* error) {
++    namespace fs = std::filesystem;
++    const fs::path xdelta_exe = find_xdelta3_binary();
++    if (xdelta_exe.empty()) {
++        return set_err(error,
++                       "VCDIFF usa compressor secundario (DJW/LZMA) e xdelta3.exe nao foi encontrado "
++                       "(coloque xdelta3.exe em toolchains/xdelta3/ ou converta via tools/import_local_mod.py)");
++    }
++
++    std::error_code ec;
++    const fs::path tmp_dir =
++        fs::temp_directory_path(ec) / ("cdos_xdelta3_" + std::to_string(GetCurrentProcessId()));
++    fs::create_directories(tmp_dir, ec);
++    const fs::path src_file = tmp_dir / L"base.nds";
++    const fs::path dst_file = tmp_dir / L"out.nds";
++
++    struct Cleanup {
++        fs::path dir;
++        ~Cleanup() {
++            std::error_code clean_ec;
++            fs::remove_all(dir, clean_ec);
++        }
++    } cleanup{tmp_dir};
++
++    {
++        std::ofstream f(src_file, std::ios::binary | std::ios::trunc);
++        if (!f || !f.write(reinterpret_cast<const char*>(base_rom.data()),
++                           static_cast<std::streamsize>(base_rom.size()))) {
++            return set_err(error, "falha ao gravar ROM temporaria para xdelta3");
++        }
++    }
++
++    const std::wstring patch_w = utf8_to_wide(patch_path);
++    std::wstring cmdline = quote_win32_arg(xdelta_exe.wstring()) + L" -d -f -s " +
++                           quote_win32_arg(src_file.wstring()) + L" " +
++                           quote_win32_arg(patch_w) + L" " +
++                           quote_win32_arg(dst_file.wstring());
++
++    STARTUPINFOW si{};
++    si.cb = sizeof(si);
++    si.dwFlags = STARTF_USESHOWWINDOW;
++    si.wShowWindow = SW_HIDE;
++    PROCESS_INFORMATION pi{};
++    if (!CreateProcessW(xdelta_exe.c_str(), cmdline.data(), nullptr, nullptr, FALSE,
++                        CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
++        return set_err(error, "falha ao iniciar xdelta3.exe para decodificar VCDIFF secundario");
++    }
++    WaitForSingleObject(pi.hProcess, 60000u);
++    DWORD exit_code = 1u;
++    GetExitCodeProcess(pi.hProcess, &exit_code);
++    CloseHandle(pi.hThread);
++    CloseHandle(pi.hProcess);
++
++    if (exit_code != 0u || !fs::is_regular_file(dst_file, ec)) {
++        return set_err(error, "xdelta3.exe falhou ao aplicar o patch .xdelta (verifique se a ROM base e USA ACVE)");
++    }
++
++    std::ifstream out_in(dst_file, std::ios::binary | std::ios::ate);
++    const std::streamoff out_sz = out_in.tellg();
++    if (!out_in || out_sz <= 0 || static_cast<uint64_t>(out_sz) > kMaxTargetRomSize) {
++        return set_err(error, "saida de xdelta3.exe vazia ou excede limite de tamanho");
++    }
++    out_in.seekg(0, std::ios::beg);
++    std::vector<uint8_t> patched(static_cast<size_t>(out_sz));
++    if (!out_in.read(reinterpret_cast<char*>(patched.data()), out_sz)) {
++        return set_err(error, "falha ao ler ROM decodificada pelo xdelta3.exe");
++    }
++    *out_rom = std::move(patched);
++    return true;
++}
++#endif
++
++}  // namespace
++
++bool dos_rom_patch_apply_bytes(const std::vector<uint8_t>& base_rom,
++                               const uint8_t* patch_data,
++                               size_t patch_size,
++                               std::vector<uint8_t>* out_rom,
++                               std::string* error) {
++    if (!out_rom) return set_err(error, "out_rom nulo");
++    if (!patch_data || patch_size < 4u) {
++        return set_err(error, "patch vazio ou truncado");
++    }
++    if (patch_size >= sizeof(kMagicDosPatch) &&
++        std::memcmp(patch_data, kMagicDosPatch, sizeof(kMagicDosPatch)) == 0) {
++        return apply_dospatch_bytes(base_rom, patch_data, patch_size, out_rom, error);
++    }
++    if (patch_size >= sizeof(kMagicVcdiff) &&
++        std::memcmp(patch_data, kMagicVcdiff, sizeof(kMagicVcdiff)) == 0) {
++        return apply_vcdiff_bytes(base_rom, patch_data, patch_size, out_rom, error);
++    }
++    if (patch_size >= sizeof(kMagicIps) &&
++        std::memcmp(patch_data, kMagicIps, sizeof(kMagicIps)) == 0) {
++        return apply_ips_bytes(base_rom, patch_data, patch_size, out_rom, error);
++    }
++    if (patch_size >= 8u &&
++        std::memcmp(patch_data, kMagicXdelta1, sizeof(kMagicXdelta1)) == 0 &&
++        patch_data[7] == '%') {
++        return set_err(error,
++                       "formato XDELTA1 legado (%XDZ00x%) nao e VCDIFF RFC 3284; converta para xdelta3 (.xdelta) ou .dospatch");
++    }
++    return set_err(error, "assinatura de patch desconhecida (esperado DOSPATCH, VCDIFF .xdelta ou IPS .ips)");
++}
++
 +bool dos_rom_patch_apply_file(const std::vector<uint8_t>& base_rom,
 +                              const std::string& patch_path,
 +                              std::vector<uint8_t>* out_rom,
 +                              std::string* error) {
 +    if (patch_path.empty()) return set_err(error, "caminho de patch vazio");
 +    std::ifstream in(patch_path, std::ios::binary | std::ios::ate);
-+    if (!in) return set_err(error, "nao foi possivel abrir o arquivo .dospatch");
++    if (!in) return set_err(error, "nao foi possivel abrir o arquivo de patch");
 +    const std::streamoff size = in.tellg();
-+    if (size < static_cast<std::streamoff>(kHeaderSize)) {
-+        return set_err(error, "arquivo .dospatch vazio ou truncado");
++    if (size < 4) {
++        return set_err(error, "arquivo de patch vazio ou truncado");
 +    }
 +    in.seekg(0, std::ios::beg);
 +    std::vector<uint8_t> buf(static_cast<size_t>(size));
 +    if (!in.read(reinterpret_cast<char*>(buf.data()), size)) {
-+        return set_err(error, "falha de leitura no arquivo .dospatch");
++        return set_err(error, "falha de leitura no arquivo de patch");
 +    }
++#if defined(_WIN32)
++    if (vcdiff_needs_secondary_compressor(buf.data(), buf.size())) {
++        return apply_vcdiff_via_external_xdelta3(base_rom, patch_path, out_rom, error);
++    }
++#endif
 +    return dos_rom_patch_apply_bytes(base_rom, buf.data(), buf.size(), out_rom, error);
 +}
 diff --git a/runner/src/dos_rom_patch.h b/runner/src/dos_rom_patch.h
 new file mode 100644
-index 0000000..d01aa6e
+index 0000000..4a21b7b
 --- /dev/null
 +++ b/runner/src/dos_rom_patch.h
 @@ -0,0 +1,18 @@
@@ -12818,7 +13542,7 @@ index 0000000..d01aa6e
 +#include <string>
 +#include <vector>
 +
-+// Aplica patch delta binario DOSPATCH em memoria com validacao SHA-1 e CRC32.
++// Aplica patch binario (DOSPATCH, VCDIFF .xdelta/.vcdiff ou IPS .ips) em memoria.
 +bool dos_rom_patch_apply_bytes(const std::vector<uint8_t>& base_rom,
 +                               const uint8_t* patch_data,
 +                               size_t patch_size,
@@ -13234,7 +13958,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..ccfbc43 100644
+index 7ff4316..450aca2 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,6 +14,7 @@
@@ -13324,7 +14048,7 @@ index 7ff4316..ccfbc43 100644
  unsigned savestate_function_key(SDL_Scancode scancode) {
      if (scancode < SDL_SCANCODE_F1 || scancode > SDL_SCANCODE_F12)
          return 0u;
-@@ -1012,7 +1036,14 @@ uint32_t audio_queue_count(const NdsAudioDevice& device, AudioQueue& queue) {
+@@ -1012,9 +1036,18 @@ uint32_t audio_queue_count(const NdsAudioDevice& device, AudioQueue& queue) {
  
  uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
                       bool throttle, uint32_t pace_floor, bool& queue_error,
@@ -13336,11 +14060,15 @@ index 7ff4316..ccfbc43 100644
 +                     uint8_t audio_volume = 100,
 +                     uint8_t audio_fx_pct = 100,
 +                     bool custom_music_enabled = false,
-+                     uint8_t custom_music_volume = 100) {
++                     uint8_t custom_music_volume = 100,
++                     DosPitchPreservingAudioSync* sync60 = nullptr) {
      if (!device) return 0;
      std::array<int16_t, 2048> samples{};
++    std::vector<int16_t> synced_samples;
      size_t pcm_offset=0;
-@@ -1025,6 +1056,14 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
+     for (;;) {
+         const uint32_t frames = owned_pcm
+@@ -1025,14 +1058,31 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
              std::copy_n(owned_pcm->data()+pcm_offset,frames*2u,samples.data());
              pcm_offset+=frames*2u;
          }
@@ -13352,10 +14080,56 @@ index 7ff4316..ccfbc43 100644
 +            dos_custom_music_mix(samples.data(), frames, custom_music_enabled,
 +                                 custom_music_volume, audio_enabled, audio_volume);
 +        }
++        const int16_t* push_ptr = samples.data();
++        uint32_t push_frames = frames;
++        if (sync60) {
++            const uint32_t q_now = audio_queue_count(device, queue);
++            sync60->process(samples.data(), frames, q_now, pace_floor, &synced_samples);
++            if (synced_samples.empty()) continue;
++            push_ptr = synced_samples.data();
++            push_frames = static_cast<uint32_t>(synced_samples.size() / 2u);
++        }
          bool pushed = false;
          while (!pushed) {
  #if defined(NDS_HAVE_SDL3)
-@@ -1188,26 +1227,230 @@ uint64_t framebuffer_rgb_fnv(int screen) {
+             const uint32_t queued = audio_queue_count(device, queue);
+-            if (kAudioCapacityFrames - queued >= frames) {
+-                if (SDL_PutAudioStreamData(device.stream, samples.data(),
++            if (kAudioCapacityFrames - queued >= push_frames) {
++                if (SDL_PutAudioStreamData(device.stream, push_ptr,
+                                            static_cast<int>(
+-                                               frames * kAudioFrameBytes))) {
++                                               push_frames * kAudioFrameBytes))) {
+                     pushed = true;
+                 } else {
+                     queue_error = true;
+@@ -1041,17 +1091,17 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
+             }
+ #else
+             SDL_LockAudioDevice(device);
+-            if (kAudioCapacityFrames - queue.count >= frames) {
++            if (kAudioCapacityFrames - queue.count >= push_frames) {
+                 const uint32_t first = std::min(
+-                    frames, kAudioCapacityFrames - queue.write);
++                    push_frames, kAudioCapacityFrames - queue.write);
+                 std::memcpy(queue.samples.data() + queue.write * 2u,
+-                            samples.data(), first * kAudioFrameBytes);
+-                if (first < frames)
++                            push_ptr, first * kAudioFrameBytes);
++                if (first < push_frames)
+                     std::memcpy(queue.samples.data(),
+-                                samples.data() + first * 2u,
+-                                (frames - first) * kAudioFrameBytes);
+-                queue.write = (queue.write + frames) % kAudioCapacityFrames;
+-                queue.count += frames;
++                                push_ptr + first * 2u,
++                                (push_frames - first) * kAudioFrameBytes);
++                queue.write = (queue.write + push_frames) % kAudioCapacityFrames;
++                queue.count += push_frames;
+                 pushed = true;
+             }
+             SDL_UnlockAudioDevice(device);
+@@ -1188,26 +1238,230 @@ uint64_t framebuffer_rgb_fnv(int screen) {
      return hash;
  }
  
@@ -13590,7 +14364,7 @@ index 7ff4316..ccfbc43 100644
      return 0;
  }
  
-@@ -1215,12 +1458,152 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
+@@ -1215,12 +1469,152 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
                             int value) {
      auto* state = static_cast<RuntimeMenuState*>(context);
      if (!state || !state->options || !item) return 0;
@@ -13747,7 +14521,7 @@ index 7ff4316..ccfbc43 100644
          return 1;
      }
      return 0;
-@@ -1229,14 +1612,58 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
+@@ -1229,14 +1623,58 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
  int runtime_menu_run_action(void* context, const RecompRuntimeUiItem* item) {
      auto* state = static_cast<RuntimeMenuState*>(context);
      if (!state || !item) return 0;
@@ -13808,7 +14582,7 @@ index 7ff4316..ccfbc43 100644
      return 0;
  }
  
-@@ -1245,16 +1672,24 @@ int runtime_menu_is_enabled(void* context, const RecompRuntimeUiItem* item) {
+@@ -1245,16 +1683,24 @@ int runtime_menu_is_enabled(void* context, const RecompRuntimeUiItem* item) {
      if (!state || !state->options || !item) return 0;
      if (std::strcmp(item->key, kRuntimeMouseSensitivityKey) == 0)
          return state->options->relative_mouse_touch ? 1 : 0;
@@ -13837,7 +14611,7 @@ index 7ff4316..ccfbc43 100644
  }
  
  bool runtime_menu_key_input(SDL_Scancode scancode,
-@@ -1262,6 +1697,7 @@ bool runtime_menu_key_input(SDL_Scancode scancode,
+@@ -1262,6 +1708,7 @@ bool runtime_menu_key_input(SDL_Scancode scancode,
      if (!input) return false;
      switch (scancode) {
          case SDL_SCANCODE_ESCAPE:
@@ -13845,7 +14619,7 @@ index 7ff4316..ccfbc43 100644
              *input = RECOMP_RUNTIME_UI_INPUT_TOGGLE;
              return true;
          case SDL_SCANCODE_BACKSPACE:
-@@ -1348,18 +1784,42 @@ struct FrontendPresentation {
+@@ -1348,18 +1795,42 @@ struct FrontendPresentation {
      bool separate = false;
      bool pip = false;
      bool gl_top = false;
@@ -13888,7 +14662,7 @@ index 7ff4316..ccfbc43 100644
  };
  
  // docs/frame_interpolation.md, MVP blend mode. Holds the previous DS frame's
-@@ -1421,6 +1881,20 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1421,6 +1892,20 @@ void destroy_presentation(FrontendPresentation& presentation) {
          nds_survivor_host_stop();
      }
  #endif
@@ -13909,7 +14683,7 @@ index 7ff4316..ccfbc43 100644
      for (SDL_Texture*& texture : presentation.sample_targets) {
          if (texture) SDL_DestroyTexture(texture);
          texture = nullptr;
-@@ -1429,6 +1903,15 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1429,6 +1914,15 @@ void destroy_presentation(FrontendPresentation& presentation) {
          if (texture) SDL_DestroyTexture(texture);
          texture = nullptr;
      }
@@ -13925,7 +14699,7 @@ index 7ff4316..ccfbc43 100644
      if (presentation.separate && presentation.renderers[1])
          SDL_DestroyRenderer(presentation.renderers[1]);
      if (presentation.renderers[0])
-@@ -1443,34 +1926,160 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1443,34 +1937,160 @@ void destroy_presentation(FrontendPresentation& presentation) {
      presentation.windows[1] = nullptr;
  }
  
@@ -13963,7 +14737,7 @@ index 7ff4316..ccfbc43 100644
 +        SDL_SetRenderVSync(renderer, 1);
 +        return 1;
 +    }
-+    const int val = (eff == DosVsyncMode::On) ? 1 : 0;
++    const int val = (eff == DosVsyncMode::On || eff == DosVsyncMode::Sync60Hz) ? 1 : 0;
 +    SDL_SetRenderVSync(renderer, val);
 +    return val;
 +}
@@ -14108,7 +14882,7 @@ index 7ff4316..ccfbc43 100644
      if (const char* forced = std::getenv("NDS_SDL_RENDER_DRIVER")) {
          if (forced[0] != '\0') {
              renderer = SDL_CreateRenderer(window, forced);
-@@ -1480,21 +2089,74 @@ SDL_Renderer* create_renderer(SDL_Window* window,bool survivor_target=false) {
+@@ -1480,21 +2100,74 @@ SDL_Renderer* create_renderer(SDL_Window* window,bool survivor_target=false) {
                      forced, SDL_GetError());
          }
      }
@@ -14185,7 +14959,7 @@ index 7ff4316..ccfbc43 100644
  #endif
      return renderer;
  }
-@@ -1524,11 +2186,38 @@ bool set_window_fullscreen(SDL_Window* window, NdsFullscreenMode mode) {
+@@ -1524,11 +2197,38 @@ bool set_window_fullscreen(SDL_Window* window, NdsFullscreenMode mode) {
  #endif
  }
  
@@ -14227,7 +15001,7 @@ index 7ff4316..ccfbc43 100644
      return SDL_RenderSetLogicalSize(renderer, width, height) == 0;
  #endif
  }
-@@ -1612,12 +2301,337 @@ void convert_mouse_event_to_logical_coordinates(
+@@ -1612,12 +2312,337 @@ void convert_mouse_event_to_logical_coordinates(
  #endif
  }
  
@@ -14470,7 +15244,8 @@ index 7ff4316..ccfbc43 100644
 +                                ? options.pip_main_screen
 +                                : NdsPipMainScreen::Top;
 +    presentation.pip_size_pct = std::clamp<uint8_t>(options.dos.pip_size_pct, 20u, 50u);
-+#if defined(NDS_HAVE_SDL3)
+ #if defined(NDS_HAVE_SDL3)
+-    return SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 +    const DosVsyncMode eff_vsync =
 +        (options.dos.vsync_mode != DosVsyncMode::Off)
 +            ? options.dos.vsync_mode
@@ -14514,8 +15289,7 @@ index 7ff4316..ccfbc43 100644
 +                (fs_changed && options.fullscreen == NdsFullscreenMode::Off) ||
 +                (layout_changed && options.fullscreen == NdsFullscreenMode::Off &&
 +                 options.dos.window_scale >= 2);
- #if defined(NDS_HAVE_SDL3)
--    return SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
++#if defined(NDS_HAVE_SDL3)
 +            if (fs_changed || disp_changed || apply_size) {
 +                place_window_on_display(
 +                    presentation.windows[0], options.dos.display_index,
@@ -14567,7 +15341,7 @@ index 7ff4316..ccfbc43 100644
  }
  
  void render_texture(SDL_Renderer* renderer, SDL_Texture* texture,
-@@ -1750,11 +2764,39 @@ void draw_savestate_notice(SDL_Renderer* renderer,
+@@ -1750,11 +2775,39 @@ void draw_savestate_notice(SDL_Renderer* renderer,
  bool create_presentation(const NdsFrontendOptions& options,
                           FrontendPresentation& presentation,
                           bool allow_gl_top = true) {
@@ -14607,7 +15381,7 @@ index 7ff4316..ccfbc43 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
      const char* direct_selection =
          std::getenv("NDS_COMPUTE_DIRECT_PRESENT");
-@@ -1764,12 +2806,15 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1764,12 +2817,15 @@ bool create_presentation(const NdsFrontendOptions& options,
      const bool direct_top_requested =
          (options.adaptive_screens & NDS_ADAPTIVE_TOP) != 0u ||
          options.internal_resolution > 1u;
@@ -14624,7 +15398,7 @@ index 7ff4316..ccfbc43 100644
  #endif
      presentation.antialiasing = options.antialiasing;
      const int aa_scale = presentation.gl_top ? 1 : options.antialiasing >= 8 ? 4 :
-@@ -1784,26 +2829,26 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1784,26 +2840,26 @@ bool create_presentation(const NdsFrontendOptions& options,
                  options.adaptive_max_width[screen];
          }
      }
@@ -14665,7 +15439,7 @@ index 7ff4316..ccfbc43 100644
          top_window_flags);
      if (!presentation.windows[0]) {
          std::fprintf(stderr, "[sdl] window failed: %s\n", SDL_GetError());
-@@ -1830,8 +2875,10 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1830,8 +2886,10 @@ bool create_presentation(const NdsFrontendOptions& options,
              presentation.separate || presentation.pip, options.window_scale, coordinate_scale,
              usable.w, usable.h);
          SDL_SetWindowSize(presentation.windows[0],
@@ -14678,7 +15452,7 @@ index 7ff4316..ccfbc43 100644
              initial_size.height);
          SDL_SetWindowPosition(presentation.windows[0],
              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-@@ -1846,13 +2893,21 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1846,13 +2904,21 @@ bool create_presentation(const NdsFrontendOptions& options,
              options.window_scale, coordinate_scale, initial_size.top_width,
              initial_size.height, initial_size.bottom_width, initial_size.height);
      }
@@ -14701,7 +15475,7 @@ index 7ff4316..ccfbc43 100644
      }
  
      if (presentation.separate) {
-@@ -1873,10 +2928,15 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1873,10 +2939,15 @@ bool create_presentation(const NdsFrontendOptions& options,
              return false;
          }
          presentation.renderers[1] =
@@ -14719,7 +15493,7 @@ index 7ff4316..ccfbc43 100644
              );
          if (!presentation.renderers[1]) {
              std::fprintf(stderr, "[sdl] bottom renderer failed: %s\n",
-@@ -1897,6 +2957,22 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1897,6 +2968,22 @@ bool create_presentation(const NdsFrontendOptions& options,
      // Fullscreen is applied only after both separate-layout windows have their
      // final placement. The primary combined/top window is deliberately the
      // sole target so the separate touch window remains usable.
@@ -14742,7 +15516,7 @@ index 7ff4316..ccfbc43 100644
      if (!set_window_fullscreen(presentation.windows[0], options.fullscreen)) {
          std::fprintf(stderr, "[sdl] fullscreen (%s) failed: %s\n",
                       nds_fullscreen_mode_name(options.fullscreen),
-@@ -1905,6 +2981,38 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1905,6 +2992,38 @@ bool create_presentation(const NdsFrontendOptions& options,
          return false;
      }
  
@@ -14781,7 +15555,7 @@ index 7ff4316..ccfbc43 100644
      for (int screen = 0; screen < 2; ++screen) {
          if ((screen == 0 || presentation.pip) && presentation.gl_top) {
              presentation.window_ids[screen] =
-@@ -1920,30 +3028,21 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1920,30 +3039,21 @@ bool create_presentation(const NdsFrontendOptions& options,
                  presentation.separate
                      ? presentation.screen_widths[screen]
                      : presentation.canvas_width,
@@ -14824,7 +15598,7 @@ index 7ff4316..ccfbc43 100644
              destroy_presentation(presentation);
              return false;
          }
-@@ -1977,8 +3076,30 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1977,8 +3087,30 @@ bool create_presentation(const NdsFrontendOptions& options,
      return true;
  }
  
@@ -14856,7 +15630,7 @@ index 7ff4316..ccfbc43 100644
      SDL_Renderer* renderer = presentation.renderers[screen];
      SDL_Texture* source = presentation.textures[screen];
      if (presentation.sample_scale > 1 && presentation.sample_targets[screen]) {
-@@ -1989,7 +3110,33 @@ void render_screen(FrontendPresentation& presentation, int screen,
+@@ -1989,7 +3121,33 @@ void render_screen(FrontendPresentation& presentation, int screen,
          SDL_SetRenderTarget(renderer, nullptr);
          source = presentation.sample_targets[screen];
      }
@@ -14891,7 +15665,7 @@ index 7ff4316..ccfbc43 100644
      SDL_BlendMode blend{};
      uint8_t alpha = 255;
      if (opacity != 255) {
-@@ -2067,7 +3214,9 @@ struct OwnedPresentationFrame {
+@@ -2067,7 +3225,9 @@ struct OwnedPresentationFrame {
          if (((options.adaptive_screens & NDS_ADAPTIVE_TOP) || native_hd) && !direct)
              top=nds_gpu2d_adaptive_framebuffer(0,&widths[0]);
          else if (direct) widths[0]=nds_gpu3d_output_width();
@@ -14902,7 +15676,7 @@ index 7ff4316..ccfbc43 100644
              bottom=nds_gpu2d_adaptive_framebuffer(1,&widths[1]);
          adaptive_ticks=SDL_GetPerformanceCounter()-start;
          pixels[0].assign(top,top+(direct ? 256u : widths[0])*192u);
-@@ -2107,6 +3256,7 @@ struct OwnedPresentationFrame {
+@@ -2107,6 +3267,7 @@ struct OwnedPresentationFrame {
  #endif
  
  PresentationTicks present_screens(FrontendPresentation& presentation,
@@ -14910,7 +15684,7 @@ index 7ff4316..ccfbc43 100644
                                    const uint32_t* top_pixels,
                                    int top_width,
                                    const uint32_t* bottom_pixels,
-@@ -2115,10 +3265,13 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2115,10 +3276,13 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
                                    bool virtual_stylus_visible,
                                    float virtual_stylus_x,
                                    float virtual_stylus_y,
@@ -14925,7 +15699,7 @@ index 7ff4316..ccfbc43 100644
                                    ) {
      PresentationTicks ticks{};
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
-@@ -2128,7 +3281,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2128,7 +3292,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
          // Before the first GPU publication, and immediately after a paused
          // state load, the canonical saved CPU images are the current frame.
          const auto p=nds_screen_placement(NdsScreenLayout::PictureInPicture,
@@ -14934,7 +15708,7 @@ index 7ff4316..ccfbc43 100644
          std::vector<uint32_t> pixels(size_t(p.width)*p.height,0xFF000000u);
          const uint32_t* sources[2]{top_pixels,bottom_pixels};const int widths[2]{top_width,bottom_width};
          for(unsigned layer=0;layer<2;++layer) {
-@@ -2151,7 +3304,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2151,7 +3315,7 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
      }
      if(presentation.pip && presentation.gl_top && survivors) {
          const auto placement=nds_screen_placement(NdsScreenLayout::PictureInPicture,
@@ -14943,7 +15717,7 @@ index 7ff4316..ccfbc43 100644
          std::vector<uint32_t> black[2],white[2];
          const bool menu=runtime_ui&&(recomp_runtime_ui_is_open(runtime_ui)||recomp_runtime_ui_toast_visible(runtime_ui));
          for(unsigned screen=0;screen<2;++screen) {
-@@ -2306,37 +3459,269 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2306,37 +3470,269 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
  #endif
          return ticks;
      }
@@ -15236,7 +16010,7 @@ index 7ff4316..ccfbc43 100644
          start = SDL_GetPerformanceCounter();
          SDL_RenderPresent(renderer);
          ticks.swap += SDL_GetPerformanceCounter() - start;
-@@ -2348,15 +3733,47 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2348,15 +3744,47 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
              0, 0, presentation.screen_widths[screen], kScreenHeight};
          SDL_Renderer* renderer = presentation.renderers[screen];
          start = SDL_GetPerformanceCounter();
@@ -15286,7 +16060,7 @@ index 7ff4316..ccfbc43 100644
          start = SDL_GetPerformanceCounter();
          SDL_RenderPresent(renderer);
          ticks.swap += SDL_GetPerformanceCounter() - start;
-@@ -2369,6 +3786,32 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2369,6 +3797,32 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
  int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      g_frontend_thread = std::this_thread::get_id();
      NdsFrontendOptions options = initial_options;
@@ -15319,7 +16093,7 @@ index 7ff4316..ccfbc43 100644
      SDL_SetMainReady();
      // SDL_INIT_TIMER matters on Windows: it raises the OS timer resolution
      // to 1 ms (SDL_HINT_TIMER_RESOLUTION default). Without it SDL_Delay(1)
-@@ -2395,30 +3838,56 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2395,30 +3849,56 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          SDL_Quit();
          return 1;
      }
@@ -15394,7 +16168,7 @@ index 7ff4316..ccfbc43 100644
      const uint16_t output_width = static_cast<uint16_t>(std::max(
          presentation.screen_widths[0],
          presentation.screen_widths[1]));
-@@ -2447,12 +3916,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2447,12 +3927,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          SDL_Quit();
          return 1;
      }
@@ -15412,7 +16186,7 @@ index 7ff4316..ccfbc43 100644
      }
      // The adaptive compositor only pays for the extra per-pixel stores when
      // something can consume them.
-@@ -2461,6 +3930,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2461,6 +3941,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_texture_upscale_set_factor(options.texture_upscale);
  
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
@@ -15432,7 +16206,7 @@ index 7ff4316..ccfbc43 100644
      // Activate only after every fallible visible-frontend allocation. From
      // here onward teardown always destroys the compute renderer while this
      // context is current.
-@@ -2508,6 +3990,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2508,6 +4001,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          std::strcmp(window_direct, "1") == 0 : qualified_hd_windows;
      nds_gpu2d_set_direct_windows(window_requested &&
          (qualified_hd_windows || options.internal_resolution == 1u));
@@ -15440,7 +16214,7 @@ index 7ff4316..ccfbc43 100644
  #else
      if (nds_gpu3d_renderer_policy() == NdsGpu3dRendererPolicy::Auto) {
          std::fprintf(stderr,
-@@ -2541,10 +4024,11 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2541,10 +4035,11 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              "[sdl] frame interpolation: diagnostic min-refresh override "
              "%d Hz\n", interpolation_min_refresh_hz);
      }
@@ -15455,7 +16229,7 @@ index 7ff4316..ccfbc43 100644
      if (interpolation_requested) {
          if (presentation.gl_top) {
              std::fprintf(stderr,
-@@ -2553,10 +4037,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2553,10 +4048,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  "needs an offscreen output texture before a blended frame "
                  "can be inserted\n");
          } else {
@@ -15466,7 +16240,7 @@ index 7ff4316..ccfbc43 100644
                  std::fprintf(stderr,
                      "[sdl] frame interpolation: display refresh unavailable "
                      "(%s)\n", SDL_GetError());
-@@ -2601,9 +4082,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2601,9 +4093,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      std::fputs("[sdl] keyboard:", stderr);
      for (size_t row = 0; row < options.keyboard_bindings.size(); ++row)
          std::fprintf(stderr, " %s=%s", kNdsButtonNames[row],
@@ -15488,7 +16262,7 @@ index 7ff4316..ccfbc43 100644
      if (options.relative_mouse_touch) {
          std::fprintf(stderr,
              "[sdl] relative mouse: click game screen to capture; "
-@@ -2686,8 +4177,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2686,8 +4188,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          ? sdl_controller_id(controller)
          : -1;
      uint16_t keyboard_pressed = 0;
@@ -15501,7 +16275,7 @@ index 7ff4316..ccfbc43 100644
      uint16_t mph_prime_pressed = 0;
      // Left analog stick mapped to the D-pad (movement in MPH, menus
      // everywhere), kept separate from button-event state so a wobbling
-@@ -2697,29 +4192,166 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2697,29 +4203,166 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          nds_set_key_mask(static_cast<uint16_t>(
              0x0FFFu &
              ~(keyboard_pressed | controller_pressed | mouse_pressed |
@@ -15684,7 +16458,7 @@ index 7ff4316..ccfbc43 100644
      runtime_menu_config.callbacks.context = &runtime_menu_state;
      runtime_menu_config.callbacks.get_value = runtime_menu_get_value;
      runtime_menu_config.callbacks.set_value = runtime_menu_set_value;
-@@ -2731,6 +4363,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2731,6 +4374,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      runtime_menu_config.back_label = "B / Backspace";
      RecompRuntimeUi* runtime_ui =
          recomp_runtime_ui_create(&runtime_menu_config);
@@ -15692,7 +16466,7 @@ index 7ff4316..ccfbc43 100644
      if (!runtime_ui) {
          std::fprintf(stderr, "[sdl] runtime menu unavailable\n");
      }
-@@ -2991,8 +4624,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2991,8 +4635,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              nds_set_touch(0, 0, false);
              std::fprintf(stderr, "[sdl] relative mouse released\n");
          }
@@ -15704,7 +16478,7 @@ index 7ff4316..ccfbc43 100644
              publish_keys();
          }
          clear_mph_prime_controls();
-@@ -3037,13 +4672,66 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3037,13 +4683,66 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          std::getenv("NDS_FRONTEND_SELFTEST_RELATIVE_MOUSE") != nullptr;
      const uint64_t relative_mouse_selftest_start_vblank =
          environment_u64("NDS_FRONTEND_SELFTEST_RELATIVE_MOUSE_VBLANK");
@@ -15772,7 +16546,7 @@ index 7ff4316..ccfbc43 100644
      bool presentation_window_focused[2] = {
          (SDL_GetWindowFlags(presentation.windows[0]) &
           SDL_WINDOW_INPUT_FOCUS) != 0,
-@@ -3059,14 +4747,68 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3059,14 +4758,68 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (options.tab_turbo) turbo_pressed = false;
      };
      auto runtime_menu_open = [&]() {
@@ -15841,7 +16615,7 @@ index 7ff4316..ccfbc43 100644
          mph_prime_pressed = 0;
          mph_prime_pad_engaged = false;
          mph_pad_trigger_left_held = false;
-@@ -3079,13 +4821,52 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3079,15 +4832,58 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          nds_set_touch(0, 0, false);
          publish_keys();
      };
@@ -15893,8 +16667,14 @@ index 7ff4316..ccfbc43 100644
 +        }
      };
      uint32_t audio_pace_floor = kAudioQueueFrames;
++    DosPitchPreservingAudioSync audio_sync_60hz{};
++    uint64_t sync60_next_tick = 0;
++    const double sync60_ticks_per_frame =
++        static_cast<double>(SDL_GetPerformanceFrequency()) / 60.0;
      uint32_t audio_min_queue = std::numeric_limits<uint32_t>::max();
-@@ -3183,6 +4964,35 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+     uint32_t audio_max_queue = 0;
+     uint64_t host_key_presses = 0;
+@@ -3183,6 +4979,35 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          NdsSavestateSlotResult completed{};
          if (nds_savestate_slot_poll_save(&completed)) show_savestate_result(completed);
      };
@@ -15930,7 +16710,7 @@ index 7ff4316..ccfbc43 100644
  
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
      // Captured producer data must outlive the handoff's exception-path drain.
-@@ -3216,6 +5026,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3216,6 +5041,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      }
  #endif
      g_frontend_paused = options.start_paused;
@@ -15956,7 +16736,7 @@ index 7ff4316..ccfbc43 100644
      bool audio_review_paused = false;
      while (running) {
          finish_pending_save(false);
-@@ -3237,7 +5066,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3237,7 +5081,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // client is connected). See debug_server.h.
          publish_input_debug();
          debug_pump();
@@ -15967,7 +16747,7 @@ index 7ff4316..ccfbc43 100644
              // Every previous producer was joined before this safe point.
              // Drop wall-clock audio backlog, then resume through the ordinary
              // short prebuffer rather than playing catch-up after a long pause.
-@@ -3247,7 +5078,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3247,7 +5093,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
              audio_pace_floor = kAudioQueueFrames;
@@ -15977,7 +16757,7 @@ index 7ff4316..ccfbc43 100644
              fps_frames = 0;
              fps_start = SDL_GetPerformanceCounter();
              g_pacing_previous_counter = 0;
-@@ -3259,6 +5091,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3259,6 +5106,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // short steady-state prebuffer to restart from restored guest time.
              pause_audio(audio, true);
              clear_audio_queue(audio, audio_queue);
@@ -15985,7 +16765,7 @@ index 7ff4316..ccfbc43 100644
              audio_queue.started.store(false, std::memory_order_relaxed);
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
-@@ -3461,6 +5294,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3461,6 +5309,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  compute_failed=true;running=false;break;
              }
  #endif
@@ -15993,7 +16773,7 @@ index 7ff4316..ccfbc43 100644
              convert_mouse_event_to_logical_coordinates(event, presentation);
              if (event.type == SDL_QUIT) {
                  release_relative_mouse();
-@@ -3491,6 +5325,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3491,6 +5340,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      presentation_window_focused[index] = true;
                  focus_release_pending = false;
              }
@@ -16067,7 +16847,7 @@ index 7ff4316..ccfbc43 100644
              // NDS_DEBUG_KEYEV=1: trace every polled keyboard event to stderr.
              // Exists because an injected key that vanishes between
              // SDL_PushEvent (debug pump, counted) and this loop is otherwise
-@@ -3507,10 +5408,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3507,10 +5423,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                               (int)sdl_event_scancode(event),
                               (int)event.key.repeat);
              }
@@ -16106,7 +16886,7 @@ index 7ff4316..ccfbc43 100644
                  const bool known = runtime_menu_key_input(
                      scancode, &menu_input);
                  if (known && runtime_ui &&
-@@ -3524,118 +5452,141 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3524,118 +5467,141 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      finish_runtime_menu_input(was_open);
                      continue;
                  }
@@ -16340,7 +17120,7 @@ index 7ff4316..ccfbc43 100644
                  if (runtime_menu_controller_input(button, &menu_input) &&
                      runtime_ui &&
                      recomp_runtime_ui_handle_input(
-@@ -3685,6 +5636,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3685,6 +5651,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (event.type == SDL_MOUSEBUTTONDOWN ||
                   event.type == SDL_MOUSEBUTTONUP ||
                   event.type == SDL_MOUSEMOTION)) {
@@ -16366,7 +17146,7 @@ index 7ff4316..ccfbc43 100644
                  continue;
              }
              const bool primary_left_down =
-@@ -3701,7 +5671,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3701,7 +5686,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (bottom_left_down && mph_prime_unified_window_focus);
              const NdsStackedRelativeMouseRoute stacked_left_route =
                  primary_left_down && !presentation.separate
@@ -16375,7 +17155,7 @@ index 7ff4316..ccfbc43 100644
                         nds_screen_touch_position(touch_placement,presentation.screen_widths[1],event.button.x,event.button.y,nullptr,nullptr)
                          ? NdsStackedRelativeMouseRoute::Touchscreen : nds_route_stacked_relative_mouse_button(
                          options.relative_mouse_touch,
-@@ -3816,6 +5786,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3816,6 +5801,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      set_touch_from_mouse(event.button.x, event.button.y, false,
                                           touch_placement, presentation.screen_widths[1]);
              }
@@ -16397,7 +17177,7 @@ index 7ff4316..ccfbc43 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5863,243 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5878,243 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -16641,7 +17421,7 @@ index 7ff4316..ccfbc43 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +6111,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +6126,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -16723,7 +17503,7 @@ index 7ff4316..ccfbc43 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +6162,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +6177,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -16732,7 +17512,7 @@ index 7ff4316..ccfbc43 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6398,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6413,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -16742,7 +17522,7 @@ index 7ff4316..ccfbc43 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6410,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6425,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -16751,7 +17531,7 @@ index 7ff4316..ccfbc43 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6424,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6439,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -16762,7 +17542,7 @@ index 7ff4316..ccfbc43 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4213,16 +6445,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4213,16 +6460,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              {
                  for (unsigned screen = 0; screen < 2; ++screen) {
                      pixels[screen] = nds_gpu2d_framebuffer(screen);
@@ -16794,7 +17574,7 @@ index 7ff4316..ccfbc43 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4393,7 +6637,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4393,7 +6652,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              if (((options.adaptive_screens & NDS_ADAPTIVE_TOP) || native_hd) && !direct_present)
                  top_pixels=nds_gpu2d_adaptive_framebuffer(0,&top_width);
              else if (direct_present) top_width=nds_gpu3d_output_width();
@@ -16805,7 +17585,7 @@ index 7ff4316..ccfbc43 100644
                  bottom_pixels=nds_gpu2d_adaptive_framebuffer(1,&bottom_width);
              phase_adaptive_ticks+=SDL_GetPerformanceCounter()-adaptive_start;
              observe_top_black_bands(native_top,shown_frames);
-@@ -4417,12 +6663,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6678,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -16826,7 +17606,7 @@ index 7ff4316..ccfbc43 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6692,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6707,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -16861,7 +17641,7 @@ index 7ff4316..ccfbc43 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,7 +6798,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,23 +6813,62 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -16870,7 +17650,16 @@ index 7ff4316..ccfbc43 100644
          if (audio_pace_floor > kAudioQueueFrames + kGlideStepFrames)
              audio_pace_floor -= kGlideStepFrames;
          else
-@@ -4542,12 +6808,22 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+             audio_pace_floor = kAudioQueueFrames;
+         uint32_t queued = audio_queue_count(audio, audio_queue);
+         const uint32_t latency_queue_before_drain = queued;
++        const bool sync60_active =
++            (options.dos.vsync_mode == DosVsyncMode::Sync60Hz) &&
++            !turbo_active && audio_started;
++        if (!sync60_active) {
++            sync60_next_tick = 0;
++            audio_sync_60hz.reset();
++        }
          if (turbo_active) {
              if (!cpu_handoff) discard_spu_output();
          } else {
@@ -16878,8 +17667,11 @@ index 7ff4316..ccfbc43 100644
 +                options.dos.audio_enabled &&
 +                !(options.dos.mute_unfocused && !any_presentation_window_focused());
              queued = drain_audio(
-                 audio, audio_queue, audio_started, audio_pace_floor,
+-                audio, audio_queue, audio_started, audio_pace_floor,
 -                audio_queue_error
++                audio, audio_queue,
++                sync60_active ? false : audio_started,
++                audio_pace_floor,
 +                audio_queue_error,
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
 -                ,cpu_handoff ? &presented->pcm : nullptr
@@ -16891,11 +17683,32 @@ index 7ff4316..ccfbc43 100644
 +                eff_audio_enabled, options.dos.audio_volume,
 +                options.dos.audio_fx_pct,
 +                options.dos.custom_music_enabled,
-+                options.dos.custom_music_volume
++                options.dos.custom_music_volume,
++                sync60_active ? &audio_sync_60hz : nullptr
                  );
++            if (sync60_active) {
++                const uint64_t now_tick = SDL_GetPerformanceCounter();
++                const uint64_t frame_ticks = static_cast<uint64_t>(sync60_ticks_per_frame + 0.5);
++                if (sync60_next_tick == 0 ||
++                    now_tick > sync60_next_tick + frame_ticks * 3u) {
++                    sync60_next_tick = now_tick + frame_ticks;
++                } else {
++                    const uint64_t spin_guard = static_cast<uint64_t>(sync60_ticks_per_frame * 0.09);
++                    while (true) {
++                        const uint64_t t = SDL_GetPerformanceCounter();
++                        if (t >= sync60_next_tick) break;
++                        const uint64_t rem = sync60_next_tick - t;
++                        if (rem > spin_guard) {
++                            if (!nds_arm9_native_prepare_idle(1000)) SDL_Delay(1);
++                        }
++                    }
++                    sync60_next_tick += frame_ticks;
++                }
++            }
          }
          const uint64_t frame_drain_ticks =
-@@ -4620,17 +6896,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+             SDL_GetPerformanceCounter() - phase2;
+@@ -4620,17 +6940,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -16953,7 +17766,7 @@ index 7ff4316..ccfbc43 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,6 +7003,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,6 +7047,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -16964,7 +17777,7 @@ index 7ff4316..ccfbc43 100644
      if (controller) SDL_GameControllerClose(controller);
      if (runtime_ui) {
          g_runtime_menu_ui = nullptr;
-@@ -5053,3 +7370,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7414,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -18708,10 +19521,10 @@ index 1fa4362..8ea2229 100644
  void nds_title_patches_start_frame();
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..8d8b83c
+index 0000000..1b590e5
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,1104 @@
+@@ -0,0 +1,1256 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -18725,6 +19538,7 @@ index 0000000..8d8b83c
 +#include "sha1.h"
 +
 +#include <cassert>
++#include <cmath>
 +#include <cstdio>
 +#include <cstring>
 +#include <filesystem>
@@ -19800,6 +20614,156 @@ index 0000000..8d8b83c
 +    std::filesystem::remove_all(tmp_dir, ec);
 +}
 +
++void test_vcdiff_ips_and_sync60_audio() {
++    // 1. Native IPS decoder (normal hunk + RLE hunk + EOF)
++    const std::vector<uint8_t> base(64, 'A');
++    const std::vector<uint8_t> ips = {
++        'P', 'A', 'T', 'C', 'H',
++        0x00, 0x00, 0x04, 0x00, 0x05, 'H', 'E', 'L', 'L', 'O',
++        0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x04, 'Z',
++        'E', 'O', 'F',
++    };
++    std::vector<uint8_t> out;
++    std::string err;
++    assert(dos_rom_patch_apply_bytes(base, ips.data(), ips.size(), &out, &err));
++    assert(out.size() == 64u);
++    assert(std::memcmp(out.data() + 4, "HELLO", 5) == 0);
++    assert(std::memcmp(out.data() + 16, "ZZZZ", 4) == 0);
++    assert(out[0] == 'A' && out[63] == 'A');
++
++    // 2. Native RFC 3284 VCDIFF (.xdelta) decoder (VCD_SOURCE + COPY + ADD + RUN + VCD_ADLER32)
++    // Source = "0123456789ABCDEF", Target = "0123" (COPY 4 from src 0) + "WXYZ" (ADD 4) + "!!!!" (RUN 4 '!')
++    const std::vector<uint8_t> vcd_src = {
++        '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
++    };
++    // Target bytes: "0123WXYZ!!!!" (12 bytes) -> compute Adler32
++    const uint8_t expected_tgt[12] = {'0','1','2','3','W','X','Y','Z','!','!','!','!'};
++    uint32_t a1 = 1u, b1 = 0u;
++    for (uint8_t ch : expected_tgt) {
++        a1 = (a1 + ch) % 65521u;
++        b1 = (b1 + a1) % 65521u;
++    }
++    const uint32_t adler = (b1 << 16) | a1;
++    // Instructions:
++    //   code 20 = COPY size=4 mode=0 (SELF) -> addr_s: 0x00
++    //   code 5  = ADD size=4                -> data_s: 'W','X','Y','Z'
++    //   code 0  = RUN size=0 (varint 4)     -> data_s: '!'
++    const std::vector<uint8_t> data_sec = {'W', 'X', 'Y', 'Z', '!'};
++    const std::vector<uint8_t> inst_sec = {20u, 5u, 0u, 4u};
++    const std::vector<uint8_t> addr_sec = {0u};
++    std::vector<uint8_t> win_body;
++    win_body.push_back(12u);  // tgt_len
++    win_body.push_back(0u);   // del_ind
++    win_body.push_back(static_cast<uint8_t>(data_sec.size()));
++    win_body.push_back(static_cast<uint8_t>(inst_sec.size()));
++    win_body.push_back(static_cast<uint8_t>(addr_sec.size()));
++    win_body.push_back(static_cast<uint8_t>((adler >> 24) & 0xFFu));
++    win_body.push_back(static_cast<uint8_t>((adler >> 16) & 0xFFu));
++    win_body.push_back(static_cast<uint8_t>((adler >> 8) & 0xFFu));
++    win_body.push_back(static_cast<uint8_t>(adler & 0xFFu));
++    win_body.insert(win_body.end(), data_sec.begin(), data_sec.end());
++    win_body.insert(win_body.end(), inst_sec.begin(), inst_sec.end());
++    win_body.insert(win_body.end(), addr_sec.begin(), addr_sec.end());
++
++    std::vector<uint8_t> vcd = {
++        0xD6u, 0xC3u, 0xC4u, 0x00u, 0x00u,  // VCDIFF magic + hdr_ind=0
++        0x05u,                               // win_ind = VCD_SOURCE (1) | VCD_ADLER32 (4)
++        16u, 0u,                             // src_len=16, src_pos=0
++        static_cast<uint8_t>(win_body.size()),
++    };
++    vcd.insert(vcd.end(), win_body.begin(), win_body.end());
++
++    out.clear();
++    assert(dos_rom_patch_apply_bytes(vcd_src, vcd.data(), vcd.size(), &out, &err));
++    assert(out.size() == 12u && std::memcmp(out.data(), expected_tgt, 12u) == 0);
++
++    // Corrupted Adler32 must fail
++    auto bad_vcd = vcd;
++    bad_vcd[9 + 5] ^= 0xFFu;
++    assert(!dos_rom_patch_apply_bytes(vcd_src, bad_vcd.data(), bad_vcd.size(), &out, &err));
++
++    // Legacy XDELTA1 must fail with clear diagnostic
++    const std::vector<uint8_t> xd1 = {'%', 'X', 'D', 'Z', '0', '0', '4', '%', 0, 0};
++    assert(!dos_rom_patch_apply_bytes(vcd_src, xd1.data(), xd1.size(), &out, &err));
++    assert(err.find("XDELTA1") != std::string::npos);
++
++    // 3. Auto-discovery of .xdelta and .ips in {data}/mods/profiles/
++    const auto tmp_dir = std::filesystem::temp_directory_path() / "dos_xdelta_disc_test";
++    std::error_code ec;
++    std::filesystem::remove_all(tmp_dir, ec);
++    std::filesystem::create_directories(tmp_dir / "profiles", ec);
++    assert(dos_write_text_atomic((tmp_dir / "profiles" / "community-hack.xdelta").string(), "dummy"));
++    assert(dos_write_text_atomic((tmp_dir / "profiles" / "qol-fix.ips").string(), "PATCHEOF"));
++    DosModRegistry reg{};
++    dos_mod_registry_load("", tmp_dir.string(), &reg);
++    DosRomPatchSet builtin{};
++    builtin.rom_base = vcd_src;
++    DosModSelection s_xd{};
++    s_xd.campaign_id = "community-hack";
++    s_xd.baseline_id = "original";
++    s_xd.allow_unverified = true;
++    auto dec = dos_mod_resolve_conflict(reg, s_xd, "", builtin);
++    assert(dec.state == DosCompatState::Unverified && dec.allowed);
++    assert(dec.patch_path.find("community-hack.xdelta") != std::string::npos);
++    DosModSelection s_ips = s_xd;
++    s_ips.campaign_id = "qol-fix";
++    dec = dos_mod_resolve_conflict(reg, s_ips, "", builtin);
++    assert(dec.state == DosCompatState::Unverified && dec.allowed);
++    assert(dec.patch_path.find("qol-fix.ips") != std::string::npos);
++    std::filesystem::remove_all(tmp_dir, ec);
++
++    // 4. Issue #39: 60Hz Exact Sync enum + pitch-preserving WSOLA audio sync
++    DosVsyncMode vm{};
++    assert(dos_parse_vsync_mode("sync60", &vm) && vm == DosVsyncMode::Sync60Hz);
++    assert(dos_parse_vsync_mode("60hz", &vm) && vm == DosVsyncMode::Sync60Hz);
++    assert(std::strcmp(dos_vsync_mode_name(DosVsyncMode::Sync60Hz), "sync60") == 0);
++
++    // Simulate 10 seconds (600 frames) at 60.000 Hz producing 547.06 DS audio frames/video frame
++    // while SDL consumes at native 32728.5 Hz (545.475 frames per 60Hz tick) -> +1.585 frames/tick drift.
++    DosPitchPreservingAudioSync sync60{};
++    constexpr double kSampleRate = 32728.5;
++    constexpr double kToneHz = 440.0;
++    constexpr double kPi = 3.14159265358979323846;
++    constexpr uint32_t kTargetQ = 2048u;
++    double queue_f = static_cast<double>(kTargetQ);
++    uint64_t phase_idx = 0;
++    std::vector<int16_t> out_all;
++    out_all.reserve(600u * 550u * 2u);
++    std::vector<int16_t> block_in(547u * 2u);
++    std::vector<int16_t> block_out;
++
++    for (int f = 0; f < 600; ++f) {
++        for (size_t i = 0; i < 547u; ++i) {
++            const int16_t s = static_cast<int16_t>(
++                std::lround(16000.0 * std::sin(2.0 * kPi * kToneHz * static_cast<double>(phase_idx++) / kSampleRate)));
++            block_in[i * 2u] = s;
++            block_in[i * 2u + 1u] = s;
++        }
++        sync60.process(block_in.data(), 547u, static_cast<uint32_t>(queue_f), kTargetQ, &block_out);
++        const size_t emitted = block_out.size() / 2u;
++        out_all.insert(out_all.end(), block_out.begin(), block_out.end());
++        queue_f += static_cast<double>(emitted) - (kSampleRate / 60.0);
++        // Queue must stay tightly bounded (no overflow, no underrun!)
++        assert(queue_f > 800.0 && queue_f < 3200.0);
++    }
++    assert(sync60.shrink_splices_ > 0u);
++    // Measure continuity (no crackle/discontinuity) & dominant pitch via rising zero-crossings
++    int max_step = 0;
++    uint64_t zero_crossings = 0;
++    const size_t total_frames = out_all.size() / 2u;
++    for (size_t i = 1; i < total_frames; ++i) {
++        const int prev = out_all[(i - 1u) * 2u];
++        const int curr = out_all[i * 2u];
++        const int step = std::abs(curr - prev);
++        if (step > max_step) max_step = step;
++        if (prev < 0 && curr >= 0) ++zero_crossings;
++    }
++    // Ideal 440Hz sine max sample-to-sample step at 32728.5 Hz is 16000 * 2*pi*440/32728.5 ~= 1351
++    assert(max_step < 2600);
++    const double measured_hz = static_cast<double>(zero_crossings) * kSampleRate / static_cast<double>(total_frames);
++    assert(std::abs(measured_hz - kToneHz) < 2.0);
++}
++
 +}  // namespace
 +
 +int main() {
@@ -19807,6 +20771,7 @@ index 0000000..8d8b83c
 +    test_frame_processor();
 +    test_audio_processor();
 +    test_hud_and_presets();
++    test_vcdiff_ips_and_sync60_audio();
 +    test_settings_ini_roundtrip();
 +    test_frame_cache_hud_and_gpu_shader();
 +    test_rom_patch();

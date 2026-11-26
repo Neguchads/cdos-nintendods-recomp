@@ -152,7 +152,7 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
         aspect_vals = {c["set"].get("dos_aspect_mode") for c in settings["aspect_mode"]["choices"]}
         self.assertIn("ultrawide-21x9", aspect_vals)
         vsync_vals = {c["set"].get("dos_vsync") for c in settings["vsync"]["choices"]}
-        self.assertEqual(vsync_vals, {"off", "on", "adaptive"})
+        self.assertEqual(vsync_vals, {"off", "on", "adaptive", "sync60"})
         for sid in [
             "wide_hud_mode",
             "window_scale",

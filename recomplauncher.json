@@ -699,6 +699,12 @@
           "set": {
             "dos_vsync": "adaptive"
           }
+        },
+        {
+          "label": "60Hz Exact Sync (Stutter-Free, Pitch-Preserving)",
+          "set": {
+            "dos_vsync": "sync60"
+          }
         }
       ],
       "defaults": {

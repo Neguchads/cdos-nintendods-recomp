@@ -8,8 +8,11 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.2.0` — Generic Local Mod Support, Creator-Permission Cleanup & PR #35)
-- **Latest Refactor (Generic Local Mod Support & Creator Respect — Issues #43, #44):**
+### Current Technical State (`main` post-`v1.2.0` — Native `.xdelta`/`.ips` Mod Support, `60Hz` Pitch-Preserving VSync & Creator-Permission Cleanup)
+- **Latest Feature (Native `.xdelta`/`.ips` Mod Loader & `60Hz` Pitch-Preserving VSync — Issues #30, #39):**
+  - Added built-in RFC 3284 VCDIFF (`.xdelta`/`.vcdiff`, with automatic `xdelta3.exe` fallback for DJW/LZMA) and IPS (`.ips`) decoders directly in `ndsrecomp/runner/src/dos_rom_patch.cpp`, plus auto-discovery of `.dospatch`/`.xdelta`/`.vcdiff`/`.xdelta3`/`.ips` in `{data}/mods/profiles/` with isolated saves (`saves/profiles/`).
+  - Added `DosVsyncMode::Sync60Hz` (`sync60`, `F1 -> HD Graphics` & `recomplauncher.json`) combining VSync + exact `60.000 Hz` pacing with `DosPitchPreservingAudioSync` (128-sample Hann WSOLA micro-splicer — 0 crackles, 0.00% pitch shift, verified over 600 simulated frames on a 440 Hz tone).
+- **Previous Refactor (Generic Local Mod Support & Creator Respect — PR #45, Issues #43, #44):**
   - Removed all bundled third-party `.dospatch` files (`mods/ptbr/`, `mods/definitive/`), `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py`, and every third-party community mod entry from `mods/registry.json`.
   - Generalized `ndsrecomp/runner/src/dos_mod_registry.cpp` and `tools/mod_resolver.py` to auto-discover **any** user-supplied `*.dospatch` placed in `{data}/mods/profiles/` with isolated saves (`saves/profiles/<id>-v<ver>-<hash8>/dos.sav`), added offline [`tools/import_local_mod.py`](tools/import_local_mod.py) (zero network/URLs), switched default baseline to `Original USA`, moved optional user patch args in `recomplauncher.json` to `{data}/mods/...`, and hardened `tools/package_recomplauncher.py` + `tools/rbs_artifact.py` to forbid `.dospatch`/`.xdelta`/`.ips`/`.bps` in release ZIPs.
   - Merged PR #35 (`@Xarishark`: backup `{data}/saves/definitive` & `{data}/saves/profiles`, Windows-only `system`, direct RecompLauncher game page badge) and closed Issue #7 (Widescreen, delivered in `v1.2.0`).
