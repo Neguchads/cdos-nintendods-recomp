@@ -67,6 +67,7 @@ class TestCustomMusicAndWidescreen(unittest.TestCase):
         settings_by_id = {s["id"]: s for s in manifest["settings"]}
         layout_vals = {c["set"]["dos_layout"] for c in settings_by_id["layout"]["choices"]}
         self.assertIn("widescreen-theatre", layout_vals)
+        self.assertIn("minimap-hud", layout_vals)
         aspect_vals = {c["set"]["dos_aspect_mode"] for c in settings_by_id["aspect_mode"]["choices"]}
         self.assertIn("smart-crop-16x9", aspect_vals)
         self.assertIn("balanced-16x10", aspect_vals)

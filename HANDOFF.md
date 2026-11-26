@@ -8,8 +8,12 @@
 
 ## English
 
-### Current Technical State (`main` post-`v1.2.0` — Native `.xdelta`/`.ips` Mod Support, `60Hz` Pitch-Preserving VSync & Creator-Permission Cleanup)
-- **Latest Feature (Native `.xdelta`/`.ips` Mod Loader & `60Hz` Pitch-Preserving VSync — Issues #30, #39):**
+### Current Technical State (`main` post-`v1.2.0` — In-Game Patch Importer, Samus Returns Minimap HUD, `60Hz` Pitch-Preserving VSync & Clean-Room Mod Support)
+- **Latest Feature (In-Game Patch Importer, Authorized Eternity of Sorrow Slot & Minimap HUD 16:9):**
+  - Added native SDL3 **`Import Patch (.xdelta / .ips / .dospatch)...`** and **`Open Mods Folder`** buttons in `F1 -> Mods & Campaigns` (`dos_mod_import_patch_file` validates VCDIFF/IPS/DOSPATCH magic, slugifies creator filenames, guards reserved IDs, and installs atomically into `{data}/mods/profiles/` followed by live rescan + toast).
+  - Added authorized `manual_import: true` compatibility slot for **Eternity of Sorrow** (`@Wet-Band-Aid`, Issue #44, zero files bundled/downloaded, full credit in `docs/CREDITS.md`), matching user-imported `.xdelta`/`.ips`/`.dospatch` files by slug automatically.
+  - Added **`NdsScreenLayout::MinimapHud`** (`minimap-hud`, compact `24%` top-right translucent map inset, `4 px` margin, `16..50%` PiP size) + **1-Click 16:9 Metroidvania HUD** preset in `F1 -> Screen & Layout`, `F2` layout cycling, and `recomplauncher.json`.
+- **Previous Feature (Native `.xdelta`/`.ips` Mod Loader & `60Hz` Pitch-Preserving VSync — PR #46, Issues #30, #39):**
   - Added built-in RFC 3284 VCDIFF (`.xdelta`/`.vcdiff`, with automatic `xdelta3.exe` fallback for DJW/LZMA) and IPS (`.ips`) decoders directly in `ndsrecomp/runner/src/dos_rom_patch.cpp`, plus auto-discovery of `.dospatch`/`.xdelta`/`.vcdiff`/`.xdelta3`/`.ips` in `{data}/mods/profiles/` with isolated saves (`saves/profiles/`).
   - Added `DosVsyncMode::Sync60Hz` (`sync60`, `F1 -> HD Graphics` & `recomplauncher.json`) combining VSync + exact `60.000 Hz` pacing with `DosPitchPreservingAudioSync` (128-sample Hann WSOLA micro-splicer — 0 crackles, 0.00% pitch shift, verified over 600 simulated frames on a 440 Hz tone).
 - **Previous Refactor (Generic Local Mod Support & Creator Respect — PR #45, Issues #43, #44):**
@@ -62,8 +66,14 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`main` pós-`v1.2.0` — Suporte Genérico a Mods Locais, Limpeza de Permissões & PR #35)
-- **Última fatia (Suporte Genérico a Mods Locais & Respeito aos Criadores — Issues #43, #44):**
+### Estado Técnico Atual (`main` pós-`v1.2.0` — Importador In-Game de Patches, Minimap HUD Samus Returns, VSync 60Hz & Suporte Clean-Room a Mods)
+- **Última fatia (Importador In-Game, Slot Autorizado Eternity of Sorrow & Minimap HUD 16:9):**
+  - Adicionados botões nativos SDL3 **`Importar Patch (.xdelta / .ips / .dospatch)...`** e **`Abrir Pasta de Mods`** em `F1 -> Mods & Campanhas` (`dos_mod_import_patch_file` valida magic bytes VCDIFF/IPS/DOSPATCH, gera slug de nomes reais de criadores, bloqueia IDs reservados e instala atomicamente em `{data}/mods/profiles/` com rescan e toast ao vivo).
+  - Adicionado slot autorizado `manual_import: true` de **Eternity of Sorrow** (`@Wet-Band-Aid`, Issue #44, zero arquivos embutidos/baixados, crédito completo em `docs/CREDITS.md`), casando automaticamente `.xdelta`/`.ips`/`.dospatch` importados pelo usuário.
+  - Adicionado layout **`NdsScreenLayout::MinimapHud`** (`minimap-hud`, minimapa translúcido `24%` no canto superior direito com margem `4 px`, tamanho `16..50%`) + preset **1 Clique: HUD Metroidvania 16:9** em `F1 -> Tela & Layout`, atalho `F2` e `recomplauncher.json`.
+- **Fatia anterior (Decodificadores `.xdelta`/`.ips` & VSync Exato 60Hz — PR #46, Issues #30, #39):**
+  - Decodificadores RFC 3284 VCDIFF (com fallback `xdelta3.exe`) e IPS nativos em `dos_rom_patch.cpp`, mais `DosVsyncMode::Sync60Hz` (`sync60`) com micro-splicer WSOLA de janela Hann (`DosPitchPreservingAudioSync`, 0 crackles, 0,00% mudança de tom).
+- **Fatia anterior (Suporte Genérico a Mods Locais & Respeito aos Criadores — PR #45, Issues #43, #44):**
   - Removidos todos os `.dospatch` de terceiros embutidos (`mods/ptbr/`, `mods/definitive/`), `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py` e todas as entradas de mods de terceiros em `mods/registry.json`.
   - Generalizada a auto-descoberta em `ndsrecomp/runner/src/dos_mod_registry.cpp` e `tools/mod_resolver.py` para carregar qualquer `*.dospatch` colocado pelo próprio jogador em `{data}/mods/profiles/` com saves isolados (`saves/profiles/<id>-v<ver>-<hash8>/dos.sav`), adicionado importador offline [`tools/import_local_mod.py`](tools/import_local_mod.py) (zero URLs/downloads), alterado padrão para `Original USA`, movidos os argumentos opcionais de patches em `recomplauncher.json` para `{data}/mods/...` e travados `tools/package_recomplauncher.py` + `tools/rbs_artifact.py` contra `.dospatch`/`.xdelta`/`.ips`/`.bps` no ZIP.
   - PR #35 (`@Xarishark`) mergeado na `main` (`43d81e1`) e Issue #7 (Widescreen) fechada como concluída na `v1.2.0`.

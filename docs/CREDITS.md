@@ -3,7 +3,13 @@
 > **Clean-Room & Creator Respect Policy / Política Clean-Room e Respeito aos Criadores:**
 > This repository distributes **only** original configuration, documentation, launcher/build tooling, and generic local mod-loading infrastructure. It does **not** bundle, redistribute, or auto-download any commercial Nintendo DS ROM, proprietary BIOS, copyrighted video, or third-party fan mod/translation without explicit permission from the original author.
 >
-> Players who obtain community mods or translations directly from their original authors can load them locally in memory using our generic mod support (`python tools/import_local_mod.py` → `{data}/mods/profiles/*.dospatch`, or `{data}/mods/music/` for custom audio) without modifying their original USA `.nds` file. Any future official compatibility listing or bundled integration will only be added with **explicit creator permission** and full attribution.
+> Players who obtain community mods or translations directly from their original authors can load them locally in memory using our in-game importer (**`F1 -> Mods & Campaigns -> Import Patch (.xdelta / .ips / .dospatch)...`**) or CLI (`python tools/import_local_mod.py` → `{data}/mods/profiles/`, or `{data}/mods/music/` for custom audio) without modifying their original USA `.nds` file. Any official compatibility slot or listing is only added with **explicit creator permission** and full attribution, and no third-party patch files are ever bundled or redistributed.
+
+---
+
+## Authorized Community Mod Compatibility Slots / Slots de Compatibilidade Autorizados
+
+- **Eternity of Sorrow** by **Wet-Band-Aid** (`@Wet-Band-Aid`) — Compatibility slot listed in [`mods/registry.json`](../mods/registry.json) with explicit author permission granted in [Issue #44](https://github.com/Neguchads/cdos-nintendods-recomp/issues/44). No `.xdelta`, `.dospatch`, or pre-patched ROM files are redistributed; obtain the official patch directly from the creator and import it locally via `F1 -> Mods`.
 
 ---
 

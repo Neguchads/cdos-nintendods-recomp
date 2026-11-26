@@ -200,13 +200,28 @@ class ModRegistry:
     def _profile_installed(self, entry: dict[str, object]) -> tuple[bool, Path | None]:
         if entry.get("builtin"):
             return True, None
+        if self.data_mods_dir is None:
+            return False, None
         rel = str(entry.get("profile_file", "")).strip()
-        if not rel or self.data_mods_dir is None:
-            return False, None
-        if "/" in rel or "\\" in rel or ".." in rel:
-            return False, None
-        candidate = safe_join_under(self.data_mods_dir, "profiles", rel)
-        return candidate.is_file(), candidate
+        if rel and "/" not in rel and "\\" not in rel and ".." not in rel:
+            candidate = safe_join_under(self.data_mods_dir, "profiles", rel)
+            if candidate.is_file():
+                return True, candidate
+        entry_id = str(entry.get("id", "")).strip().lower()
+        prof_dir = self.data_mods_dir / "profiles"
+        if entry_id and prof_dir.is_dir():
+            ext_priority = {".dospatch": 0, ".xdelta": 1, ".vcdiff": 2, ".xdelta3": 3, ".ips": 4}
+            matches = [
+                p
+                for p in prof_dir.iterdir()
+                if p.is_file()
+                and p.suffix.lower() in ext_priority
+                and slugify_profile_stem(p.stem) == entry_id
+            ]
+            if matches:
+                matches.sort(key=lambda p: (ext_priority[p.suffix.lower()], p.name.lower()))
+                return True, matches[0]
+        return False, None
 
     def is_verified_combination(self, req: SelectionRequest) -> tuple[bool, str]:
         if req.base_rom_sha1.lower() != self.base_rom_sha1:

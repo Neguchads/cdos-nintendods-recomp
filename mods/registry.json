@@ -39,7 +39,23 @@
       "definitive_compatible": true,
       "allowed_character_packs": ["default"],
       "author": "Konami (Retail USA ACVE)",
-      "summary": "Standard Dawn of Sorrow campaign. Additional local mods placed in {data}/mods/profiles/*.dospatch are discovered automatically without modifying your ROM."
+      "summary": "Standard Dawn of Sorrow campaign. Additional local mods (.xdelta / .ips / .dospatch) imported via F1 -> Mods or placed in {data}/mods/profiles/ are discovered automatically without modifying your ROM."
+    },
+    {
+      "id": "eternity-of-sorrow",
+      "name": "Eternity of Sorrow (Manual Import)",
+      "version": "1.2",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_authorized_slot",
+      "profile_file": "eternity-of-sorrow.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "Wet-Band-Aid",
+      "source_url": "https://github.com/Neguchads/cdos-nintendods-recomp/issues/44",
+      "summary": "Compatibility slot authorized by @Wet-Band-Aid (Issue #44). No mod files are bundled or downloaded; import your own official .xdelta/.dospatch file via F1 -> Mods."
     }
   ],
   "character_packs": [
