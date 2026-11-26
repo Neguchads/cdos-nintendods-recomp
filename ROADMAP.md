@@ -61,8 +61,11 @@
 - **Issue #51 (GBA Slot-2 *Aria of Sorrow* Bonus):** Clean-room 192-byte GBA header (`A2CE`) toggleable in `F1 -> Mods` & `recomplauncher.json` unlocking the **Rare Ring** and **Mina's Doll**.
 - **Issue #44 (`@Wet-Band-Aid`) & `@leomontenegro6` Feedback:** Added **Mod Info & Preview Card** inside `F1 -> Mods` before installation, authorized PT-BR v1.1 status (`leomontenegro6/cdos-traducao-ptbr#1`), modular `manual_import` slots (**Dawn of Dignity** `#3356`, **No Magic Seals** `#3408`, **Fixed Luck** `#3407`, **Voice Restore Project** `#10040`), and Discord community link (`https://discord.gg/s7CWbpZJ`).
 
+### Done (Post-`v1.2.2` — Fatia 2: Modular Stackable Patch Composition & Homepage Refresh)
+- **Modular Stackable Add-Ons (inspired by `cdos-patcher-tool` & `@leomontenegro6`):** Separated `mods/registry.json` into stackable `"addons"` (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) and exclusive `"campaigns"`. Added checkboxes in `F1 -> Mods & Campaigns`, 3-way byte-diff overlay merger against clean USA `base_rom` + NDS header CRC-16/MODBUS recomputation (`0x15E..0x15F`), persistent `dos_active_addons` INI key, isolated saves per stack (`modular-stack`), and full C++/Python parity.
+- **Project Homepage (`README.md`) Refresh:** Reorganized EN and PT-BR sections with a scannable feature overview and up-to-date Feature Status tables.
+
 ### Planned (Future)
-- **Fatia 2 — Modular Stackable Patch Composition (inspired by `cdos-patcher-tool`):** Allow stacking PT-BR v1.1 (`cdos_1.1.xdelta`) with independent QoL/Visual/Audio patches (*Dawn of Dignity*, *No Magic Seals*, *Fixed Luck*, *Voice Restore*) in memory with conflict detection.
 - Full start-to-credits playthrough validation for *True 2D Widescreen `342×192`* (promote from Beta to Verified).
 - Community feature requests: HD Texture Dumping/Replacement ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Cheat Manager ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Advanced Custom Music Manager ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)), and European multi-language support ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
 - Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
@@ -127,8 +130,11 @@
 - **Issue #51 (Bônus Slot-2 GBA *Aria of Sorrow*):** Cabeçalho GBA clean-room de 192 bytes (`A2CE`) alternável em `F1 -> Mods` e `recomplauncher.json`, liberando **Rare Ring** e **Mina's Doll**.
 - **Issue #44 (`@Wet-Band-Aid`) & Sugestões `@leomontenegro6`:** Painel de **Detalhes e Prévia do Mod** dentro do `F1 -> Mods` antes da instalação, PT-BR v1.1 marcado como autorizado (`leomontenegro6/cdos-traducao-ptbr#1`), slots modulares `manual_import` (**Dawn of Dignity** `#3356`, **No Magic Seals** `#3408`, **Fixed Luck** `#3407`, **Voice Restore Project** `#10040`) e link do Discord (`https://discord.gg/s7CWbpZJ`).
 
+### Feito (Pós-`v1.2.2` — Fatia 2: Composição Modular Empilhável de Patches & Refresh da Homepage)
+- **Add-Ons Modulares Combináveis (inspirado no `cdos-patcher-tool` & `@leomontenegro6`):** `mods/registry.json` separado em `"addons"` empilháveis (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) e `"campaigns"` exclusivas. Adicionados checkboxes em `F1 -> Mods & Campanhas`, merger 3-way byte-diff em memória sobre a `base_rom` USA limpa + recálculo do CRC-16/MODBUS do cabeçalho NDS (`0x15E..0x15F`), chave INI `dos_active_addons`, saves isolados por combinação (`modular-stack`) e paridade C++/Python.
+- **Refresh da Homepage (`README.md`):** Seções EN e PT-BR reorganizadas com resumo visual de destaques e tabelas de status atualizadas.
+
 ### Planejado (Futuro)
-- **Fatia 2 — Composição Modular Empilhável de Patches (inspirada no `cdos-patcher-tool`):** Permitir combinar Tradução PT-BR v1.1 (`cdos_1.1.xdelta`) com patches QoL/Visuais/Áudio independentes (*Dawn of Dignity*, *No Magic Seals*, *Fixed Luck*, *Voice Restore*) em memória com detecção de conflitos.
 - Validação completa de campanha (do início aos créditos) para promover *Widescreen 2D Nativo `342×192`* de Beta para Verificado.
 - Pedidos da comunidade: Dump/Substituição de Texturas HD ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Gerenciador de Cheats ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Gerenciador Avançado de Música ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)) e suporte multi-idioma Europeu ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.

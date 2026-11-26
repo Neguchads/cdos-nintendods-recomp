@@ -77,21 +77,23 @@ class TestFoundation16A(unittest.TestCase):
             for forbidden_id in ("albus-mode", "model-zx", "model-omega"):
                 self.assertNotIn(forbidden_id, reg.campaigns)
                 self.assertNotIn(forbidden_id, reg.character_packs)
-            expected_manual_slots = (
-                "cdos-ptbr-v1-1",
+            expected_manual_campaigns = (
                 "cdos-ptbr-de-v1-1",
-                "dawn-of-dignity",
-                "no-magic-seals",
-                "fixed-luck",
-                "voice-restore",
                 "definitive-plus",
                 "eternity-of-sorrow",
                 "alucards-requiem-sotn",
                 "alucards-requiem-cv3",
                 "draculas-curse",
             )
+            expected_modular_addons = (
+                "cdos-ptbr-v1-1",
+                "dawn-of-dignity",
+                "no-magic-seals",
+                "fixed-luck",
+                "voice-restore",
+            )
             self.assertIn("dawn-of-sorrow", reg.campaigns)
-            for slot_id in expected_manual_slots:
+            for slot_id in expected_manual_campaigns:
                 self.assertIn(slot_id, reg.campaigns)
                 self.assertTrue(reg.campaigns[slot_id]["manual_import"])
                 self.assertFalse(reg.campaigns[slot_id]["builtin"])
@@ -101,17 +103,66 @@ class TestFoundation16A(unittest.TestCase):
                     ).state,
                     "incompatible",
                 )
-            # Dropping official user-supplied .xdelta patches activates their respective manual_import slots
+            for addon_id in expected_modular_addons:
+                self.assertIn(addon_id, reg.addons)
+                self.assertNotIn(addon_id, reg.campaigns)
+                self.assertTrue(reg.addons[addon_id]["manual_import"])
+                self.assertFalse(reg.addons[addon_id]["builtin"])
+                self.assertEqual(
+                    reg.resolve(
+                        mr.SelectionRequest(addon_ids=(addon_id,), baseline_id="original", allow_unverified=True)
+                    ).state,
+                    "incompatible",
+                )
+            # Dropping official user-supplied .xdelta patches activates manual campaigns and modular add-on stacks
             (data_mods / "profiles" / "cdos_1.1.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
+            (data_mods / "profiles" / "fixed-luck.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
             (data_mods / "profiles" / "cdos_de_1.1.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
             (data_mods / "profiles" / "Eternity of Sorrow.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
             reg.rescan_local_profiles()
-            for slot_id in ("cdos-ptbr-v1-1", "cdos-ptbr-de-v1-1", "eternity-of-sorrow"):
+            for slot_id in ("cdos-ptbr-de-v1-1", "eternity-of-sorrow"):
                 dec_slot = reg.resolve(
                     mr.SelectionRequest(campaign_id=slot_id, baseline_id="original", allow_unverified=True)
                 )
                 self.assertEqual(dec_slot.state, "unverified")
                 self.assertTrue(dec_slot.allowed)
+            # Modular stack: PT-BR v1.1 + Fixed Luck in canonical order
+            dec_stack = reg.resolve(
+                mr.SelectionRequest(
+                    addon_ids=("fixed-luck", "cdos-ptbr-v1-1"),
+                    baseline_id="original",
+                    allow_unverified=True,
+                )
+            )
+            self.assertEqual(dec_stack.state, "unverified")
+            self.assertTrue(dec_stack.allowed)
+            self.assertEqual(dec_stack.active_profile_id, "modular-stack")
+            self.assertEqual(
+                [Path(p).name for p in dec_stack.addon_patch_files],
+                ["cdos_1.1.xdelta", "fixed-luck.xdelta"],
+            )
+            # Cannot stack modular add-ons with non-original baseline or exclusive campaign
+            self.assertEqual(
+                reg.resolve(
+                    mr.SelectionRequest(
+                        addon_ids=("cdos-ptbr-v1-1",),
+                        baseline_id="definitive",
+                        allow_unverified=True,
+                    )
+                ).state,
+                "incompatible",
+            )
+            self.assertEqual(
+                reg.resolve(
+                    mr.SelectionRequest(
+                        campaign_id="eternity-of-sorrow",
+                        addon_ids=("fixed-luck",),
+                        baseline_id="original",
+                        allow_unverified=True,
+                    )
+                ).state,
+                "incompatible",
+            )
             # Targeted canonical slug (<id>.xdelta) must beat both profile_file (cdos_1.1.xdelta) and fuzzy spaces ("Eternity of Sorrow.xdelta")
             (data_mods / "profiles" / "cdos-ptbr-v1-1.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
             (data_mods / "profiles" / "eternity-of-sorrow.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
@@ -119,9 +170,8 @@ class TestFoundation16A(unittest.TestCase):
             self.assertEqual(
                 Path(
                     reg.resolve(
-                        mr.SelectionRequest(campaign_id="cdos-ptbr-v1-1", baseline_id="original", allow_unverified=True)
-                    ).patch_file
-                    or ""
+                        mr.SelectionRequest(addon_ids=("cdos-ptbr-v1-1",), baseline_id="original", allow_unverified=True)
+                    ).addon_patch_files[0]
                 ).name,
                 "cdos-ptbr-v1-1.xdelta",
             )
