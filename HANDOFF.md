@@ -8,7 +8,12 @@
 
 ## English
 
-### Current Technical State (`v1.2.1` Clean-Room Release — In-Game Patch Importer, Quick Per-Mod Patch Buttons, Samus Returns Minimap HUD, `60Hz` Pitch-Preserving VSync)
+### Current Technical State (Post-`v1.2.1` — Fatia 1: `runtime/xdelta3.exe` DJW/LZMA Fix, GBA Slot-2 Bonus, Mod Preview Card & Modular Links)
+- **Latest Feature (Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
+  - Bundled `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) via `tools/build.py`, `tools/package_recomplauncher.py`, and `tools/rbs_artifact.py` so DJW/FGK/LZMA `.xdelta` patches work out of the box (Issue #50).
+  - Implemented clean-room GBA Slot-2 *Aria of Sorrow* (`A2CE`) bonus (`bus_set_gba_slot2_aria_bonus` in `bus.cpp`, `dos_gba_slot2_aria` in `F1 -> Mods` & `recomplauncher.json`) unlocking **Rare Ring** + **Mina's Doll** (Issue #51).
+  - Added **Mod Info & Preview Card** inside `F1 -> Mods` (Issue #44), updated PT-BR v1.1 to **Authorized** (`leomontenegro6/cdos-traducao-ptbr#1`), added 4 modular `manual_import` slots (**Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**), credited `cdos-patcher-tool`, and added Discord (`https://discord.gg/s7CWbpZJ`).
+- **Previous Release (`v1.2.1`):**
 - **Latest Feature (Per-Mod Quick Patch Buttons, PT-BR v1.1 & Community `manual_import` Slots, Full Credits & Outreach):**
   - Added inline **`Patch...`** (targeted `dos_mod_import_patch_file(..., target_profile_id)` installing any user-picked `.xdelta`/`.ips`/`.dospatch` straight into that mod's slot and cleaning stale extensions) and **`Official Page`** (`https://`-only `SDL_OpenURL`) buttons beside every non-builtin mod in `F1 -> Mods & Campaigns`.
   - Added clean-room `manual_import: true` slots in `mods/registry.json` (zero files bundled/downloaded; `@OerstedLAL` mods remain permanently excluded per #43) for **Tradução PT-BR v1.1 (Vanilla & Definitive Edition)**, **Definitive Edition+**, **Eternity of Sorrow** (authorized #44), **Alucard's Requiem (SOTN/CV3)**, and **Dracula's Curse**, with complete attribution in `docs/CREDITS.md` (including `leomontenegro6/cdos-traducao-ptbr` & João13 Traduções) and ready-to-send creator permission requests in `docs/CREATOR_OUTREACH.md`.
@@ -69,7 +74,12 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`v1.2.1` Release Clean-Room — Importador In-Game, Botões Rápidos por Mod, Minimap HUD Samus Returns & VSync 60Hz)
+### Estado Técnico Atual (Pós-`v1.2.1` — Fatia 1: Fix `runtime/xdelta3.exe` DJW/LZMA, Bônus Slot-2 GBA, Painel de Prévia de Mods & Links Modulares)
+- **Última fatia (Fatia 1 — Issues #50, #51, #44 & `cdos-traducao-ptbr#1`):**
+  - `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) incluído em `tools/build.py`, `tools/package_recomplauncher.py` e `tools/rbs_artifact.py` para suportar `.xdelta` DJW/FGK/LZMA direto na release (Issue #50).
+  - Bônus clean-room de Slot-2 GBA *Aria of Sorrow* (`A2CE`) em `bus.cpp` (`dos_gba_slot2_aria` no `F1 -> Mods` e `recomplauncher.json`), liberando **Rare Ring** e **Mina's Doll** (Issue #51).
+  - Adicionado painel de **Detalhes e Prévia do Mod** no `F1 -> Mods` (Issue #44), PT-BR v1.1 atualizado para **Autorizado** (`leomontenegro6/cdos-traducao-ptbr#1`), 4 slots modulares `manual_import` (**Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**), créditos ao `cdos-patcher-tool` e link do Discord (`https://discord.gg/s7CWbpZJ`).
+- **Release anterior (`v1.2.1`):**
 - **Última fatia (Botões Rápidos de Patch por Mod, Slots PT-BR v1.1 & Créditos/Permissões):**
   - Adicionados botões inline **`Aplicar Patch...`** (`dos_mod_import_patch_file(..., target_profile_id)` instalando o `.xdelta`/`.ips`/`.dospatch` direto no slot do mod escolhido e limpando extensões antigas) e **`Site Oficial`** (`SDL_OpenURL` restrito a `https://`) ao lado de cada mod no `F1 -> Mods & Campanhas`.
   - Adicionados slots clean-room `manual_import: true` em `mods/registry.json` (zero arquivos embutidos; mods de `@OerstedLAL` mantidos fora conforme #43) para **Tradução PT-BR v1.1 (Vanilla & DE)**, **Definitive Edition+**, **Eternity of Sorrow** (autorizado #44), **Alucard's Requiem (SOTN/CV3)** e **Dracula's Curse**, com créditos completos em `docs/CREDITS.md` (incluindo `leomontenegro6/cdos-traducao-ptbr` e João13 Traduções) e pedidos prontos de permissão em `docs/CREATOR_OUTREACH.md`.

@@ -80,6 +80,10 @@ class TestFoundation16A(unittest.TestCase):
             expected_manual_slots = (
                 "cdos-ptbr-v1-1",
                 "cdos-ptbr-de-v1-1",
+                "dawn-of-dignity",
+                "no-magic-seals",
+                "fixed-luck",
+                "voice-restore",
                 "definitive-plus",
                 "eternity-of-sorrow",
                 "alucards-requiem-sotn",

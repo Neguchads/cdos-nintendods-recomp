@@ -543,7 +543,11 @@ def cmd_build(args: argparse.Namespace) -> int:
         die(f"nds_runner.exe não gerado em {BUILT_RUNNER_EXE}")
 
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
-    for src in (BUILT_RUNNER_EXE, tc["sdl3_dll"], tc["libcxx_dll"], tc["libunwind_dll"]):
+    xdelta_src = ROOT / "toolchains" / "xdelta3" / "xdelta3.exe"
+    runtime_bins = [BUILT_RUNNER_EXE, tc["sdl3_dll"], tc["libcxx_dll"], tc["libunwind_dll"]]
+    if xdelta_src.is_file():
+        runtime_bins.append(xdelta_src)
+    for src in runtime_bins:
         dst = RUNTIME_DIR / src.name
         if not dst.is_file() or dst.stat().st_mtime < src.stat().st_mtime or dst.stat().st_size != src.stat().st_size:
             shutil.copy2(src, dst)

@@ -50,6 +50,7 @@ REQUIRED_INI_KEYS = {
     "dos_mute_unfocused",
     "dos_button_prompts",
     "dos_stick_deadzone",
+    "dos_gba_slot2_aria",
 }
 
 FORBIDDEN_EXTENSIONS = {
@@ -232,6 +233,7 @@ def stage_release_tree(
         ("docs/MULTIPLATFORM.md", True),
         ("docs/LICENSE_REVIEW.md", True),
         ("runtime/nds_runner.exe", False),
+        ("runtime/xdelta3.exe", True),
         ("runtime/SDL3.dll", False),
         ("runtime/libc++.dll", False),
         ("runtime/libunwind.dll", False),
@@ -241,6 +243,11 @@ def stage_release_tree(
     for rel, optional in copy_items:
         src = root / rel
         if not src.exists() and optional:
+            if rel == "runtime/xdelta3.exe":
+                print(
+                    "[aviso] runtime/xdelta3.exe ausente — patches .xdelta DJW/LZMA exigirao xdelta3.exe local (rode tools/setup_toolchains.py && tools/build.py build)",
+                    file=sys.stderr,
+                )
             continue
         if not src.is_file():
             raise FileNotFoundError(f"Artefato obrigatorio ausente para pacote: {src}")

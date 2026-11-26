@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed & Added
+- **Bundled `runtime/xdelta3.exe` (Apache-2.0, Issue #50):** `tools/build.py`, `tools/package_recomplauncher.py`, and `tools/rbs_artifact.py` now stage and verify `runtime/xdelta3.exe` (Xdelta 3.1.0, Apache-2.0) alongside `nds_runner.exe`, fixing `.xdelta` patches using DJW/FGK/LZMA secondary compressors (e.g., *Definitive Edition+ v2.3* and *Tradução PT-BR v1.1*) out of the box.
+- **GBA Slot-2 Bonus: *Aria of Sorrow* (`dos_gba_slot2_aria`, Issue #51):** added a clean-room 192-byte GBA cartridge identification header (`CASTLEVANIA2` / `A2CE`) toggleable in `F1 -> Mods & Campaigns` and `recomplauncher.json` to unlock the **Rare Ring** at game start and **Mina's Doll** in Hammer's shop without needing a GBA ROM.
+- **Mod Info & Preview Card in `F1 -> Mods` (Issue #44) & Modular Mod Links:** added an inline **`Info`** (`Detalhes`) button and bordered preview panel displaying mod description, version, author credits, and official link before installation, plus `manual_import: true` slots for **Dawn of Dignity** (`#3356`), **No Magic Seals** (`#3408`), **Fixed Luck** (`#3407`), and **Voice Restore Project** (`#10040`), updated **Tradução PT-BR v1.1** status to **Authorized** (`leomontenegro6/cdos-traducao-ptbr#1`), and added the community Discord link (`https://discord.gg/s7CWbpZJ`).
+
 ## 1.2.1 (2026-11-26)
 
 ### Added

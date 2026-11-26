@@ -24,7 +24,13 @@
   - **denim** — Credits ROM hacking / Romhacking dos créditos
   - **djmatheusito** — `CDOS Patcher Tool` development assistance / Ajuda na criação da ferramenta `CDOS Patcher Tool`
   - **victoriemini** — Cover art / Artes de capa
-- **Status:** Manual-import compatibility slot only (no files bundled; creator permission outreach prepared in [`docs/CREATOR_OUTREACH.md`](CREATOR_OUTREACH.md)).
+- **Status:** **Authorized** — explicit author permission granted by `@leomontenegro6` (Solid One) in [leomontenegro6/cdos-traducao-ptbr#1](https://github.com/leomontenegro6/cdos-traducao-ptbr/issues/1) (manual import only; zero patch files bundled). Modular patch architecture inspired by [`cdos-patcher-tool`](https://github.com/leomontenegro6/cdos-patcher-tool) (**Solid One** & **djmatheusito**).
+
+### Modular QoL, Visual & Audio Hacks (Manual Import Only)
+- **Dawn of Dignity** (`dawn-of-dignity`) by **ShadowOne333** & **acediez** — [romhacking.net/hacks/3356/](https://www.romhacking.net/hacks/3356/)
+- **No Required Touch Screen / No Magic Seals** (`no-magic-seals`) by **LagoLunatic** — [romhacking.net/hacks/3408/](https://www.romhacking.net/hacks/3408/)
+- **Fixed Luck** (`fixed-luck`) by **LagoLunatic** — [romhacking.net/hacks/3407/](https://www.romhacking.net/hacks/3407/)
+- **Voice Restore Project** (`voice-restore`) — [romhacking.net/hacks/10040/](https://www.romhacking.net/hacks/10040/)
 
 ### Castlevania: Eternity of Sorrow v1.2 (`eternity-of-sorrow`)
 - **Author / Autor:** **Wet-Band-Aid** (`@Wet-Band-Aid`)

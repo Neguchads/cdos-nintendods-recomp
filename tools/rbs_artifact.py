@@ -12,6 +12,7 @@ REQUIRED = {"CastlevaniaDawnOfSorrow.exe", "runtime/nds_runner.exe", "runtime/SD
             "runtime/libc++.dll", "runtime/libunwind.dll", "game.toml", "recomplauncher.json",
             "mods/registry.json", "SHA256SUMS.txt"}
 EXACT = REQUIRED | {
+    "runtime/xdelta3.exe",
     "README.md",
     "play.bat",
     "LICENSE",

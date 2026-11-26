@@ -145,6 +145,84 @@ index addb5d1..510a0f6 100644
    add_executable(screen_layout_test tests/screen_layout_test.cpp)
    target_include_directories(screen_layout_test PRIVATE src)
    add_test(NAME screen_layout_test COMMAND screen_layout_test)
+diff --git a/runner/src/bus.cpp b/runner/src/bus.cpp
+index f9cf87f..6c3e12d 100644
+--- a/runner/src/bus.cpp
++++ b/runner/src/bus.cpp
+@@ -281,6 +281,34 @@ bool watch_addr(uint32_t addr, uint32_t width) {
+            watch_range(addr, width, 0x04800000u, 0x04810000u);
+ }
+ 
++bool g_gba_slot2_aria_bonus = false;
++
++// Clean-room 192-byte GBA Slot-2 identification header for Castlevania: Aria of Sorrow (USA, A2CE).
++// Exposes only cartridge title/gamecode/maker/fixed-byte/checksum so Dawn of Sorrow unlocks
++// the Rare Ring and Mina's Doll without requiring a GBA ROM dump.
++const std::array<uint8_t, 192>& gba_slot2_aria_header() {
++    static const std::array<uint8_t, 192> kHdr = []() {
++        std::array<uint8_t, 192> h{};
++        // ARM entry branch (0xEA00002E)
++        h[0x00] = 0x2Eu; h[0x01] = 0x00u; h[0x02] = 0x00u; h[0x03] = 0xEAu;
++        // 0xA0..0xAB: "CASTLEVANIA2", 0xAC..0xAF: "A2CE", 0xB0..0xB1: "A4"
++        static constexpr char kTitle[12] = {'C','A','S','T','L','E','V','A','N','I','A','2'};
++        static constexpr char kCode[4] = {'A','2','C','E'};
++        static constexpr char kMaker[2] = {'A','4'};
++        for (size_t i = 0; i < 12; ++i) h[0xA0 + i] = static_cast<uint8_t>(kTitle[i]);
++        for (size_t i = 0; i < 4; ++i) h[0xAC + i] = static_cast<uint8_t>(kCode[i]);
++        for (size_t i = 0; i < 2; ++i) h[0xB0 + i] = static_cast<uint8_t>(kMaker[i]);
++        h[0xB2] = 0x96u;  // GBA cartridge fixed identifier
++        uint8_t chk = 0;
++        for (size_t i = 0xA0; i <= 0xBC; ++i) {
++            chk = static_cast<uint8_t>(chk - h[i]);
++        }
++        h[0xBD] = static_cast<uint8_t>(chk - 0x19u);
++        return h;
++    }();
++    return kHdr;
++}
++
+ bool gba_slot_selected() {
+     const bool arm7_owns = (nds_exmemcnt(0) & 0x0080u) != 0u;
+     return (g_nds_active == NDS_ARM7) == arm7_owns;
+@@ -301,6 +329,26 @@ bool gba_slot_read(uint32_t addr, uint32_t width, uint32_t* value) {
+         return true;
+     }
+     if (addr < 0x0A000000u) {
++        if (g_gba_slot2_aria_bonus) {
++            const auto& hdr = gba_slot2_aria_header();
++            auto read_rom8 = [&](uint32_t a) -> uint8_t {
++                const uint32_t off = a - 0x08000000u;
++                return (off < hdr.size()) ? hdr[off] : 0xFFu;
++            };
++            if (width == 1u) {
++                *value = read_rom8(addr);
++            } else if (width == 2u) {
++                const uint32_t a = addr & ~1u;
++                *value = uint32_t{read_rom8(a)} | (uint32_t{read_rom8(a + 1u)} << 8u);
++            } else {
++                const uint32_t a = addr & ~3u;
++                *value = uint32_t{read_rom8(a)} |
++                         (uint32_t{read_rom8(a + 1u)} << 8u) |
++                         (uint32_t{read_rom8(a + 2u)} << 16u) |
++                         (uint32_t{read_rom8(a + 3u)} << 24u);
++            }
++            return true;
++        }
+         const uint32_t a = addr & ~1u;
+         const uint16_t lo = gba_open_bus_rom16(a);
+         if (width == 1u) *value = (lo >> ((addr & 1u) * 8u)) & 0xFFu;
+@@ -1608,3 +1656,11 @@ extern "C" uint32_t arm7_cycle_combine(uint32_t flat_cycles, uint32_t numD,
+     }
+     return numC + numD + (is_load ? 1u : 0u);
+ }
++
++void bus_set_gba_slot2_aria_bonus(bool enabled) {
++    g_gba_slot2_aria_bonus = enabled;
++}
++
++bool bus_gba_slot2_aria_bonus() {
++    return g_gba_slot2_aria_bonus;
++}
 diff --git a/runner/src/dos_custom_music.cpp b/runner/src/dos_custom_music.cpp
 new file mode 100644
 index 0000000..4ee31f8
@@ -1549,10 +1627,10 @@ index 0000000..0127d17
 +DosCustomMusicStatus dos_custom_music_status();
 diff --git a/runner/src/dos_enhancements.cpp b/runner/src/dos_enhancements.cpp
 new file mode 100644
-index 0000000..2e880e7
+index 0000000..962b43a
 --- /dev/null
 +++ b/runner/src/dos_enhancements.cpp
-@@ -0,0 +1,1556 @@
+@@ -0,0 +1,1559 @@
 +#include "dos_enhancements.h"
 +
 +#include <algorithm>
@@ -2924,6 +3002,8 @@ index 0000000..2e880e7
 +            dos->active_character_pack = val;
 +        } else if (key == "dos_allow_unverified_mods" && parse_bool_ini(val, &btmp)) {
 +            dos->allow_unverified_mods = btmp;
++        } else if (key == "dos_gba_slot2_aria" && parse_bool_ini(val, &btmp)) {
++            dos->gba_slot2_aria = btmp;
 +        } else if (key == "dos_randomizer_seed" && val.size() <= 32) {
 +            dos->randomizer_seed = val;
 +        } else if (key == "dos_randomizer_preset" &&
@@ -2981,7 +3061,7 @@ index 0000000..2e880e7
 +        (dos.vsync_mode != DosVsyncMode::Off)
 +            ? dos.vsync_mode
 +            : (dos.vsync ? DosVsyncMode::On : DosVsyncMode::Off);
-+    const std::array<std::pair<const char*, std::string>, 57> kv = {{
++    const std::array<std::pair<const char*, std::string>, 58> kv = {{
 +        {"dos_layout", layout_to_ini_name(layout)},
 +        {"dos_pip_corner", corner_to_ini_name(pip_corner)},
 +        {"dos_pip_main", pip_main == NdsPipMainScreen::Bottom ? "bottom" : "top"},
@@ -3033,6 +3113,7 @@ index 0000000..2e880e7
 +        {"dos_active_campaign", dos.active_campaign.empty() ? "dawn-of-sorrow" : dos.active_campaign},
 +        {"dos_active_character_pack", dos.active_character_pack.empty() ? "default" : dos.active_character_pack},
 +        {"dos_allow_unverified_mods", dos.allow_unverified_mods ? "1" : "0"},
++        {"dos_gba_slot2_aria", dos.gba_slot2_aria ? "1" : "0"},
 +        {"dos_randomizer_seed", dos.randomizer_seed},
 +        {"dos_randomizer_preset", dos.randomizer_preset.empty() ? "standard" : dos.randomizer_preset},
 +        {"dos_button_prompts", dos_button_prompts_name(dos.button_prompts)},
@@ -3111,10 +3192,10 @@ index 0000000..2e880e7
 +}
 diff --git a/runner/src/dos_enhancements.h b/runner/src/dos_enhancements.h
 new file mode 100644
-index 0000000..694f018
+index 0000000..c91cca2
 --- /dev/null
 +++ b/runner/src/dos_enhancements.h
-@@ -0,0 +1,355 @@
+@@ -0,0 +1,356 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -3274,6 +3355,7 @@ index 0000000..694f018
 +    std::string active_campaign = "dawn-of-sorrow";
 +    std::string active_character_pack = "default";
 +    bool allow_unverified_mods = false;
++    bool gba_slot2_aria = false;
 +    std::string randomizer_seed;
 +    std::string randomizer_preset = "standard";
 +    DosButtonPrompts button_prompts = DosButtonPrompts::Auto;
@@ -7811,10 +7893,10 @@ index 0000000..2f75d9f
 +inline constexpr size_t kDosPostProcessSpirvSize = sizeof(kDosPostProcessSpirv);
 diff --git a/runner/src/dos_i18n.cpp b/runner/src/dos_i18n.cpp
 new file mode 100644
-index 0000000..b710d87
+index 0000000..adcec6e
 --- /dev/null
 +++ b/runner/src/dos_i18n.cpp
-@@ -0,0 +1,343 @@
+@@ -0,0 +1,346 @@
 +#include "dos_i18n.h"
 +
 +#include <array>
@@ -8076,6 +8158,9 @@ index 0000000..b710d87
 +    {DosStrId::BtnOpenModsFolder, "Open Mods Folder", "Abrir Pasta de Mods"},
 +    {DosStrId::BtnQuickImportPatch, "Patch...", "Aplicar Patch..."},
 +    {DosStrId::BtnOpenModPage, "Official Page", "Site Oficial"},
++    {DosStrId::BtnPreviewMod, "Info", "Detalhes"},
++    {DosStrId::SecModPreview, "Mod Info & Preview (Before Installing)", "Detalhes e Prévia do Mod (Antes de Instalar)"},
++    {DosStrId::LblGbaSlot2Aria, "GBA Slot-2 Bonus: Aria of Sorrow (Rare Ring + Mina's Doll)", "Bônus Slot-2 GBA: Aria of Sorrow (Rare Ring + Mina's Doll)"},
 +    {DosStrId::ToastModImported, "Mod patch imported", "Patch de mod importado"},
 +    {DosStrId::ToastModImportFailed, "Mod import failed", "Falha ao importar mod"},
 +    {DosStrId::BadgeVerified, "VERIFIED", "VERIFICADO"},
@@ -8160,10 +8245,10 @@ index 0000000..b710d87
 +}
 diff --git a/runner/src/dos_i18n.h b/runner/src/dos_i18n.h
 new file mode 100644
-index 0000000..212697d
+index 0000000..b546af3
 --- /dev/null
 +++ b/runner/src/dos_i18n.h
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,300 @@
 +#pragma once
 +
 +#include <cstdint>
@@ -8397,6 +8482,9 @@ index 0000000..212697d
 +    BtnOpenModsFolder,
 +    BtnQuickImportPatch,
 +    BtnOpenModPage,
++    BtnPreviewMod,
++    SecModPreview,
++    LblGbaSlot2Aria,
 +    ToastModImported,
 +    ToastModImportFailed,
 +    BadgeVerified,
@@ -8463,10 +8551,10 @@ index 0000000..212697d
 +bool dos_i18n_self_check();
 diff --git a/runner/src/dos_imgui_menu.cpp b/runner/src/dos_imgui_menu.cpp
 new file mode 100644
-index 0000000..d82dd7b
+index 0000000..b82a603
 --- /dev/null
 +++ b/runner/src/dos_imgui_menu.cpp
-@@ -0,0 +1,1878 @@
+@@ -0,0 +1,1941 @@
 +#include "dos_imgui_menu.h"
 +
 +#if defined(NDS_HAVE_SDL3)
@@ -9714,8 +9802,16 @@ index 0000000..d82dd7b
 +
 +    const DosModRegistry* reg = ctx.mod_registry;
 +    if (reg) {
++        static std::string s_preview_mod_id;
++        if (s_preview_mod_id.empty()) s_preview_mod_id = opt->dos.active_campaign;
++        const DosModEntry* preview_entry = nullptr;
++        auto select_preview = [&](const DosModEntry& e) {
++            if (e.id == s_preview_mod_id) preview_entry = &e;
++        };
++
 +        begin_section(dos_tr(lang, DosStrId::SecCampaignSelect), heading_font);
 +        for (const auto& c : reg->campaigns) {
++            select_preview(c);
 +            const bool selected = (opt->dos.active_campaign == c.id);
 +            const char* badge = c.installed ? dos_tr(lang, DosStrId::BadgeInstalled)
 +                                            : dos_tr(lang, DosStrId::BadgeNotInstalled);
@@ -9725,6 +9821,8 @@ index 0000000..d82dd7b
 +            if (!c.installed) ImGui::BeginDisabled();
 +            if (ImGui::RadioButton(label, selected)) {
 +                opt->dos.active_campaign = c.id;
++                s_preview_mod_id = c.id;
++                preview_entry = &c;
 +                if (!c.definitive_compatible) {
 +                    opt->dos.content_profile = DosContentProfile::Original;
 +                    opt->dos.active_character_pack = "default";
@@ -9740,14 +9838,23 @@ index 0000000..d82dd7b
 +                ImGui::PushID(c.id.c_str());
 +                ImGui::SameLine();
 +                if (ImGui::SmallButton(dos_tr(lang, DosStrId::BtnQuickImportPatch))) {
++                    s_preview_mod_id = c.id;
++                    preview_entry = &c;
 +                    if (ctx.import_mod_target_id) *ctx.import_mod_target_id = c.id;
 +                    if (ctx.import_mod_requested) *ctx.import_mod_requested = true;
 +                }
 +                if (c.source_url.rfind("https://", 0) == 0) {
 +                    ImGui::SameLine();
 +                    if (ImGui::SmallButton(dos_tr(lang, DosStrId::BtnOpenModPage))) {
++                        s_preview_mod_id = c.id;
++                        preview_entry = &c;
 +                        if (ctx.open_url_requested) *ctx.open_url_requested = c.source_url;
 +                    }
++                }
++                ImGui::SameLine();
++                if (ImGui::SmallButton(dos_tr(lang, DosStrId::BtnPreviewMod))) {
++                    s_preview_mod_id = c.id;
++                    preview_entry = &c;
 +                }
 +                ImGui::PopID();
 +                ImGui::PopID();
@@ -9759,6 +9866,47 @@ index 0000000..d82dd7b
 +                ImGui::PopStyleColor();
 +                ImGui::Unindent(24.0f);
 +            }
++        }
++
++        if (!preview_entry && !reg->campaigns.empty()) {
++            preview_entry = &reg->campaigns[0];
++        }
++        if (preview_entry) {
++            begin_section(dos_tr(lang, DosStrId::SecModPreview), heading_font);
++            if (ImGui::BeginChild("##mod_preview_card", ImVec2(0.0f, 136.0f), true)) {
++                ImGui::TextColored(ImVec4(0.95f, 0.84f, 0.45f, 1.0f), "%s  v%s  [%s]",
++                                   preview_entry->name.c_str(), preview_entry->version.c_str(),
++                                   dos_tr(lang, preview_entry->installed
++                                                    ? DosStrId::BadgeInstalled
++                                                    : DosStrId::BadgeNotInstalled));
++                if (!preview_entry->author.empty()) {
++                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
++                    ImGui::TextWrapped(lang == DosLanguage::PtBr ? "Autor: %s" : "Author: %s",
++                                       preview_entry->author.c_str());
++                    ImGui::PopStyleColor();
++                }
++                if (!preview_entry->summary.empty()) {
++                    ImGui::TextWrapped("%s", preview_entry->summary.c_str());
++                }
++                if (!preview_entry->builtin) {
++                    ImGui::PushID("prev_card");
++                    if (ImGui::SmallButton(dos_tr(lang, DosStrId::BtnQuickImportPatch))) {
++                        if (ctx.import_mod_target_id) *ctx.import_mod_target_id = preview_entry->id;
++                        if (ctx.import_mod_requested) *ctx.import_mod_requested = true;
++                    }
++                    if (preview_entry->source_url.rfind("https://", 0) == 0) {
++                        ImGui::SameLine();
++                        if (ImGui::SmallButton(dos_tr(lang, DosStrId::BtnOpenModPage))) {
++                            if (ctx.open_url_requested) *ctx.open_url_requested = preview_entry->source_url;
++                        }
++                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
++                        ImGui::TextWrapped("%s", preview_entry->source_url.c_str());
++                        ImGui::PopStyleColor();
++                    }
++                    ImGui::PopID();
++                }
++            }
++            ImGui::EndChild();
 +        }
 +
 +        begin_section(dos_tr(lang, DosStrId::SecCharacterPacks), heading_font);
@@ -9818,6 +9966,9 @@ index 0000000..d82dd7b
 +            mark_dirty(ctx, false);
 +        }
 +        if (!ctx.definitive_patch_available) ImGui::EndDisabled();
++        if (ImGui::Checkbox(dos_tr(lang, DosStrId::LblGbaSlot2Aria), &opt->dos.gba_slot2_aria)) {
++            mark_dirty(ctx, false);
++        }
 +
 +        begin_section(dos_tr(lang, DosStrId::SecConflictStatus), heading_font);
 +        if (ImGui::Checkbox(dos_tr(lang, DosStrId::LblAllowUnverified),
@@ -14440,7 +14591,7 @@ index 0000000..3525bd0
 +                            DosSeedMutatorResult* result_out = nullptr,
 +                            std::string* error_out = nullptr);
 diff --git a/runner/src/frontend.cpp b/runner/src/frontend.cpp
-index 7ff4316..295ebe1 100644
+index 7ff4316..42dc587 100644
 --- a/runner/src/frontend.cpp
 +++ b/runner/src/frontend.cpp
 @@ -14,18 +14,27 @@
@@ -14471,9 +14622,11 @@ index 7ff4316..295ebe1 100644
  #include "gpu2d.h"
  #include "gpu3d.h"
  #include "melonds_compute/TextureUpscale.h"
-@@ -35,7 +44,9 @@
+@@ -34,8 +43,11 @@
+ #include "relative_mouse_touch.h"
  #include "runtime_arm.h"
  #include "scheduler.h"
++#include "state.h"
  #include "savestate_slots.h"
 +#include "dos_custom_music.h"
  #include "spu.h"
@@ -14481,7 +14634,7 @@ index 7ff4316..295ebe1 100644
  #include "title_patches.h"
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
  #include "melonds_compute/ComputeHost.h"
-@@ -50,6 +61,40 @@ namespace {
+@@ -50,6 +62,40 @@ namespace {
  NdsFrontendLiveStats g_live_stats{};
  // Accessed only by the SDL/frontend owner, including debug_pump callbacks.
  bool g_frontend_paused = false;
@@ -14522,7 +14675,7 @@ index 7ff4316..295ebe1 100644
  NdsFrontendPacingStats g_pacing_stats{};
  uint64_t g_pacing_previous_counter = 0;
  
-@@ -721,15 +766,9 @@ constexpr int kWindowScale = 2;
+@@ -721,15 +767,9 @@ constexpr int kWindowScale = 2;
  constexpr uint64_t kSystemCyclesPerFrame = 2130ull * 263ull;
  constexpr int kAudioFrequency = 33513982 / 1024;
  constexpr uint32_t kAudioQueueFrames = 2048;
@@ -14541,7 +14694,7 @@ index 7ff4316..295ebe1 100644
  constexpr uint32_t kAudioFrameBytes = 2u * sizeof(int16_t);
  constexpr uint32_t kAudioCapacityFrames = 65536;
  
-@@ -866,6 +905,14 @@ bool sdl_event_shift(const SDL_Event& event) {
+@@ -866,6 +906,14 @@ bool sdl_event_shift(const SDL_Event& event) {
  #endif
  }
  
@@ -14556,7 +14709,7 @@ index 7ff4316..295ebe1 100644
  unsigned savestate_function_key(SDL_Scancode scancode) {
      if (scancode < SDL_SCANCODE_F1 || scancode > SDL_SCANCODE_F12)
          return 0u;
-@@ -1012,9 +1059,18 @@ uint32_t audio_queue_count(const NdsAudioDevice& device, AudioQueue& queue) {
+@@ -1012,9 +1060,18 @@ uint32_t audio_queue_count(const NdsAudioDevice& device, AudioQueue& queue) {
  
  uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
                       bool throttle, uint32_t pace_floor, bool& queue_error,
@@ -14576,7 +14729,7 @@ index 7ff4316..295ebe1 100644
      size_t pcm_offset=0;
      for (;;) {
          const uint32_t frames = owned_pcm
-@@ -1025,14 +1081,31 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
+@@ -1025,14 +1082,31 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
              std::copy_n(owned_pcm->data()+pcm_offset,frames*2u,samples.data());
              pcm_offset+=frames*2u;
          }
@@ -14611,7 +14764,7 @@ index 7ff4316..295ebe1 100644
                      pushed = true;
                  } else {
                      queue_error = true;
-@@ -1041,23 +1114,29 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
+@@ -1041,23 +1115,29 @@ uint32_t drain_audio(const NdsAudioDevice& device, AudioQueue& queue,
              }
  #else
              SDL_LockAudioDevice(device);
@@ -14649,7 +14802,7 @@ index 7ff4316..295ebe1 100644
                      queue_error = true;
                      return audio_queue_count(device, queue);
                  }
-@@ -1188,26 +1267,231 @@ uint64_t framebuffer_rgb_fnv(int screen) {
+@@ -1188,26 +1268,232 @@ uint64_t framebuffer_rgb_fnv(int screen) {
      return hash;
  }
  
@@ -14773,6 +14926,7 @@ index 7ff4316..295ebe1 100644
 +
 +void save_all_runtime_settings(RuntimeMenuState& state) {
 +    if (!state.options) return;
++    bus_set_gba_slot2_aria_bonus(state.options->dos.gba_slot2_aria);
 +    if (state.mouse_changed) {
 +        if (nds_save_runtime_settings(*state.options, true))
 +            state.mouse_changed = false;
@@ -14885,7 +15039,7 @@ index 7ff4316..295ebe1 100644
      return 0;
  }
  
-@@ -1215,12 +1499,152 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
+@@ -1215,12 +1501,152 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
                             int value) {
      auto* state = static_cast<RuntimeMenuState*>(context);
      if (!state || !state->options || !item) return 0;
@@ -15042,7 +15196,7 @@ index 7ff4316..295ebe1 100644
          return 1;
      }
      return 0;
-@@ -1229,14 +1653,58 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
+@@ -1229,14 +1655,58 @@ int runtime_menu_set_value(void* context, const RecompRuntimeUiItem* item,
  int runtime_menu_run_action(void* context, const RecompRuntimeUiItem* item) {
      auto* state = static_cast<RuntimeMenuState*>(context);
      if (!state || !item) return 0;
@@ -15103,7 +15257,7 @@ index 7ff4316..295ebe1 100644
      return 0;
  }
  
-@@ -1245,16 +1713,25 @@ int runtime_menu_is_enabled(void* context, const RecompRuntimeUiItem* item) {
+@@ -1245,16 +1715,25 @@ int runtime_menu_is_enabled(void* context, const RecompRuntimeUiItem* item) {
      if (!state || !state->options || !item) return 0;
      if (std::strcmp(item->key, kRuntimeMouseSensitivityKey) == 0)
          return state->options->relative_mouse_touch ? 1 : 0;
@@ -15133,7 +15287,7 @@ index 7ff4316..295ebe1 100644
  }
  
  bool runtime_menu_key_input(SDL_Scancode scancode,
-@@ -1262,6 +1739,7 @@ bool runtime_menu_key_input(SDL_Scancode scancode,
+@@ -1262,6 +1741,7 @@ bool runtime_menu_key_input(SDL_Scancode scancode,
      if (!input) return false;
      switch (scancode) {
          case SDL_SCANCODE_ESCAPE:
@@ -15141,7 +15295,7 @@ index 7ff4316..295ebe1 100644
              *input = RECOMP_RUNTIME_UI_INPUT_TOGGLE;
              return true;
          case SDL_SCANCODE_BACKSPACE:
-@@ -1348,18 +1826,42 @@ struct FrontendPresentation {
+@@ -1348,18 +1828,42 @@ struct FrontendPresentation {
      bool separate = false;
      bool pip = false;
      bool gl_top = false;
@@ -15184,7 +15338,7 @@ index 7ff4316..295ebe1 100644
  };
  
  // docs/frame_interpolation.md, MVP blend mode. Holds the previous DS frame's
-@@ -1421,6 +1923,20 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1421,6 +1925,20 @@ void destroy_presentation(FrontendPresentation& presentation) {
          nds_survivor_host_stop();
      }
  #endif
@@ -15205,7 +15359,7 @@ index 7ff4316..295ebe1 100644
      for (SDL_Texture*& texture : presentation.sample_targets) {
          if (texture) SDL_DestroyTexture(texture);
          texture = nullptr;
-@@ -1429,6 +1945,15 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1429,6 +1947,15 @@ void destroy_presentation(FrontendPresentation& presentation) {
          if (texture) SDL_DestroyTexture(texture);
          texture = nullptr;
      }
@@ -15221,7 +15375,7 @@ index 7ff4316..295ebe1 100644
      if (presentation.separate && presentation.renderers[1])
          SDL_DestroyRenderer(presentation.renderers[1]);
      if (presentation.renderers[0])
-@@ -1443,34 +1968,160 @@ void destroy_presentation(FrontendPresentation& presentation) {
+@@ -1443,34 +1970,160 @@ void destroy_presentation(FrontendPresentation& presentation) {
      presentation.windows[1] = nullptr;
  }
  
@@ -15404,7 +15558,7 @@ index 7ff4316..295ebe1 100644
      if (const char* forced = std::getenv("NDS_SDL_RENDER_DRIVER")) {
          if (forced[0] != '\0') {
              renderer = SDL_CreateRenderer(window, forced);
-@@ -1480,21 +2131,74 @@ SDL_Renderer* create_renderer(SDL_Window* window,bool survivor_target=false) {
+@@ -1480,21 +2133,74 @@ SDL_Renderer* create_renderer(SDL_Window* window,bool survivor_target=false) {
                      forced, SDL_GetError());
          }
      }
@@ -15481,7 +15635,7 @@ index 7ff4316..295ebe1 100644
  #endif
      return renderer;
  }
-@@ -1524,11 +2228,38 @@ bool set_window_fullscreen(SDL_Window* window, NdsFullscreenMode mode) {
+@@ -1524,11 +2230,38 @@ bool set_window_fullscreen(SDL_Window* window, NdsFullscreenMode mode) {
  #endif
  }
  
@@ -15523,7 +15677,7 @@ index 7ff4316..295ebe1 100644
      return SDL_RenderSetLogicalSize(renderer, width, height) == 0;
  #endif
  }
-@@ -1612,12 +2343,338 @@ void convert_mouse_event_to_logical_coordinates(
+@@ -1612,12 +2345,338 @@ void convert_mouse_event_to_logical_coordinates(
  #endif
  }
  
@@ -15864,7 +16018,7 @@ index 7ff4316..295ebe1 100644
  }
  
  void render_texture(SDL_Renderer* renderer, SDL_Texture* texture,
-@@ -1750,11 +2807,40 @@ void draw_savestate_notice(SDL_Renderer* renderer,
+@@ -1750,11 +2809,41 @@ void draw_savestate_notice(SDL_Renderer* renderer,
  bool create_presentation(const NdsFrontendOptions& options,
                           FrontendPresentation& presentation,
                           bool allow_gl_top = true) {
@@ -15886,6 +16040,7 @@ index 7ff4316..295ebe1 100644
 +    presentation.hd_filter = options.dos.hd_filter;
 +    nds_title_patches_set_dos_wide_hud_mode(
 +        options.dos.wide_hud_mode == DosWideHudMode::EdgeAnchored);
++    bus_set_gba_slot2_aria_bonus(options.dos.gba_slot2_aria);
 +    const bool sdl_enhancements_needed =
 +        (options.dos.render_driver != DosRenderDriver::Auto &&
 +         options.dos.render_driver != DosRenderDriver::OpenGL) ||
@@ -15906,7 +16061,7 @@ index 7ff4316..295ebe1 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
      const char* direct_selection =
          std::getenv("NDS_COMPUTE_DIRECT_PRESENT");
-@@ -1764,12 +2850,15 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1764,12 +2853,15 @@ bool create_presentation(const NdsFrontendOptions& options,
      const bool direct_top_requested =
          (options.adaptive_screens & NDS_ADAPTIVE_TOP) != 0u ||
          options.internal_resolution > 1u;
@@ -15923,7 +16078,7 @@ index 7ff4316..295ebe1 100644
  #endif
      presentation.antialiasing = options.antialiasing;
      const int aa_scale = presentation.gl_top ? 1 : options.antialiasing >= 8 ? 4 :
-@@ -1784,26 +2873,26 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1784,26 +2876,26 @@ bool create_presentation(const NdsFrontendOptions& options,
                  options.adaptive_max_width[screen];
          }
      }
@@ -15964,7 +16119,7 @@ index 7ff4316..295ebe1 100644
          top_window_flags);
      if (!presentation.windows[0]) {
          std::fprintf(stderr, "[sdl] window failed: %s\n", SDL_GetError());
-@@ -1830,8 +2919,10 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1830,8 +2922,10 @@ bool create_presentation(const NdsFrontendOptions& options,
              presentation.separate || presentation.pip, options.window_scale, coordinate_scale,
              usable.w, usable.h);
          SDL_SetWindowSize(presentation.windows[0],
@@ -15977,7 +16132,7 @@ index 7ff4316..295ebe1 100644
              initial_size.height);
          SDL_SetWindowPosition(presentation.windows[0],
              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-@@ -1846,13 +2937,21 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1846,13 +2940,21 @@ bool create_presentation(const NdsFrontendOptions& options,
              options.window_scale, coordinate_scale, initial_size.top_width,
              initial_size.height, initial_size.bottom_width, initial_size.height);
      }
@@ -16000,7 +16155,7 @@ index 7ff4316..295ebe1 100644
      }
  
      if (presentation.separate) {
-@@ -1873,10 +2972,15 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1873,10 +2975,15 @@ bool create_presentation(const NdsFrontendOptions& options,
              return false;
          }
          presentation.renderers[1] =
@@ -16018,7 +16173,7 @@ index 7ff4316..295ebe1 100644
              );
          if (!presentation.renderers[1]) {
              std::fprintf(stderr, "[sdl] bottom renderer failed: %s\n",
-@@ -1897,6 +3001,22 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1897,6 +3004,22 @@ bool create_presentation(const NdsFrontendOptions& options,
      // Fullscreen is applied only after both separate-layout windows have their
      // final placement. The primary combined/top window is deliberately the
      // sole target so the separate touch window remains usable.
@@ -16041,7 +16196,7 @@ index 7ff4316..295ebe1 100644
      if (!set_window_fullscreen(presentation.windows[0], options.fullscreen)) {
          std::fprintf(stderr, "[sdl] fullscreen (%s) failed: %s\n",
                       nds_fullscreen_mode_name(options.fullscreen),
-@@ -1905,6 +3025,38 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1905,6 +3028,38 @@ bool create_presentation(const NdsFrontendOptions& options,
          return false;
      }
  
@@ -16080,7 +16235,7 @@ index 7ff4316..295ebe1 100644
      for (int screen = 0; screen < 2; ++screen) {
          if ((screen == 0 || presentation.pip) && presentation.gl_top) {
              presentation.window_ids[screen] =
-@@ -1920,30 +3072,21 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1920,30 +3075,21 @@ bool create_presentation(const NdsFrontendOptions& options,
                  presentation.separate
                      ? presentation.screen_widths[screen]
                      : presentation.canvas_width,
@@ -16123,7 +16278,7 @@ index 7ff4316..295ebe1 100644
              destroy_presentation(presentation);
              return false;
          }
-@@ -1977,8 +3120,30 @@ bool create_presentation(const NdsFrontendOptions& options,
+@@ -1977,8 +3123,30 @@ bool create_presentation(const NdsFrontendOptions& options,
      return true;
  }
  
@@ -16155,7 +16310,7 @@ index 7ff4316..295ebe1 100644
      SDL_Renderer* renderer = presentation.renderers[screen];
      SDL_Texture* source = presentation.textures[screen];
      if (presentation.sample_scale > 1 && presentation.sample_targets[screen]) {
-@@ -1989,7 +3154,33 @@ void render_screen(FrontendPresentation& presentation, int screen,
+@@ -1989,7 +3157,33 @@ void render_screen(FrontendPresentation& presentation, int screen,
          SDL_SetRenderTarget(renderer, nullptr);
          source = presentation.sample_targets[screen];
      }
@@ -16190,7 +16345,7 @@ index 7ff4316..295ebe1 100644
      SDL_BlendMode blend{};
      uint8_t alpha = 255;
      if (opacity != 255) {
-@@ -2067,7 +3258,9 @@ struct OwnedPresentationFrame {
+@@ -2067,7 +3261,9 @@ struct OwnedPresentationFrame {
          if (((options.adaptive_screens & NDS_ADAPTIVE_TOP) || native_hd) && !direct)
              top=nds_gpu2d_adaptive_framebuffer(0,&widths[0]);
          else if (direct) widths[0]=nds_gpu3d_output_width();
@@ -16201,7 +16356,7 @@ index 7ff4316..295ebe1 100644
              bottom=nds_gpu2d_adaptive_framebuffer(1,&widths[1]);
          adaptive_ticks=SDL_GetPerformanceCounter()-start;
          pixels[0].assign(top,top+(direct ? 256u : widths[0])*192u);
-@@ -2107,6 +3300,7 @@ struct OwnedPresentationFrame {
+@@ -2107,6 +3303,7 @@ struct OwnedPresentationFrame {
  #endif
  
  PresentationTicks present_screens(FrontendPresentation& presentation,
@@ -16209,7 +16364,7 @@ index 7ff4316..295ebe1 100644
                                    const uint32_t* top_pixels,
                                    int top_width,
                                    const uint32_t* bottom_pixels,
-@@ -2115,10 +3309,13 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2115,10 +3312,13 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
                                    bool virtual_stylus_visible,
                                    float virtual_stylus_x,
                                    float virtual_stylus_y,
@@ -16224,7 +16379,7 @@ index 7ff4316..295ebe1 100644
                                    ) {
      PresentationTicks ticks{};
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
-@@ -2127,8 +3324,8 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2127,8 +3327,8 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
      if(presentation.pip && presentation.gl_top && !survivors) {
          // Before the first GPU publication, and immediately after a paused
          // state load, the canonical saved CPU images are the current frame.
@@ -16235,7 +16390,7 @@ index 7ff4316..295ebe1 100644
          std::vector<uint32_t> pixels(size_t(p.width)*p.height,0xFF000000u);
          const uint32_t* sources[2]{top_pixels,bottom_pixels};const int widths[2]{top_width,bottom_width};
          for(unsigned layer=0;layer<2;++layer) {
-@@ -2150,8 +3347,8 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2150,8 +3350,8 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
          return ticks;
      }
      if(presentation.pip && presentation.gl_top && survivors) {
@@ -16246,7 +16401,7 @@ index 7ff4316..295ebe1 100644
          std::vector<uint32_t> black[2],white[2];
          const bool menu=runtime_ui&&(recomp_runtime_ui_is_open(runtime_ui)||recomp_runtime_ui_toast_visible(runtime_ui));
          for(unsigned screen=0;screen<2;++screen) {
-@@ -2306,37 +3503,269 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2306,37 +3506,269 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
  #endif
          return ticks;
      }
@@ -16539,7 +16694,7 @@ index 7ff4316..295ebe1 100644
          start = SDL_GetPerformanceCounter();
          SDL_RenderPresent(renderer);
          ticks.swap += SDL_GetPerformanceCounter() - start;
-@@ -2348,15 +3777,47 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2348,15 +3780,47 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
              0, 0, presentation.screen_widths[screen], kScreenHeight};
          SDL_Renderer* renderer = presentation.renderers[screen];
          start = SDL_GetPerformanceCounter();
@@ -16589,7 +16744,7 @@ index 7ff4316..295ebe1 100644
          start = SDL_GetPerformanceCounter();
          SDL_RenderPresent(renderer);
          ticks.swap += SDL_GetPerformanceCounter() - start;
-@@ -2369,6 +3830,32 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
+@@ -2369,6 +3833,32 @@ PresentationTicks present_screens(FrontendPresentation& presentation,
  int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      g_frontend_thread = std::this_thread::get_id();
      NdsFrontendOptions options = initial_options;
@@ -16622,7 +16777,7 @@ index 7ff4316..295ebe1 100644
      SDL_SetMainReady();
      // SDL_INIT_TIMER matters on Windows: it raises the OS timer resolution
      // to 1 ms (SDL_HINT_TIMER_RESOLUTION default). Without it SDL_Delay(1)
-@@ -2395,30 +3882,56 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2395,30 +3885,56 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          SDL_Quit();
          return 1;
      }
@@ -16697,7 +16852,7 @@ index 7ff4316..295ebe1 100644
      const uint16_t output_width = static_cast<uint16_t>(std::max(
          presentation.screen_widths[0],
          presentation.screen_widths[1]));
-@@ -2447,12 +3960,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2447,12 +3963,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          SDL_Quit();
          return 1;
      }
@@ -16715,7 +16870,7 @@ index 7ff4316..295ebe1 100644
      }
      // The adaptive compositor only pays for the extra per-pixel stores when
      // something can consume them.
-@@ -2461,6 +3974,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2461,6 +3977,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_texture_upscale_set_factor(options.texture_upscale);
  
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
@@ -16735,7 +16890,7 @@ index 7ff4316..295ebe1 100644
      // Activate only after every fallible visible-frontend allocation. From
      // here onward teardown always destroys the compute renderer while this
      // context is current.
-@@ -2508,6 +4034,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2508,6 +4037,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          std::strcmp(window_direct, "1") == 0 : qualified_hd_windows;
      nds_gpu2d_set_direct_windows(window_requested &&
          (qualified_hd_windows || options.internal_resolution == 1u));
@@ -16743,7 +16898,7 @@ index 7ff4316..295ebe1 100644
  #else
      if (nds_gpu3d_renderer_policy() == NdsGpu3dRendererPolicy::Auto) {
          std::fprintf(stderr,
-@@ -2541,10 +4068,11 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2541,10 +4071,11 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              "[sdl] frame interpolation: diagnostic min-refresh override "
              "%d Hz\n", interpolation_min_refresh_hz);
      }
@@ -16758,7 +16913,7 @@ index 7ff4316..295ebe1 100644
      if (interpolation_requested) {
          if (presentation.gl_top) {
              std::fprintf(stderr,
-@@ -2553,10 +4081,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2553,10 +4084,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  "needs an offscreen output texture before a blended frame "
                  "can be inserted\n");
          } else {
@@ -16769,7 +16924,7 @@ index 7ff4316..295ebe1 100644
                  std::fprintf(stderr,
                      "[sdl] frame interpolation: display refresh unavailable "
                      "(%s)\n", SDL_GetError());
-@@ -2601,9 +4126,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2601,9 +4129,19 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      std::fputs("[sdl] keyboard:", stderr);
      for (size_t row = 0; row < options.keyboard_bindings.size(); ++row)
          std::fprintf(stderr, " %s=%s", kNdsButtonNames[row],
@@ -16791,7 +16946,7 @@ index 7ff4316..295ebe1 100644
      if (options.relative_mouse_touch) {
          std::fprintf(stderr,
              "[sdl] relative mouse: click game screen to capture; "
-@@ -2686,8 +4221,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2686,8 +4224,12 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          ? sdl_controller_id(controller)
          : -1;
      uint16_t keyboard_pressed = 0;
@@ -16804,7 +16959,7 @@ index 7ff4316..295ebe1 100644
      uint16_t mph_prime_pressed = 0;
      // Left analog stick mapped to the D-pad (movement in MPH, menus
      // everywhere), kept separate from button-event state so a wobbling
-@@ -2697,29 +4236,167 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2697,29 +4239,167 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          nds_set_key_mask(static_cast<uint16_t>(
              0x0FFFu &
              ~(keyboard_pressed | controller_pressed | mouse_pressed |
@@ -16988,7 +17143,7 @@ index 7ff4316..295ebe1 100644
      runtime_menu_config.callbacks.context = &runtime_menu_state;
      runtime_menu_config.callbacks.get_value = runtime_menu_get_value;
      runtime_menu_config.callbacks.set_value = runtime_menu_set_value;
-@@ -2731,6 +4408,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2731,6 +4411,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      runtime_menu_config.back_label = "B / Backspace";
      RecompRuntimeUi* runtime_ui =
          recomp_runtime_ui_create(&runtime_menu_config);
@@ -16996,7 +17151,7 @@ index 7ff4316..295ebe1 100644
      if (!runtime_ui) {
          std::fprintf(stderr, "[sdl] runtime menu unavailable\n");
      }
-@@ -2991,8 +4669,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -2991,8 +4672,10 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              nds_set_touch(0, 0, false);
              std::fprintf(stderr, "[sdl] relative mouse released\n");
          }
@@ -17008,7 +17163,7 @@ index 7ff4316..295ebe1 100644
              publish_keys();
          }
          clear_mph_prime_controls();
-@@ -3037,13 +4717,77 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3037,13 +4720,77 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          std::getenv("NDS_FRONTEND_SELFTEST_RELATIVE_MOUSE") != nullptr;
      const uint64_t relative_mouse_selftest_start_vblank =
          environment_u64("NDS_FRONTEND_SELFTEST_RELATIVE_MOUSE_VBLANK");
@@ -17087,7 +17242,7 @@ index 7ff4316..295ebe1 100644
      bool presentation_window_focused[2] = {
          (SDL_GetWindowFlags(presentation.windows[0]) &
           SDL_WINDOW_INPUT_FOCUS) != 0,
-@@ -3059,14 +4803,72 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3059,14 +4806,72 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          if (options.tab_turbo) turbo_pressed = false;
      };
      auto runtime_menu_open = [&]() {
@@ -17160,7 +17315,7 @@ index 7ff4316..295ebe1 100644
          mph_prime_pressed = 0;
          mph_prime_pad_engaged = false;
          mph_pad_trigger_left_held = false;
-@@ -3079,15 +4881,58 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3079,15 +4884,58 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          nds_set_touch(0, 0, false);
          publish_keys();
      };
@@ -17219,7 +17374,7 @@ index 7ff4316..295ebe1 100644
      uint32_t audio_min_queue = std::numeric_limits<uint32_t>::max();
      uint32_t audio_max_queue = 0;
      uint64_t host_key_presses = 0;
-@@ -3183,6 +5028,35 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3183,6 +5031,35 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          NdsSavestateSlotResult completed{};
          if (nds_savestate_slot_poll_save(&completed)) show_savestate_result(completed);
      };
@@ -17255,7 +17410,7 @@ index 7ff4316..295ebe1 100644
  
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
      // Captured producer data must outlive the handoff's exception-path drain.
-@@ -3216,6 +5090,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3216,6 +5093,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      }
  #endif
      g_frontend_paused = options.start_paused;
@@ -17281,7 +17436,7 @@ index 7ff4316..295ebe1 100644
      bool audio_review_paused = false;
      while (running) {
          finish_pending_save(false);
-@@ -3237,7 +5130,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3237,7 +5133,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // client is connected). See debug_server.h.
          publish_input_debug();
          debug_pump();
@@ -17292,7 +17447,7 @@ index 7ff4316..295ebe1 100644
              // Every previous producer was joined before this safe point.
              // Drop wall-clock audio backlog, then resume through the ordinary
              // short prebuffer rather than playing catch-up after a long pause.
-@@ -3247,7 +5142,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3247,7 +5145,8 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
              audio_pace_floor = kAudioQueueFrames;
@@ -17302,7 +17457,7 @@ index 7ff4316..295ebe1 100644
              fps_frames = 0;
              fps_start = SDL_GetPerformanceCounter();
              g_pacing_previous_counter = 0;
-@@ -3259,6 +5155,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3259,6 +5158,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // short steady-state prebuffer to restart from restored guest time.
              pause_audio(audio, true);
              clear_audio_queue(audio, audio_queue);
@@ -17310,7 +17465,7 @@ index 7ff4316..295ebe1 100644
              audio_queue.started.store(false, std::memory_order_relaxed);
              audio_started = false;
              audio_start_threshold = kAudioQueueFrames;
-@@ -3461,6 +5358,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3461,6 +5361,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  compute_failed=true;running=false;break;
              }
  #endif
@@ -17318,7 +17473,7 @@ index 7ff4316..295ebe1 100644
              convert_mouse_event_to_logical_coordinates(event, presentation);
              if (event.type == SDL_QUIT) {
                  release_relative_mouse();
-@@ -3491,6 +5389,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3491,6 +5392,73 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      presentation_window_focused[index] = true;
                  focus_release_pending = false;
              }
@@ -17392,7 +17547,7 @@ index 7ff4316..295ebe1 100644
              // NDS_DEBUG_KEYEV=1: trace every polled keyboard event to stderr.
              // Exists because an injected key that vanishes between
              // SDL_PushEvent (debug pump, counted) and this loop is otherwise
-@@ -3507,10 +5472,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3507,10 +5475,37 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                               (int)sdl_event_scancode(event),
                               (int)event.key.repeat);
              }
@@ -17431,7 +17586,7 @@ index 7ff4316..295ebe1 100644
                  const bool known = runtime_menu_key_input(
                      scancode, &menu_input);
                  if (known && runtime_ui &&
-@@ -3524,118 +5516,143 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3524,118 +5519,143 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      finish_runtime_menu_input(was_open);
                      continue;
                  }
@@ -17667,7 +17822,7 @@ index 7ff4316..295ebe1 100644
                  if (runtime_menu_controller_input(button, &menu_input) &&
                      runtime_ui &&
                      recomp_runtime_ui_handle_input(
-@@ -3685,6 +5702,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3685,6 +5705,25 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (event.type == SDL_MOUSEBUTTONDOWN ||
                   event.type == SDL_MOUSEBUTTONUP ||
                   event.type == SDL_MOUSEMOTION)) {
@@ -17693,7 +17848,7 @@ index 7ff4316..295ebe1 100644
                  continue;
              }
              const bool primary_left_down =
-@@ -3701,7 +5737,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3701,7 +5740,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  (bottom_left_down && mph_prime_unified_window_focus);
              const NdsStackedRelativeMouseRoute stacked_left_route =
                  primary_left_down && !presentation.separate
@@ -17702,7 +17857,7 @@ index 7ff4316..295ebe1 100644
                         nds_screen_touch_position(touch_placement,presentation.screen_widths[1],event.button.x,event.button.y,nullptr,nullptr)
                          ? NdsStackedRelativeMouseRoute::Touchscreen : nds_route_stacked_relative_mouse_button(
                          options.relative_mouse_touch,
-@@ -3816,6 +5852,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3816,6 +5855,21 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      set_touch_from_mouse(event.button.x, event.button.y, false,
                                           touch_placement, presentation.screen_widths[1]);
              }
@@ -17724,7 +17879,7 @@ index 7ff4316..295ebe1 100644
              if (event.type == SDL_MOUSEMOTION && mouse_down &&
                  event.motion.windowID == presentation.window_ids[1])
                  set_touch_from_mouse(event.motion.x, event.motion.y, true,
-@@ -3878,6 +5929,389 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3878,6 +5932,395 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              }
              focus_release_pending = false;
          }
@@ -17775,6 +17930,12 @@ index 7ff4316..295ebe1 100644
 +        if (imgui_presentation_dirty) {
 +            imgui_presentation_dirty = false;
 +            sync_live_display();
++        }
++        if (imgui_settings_dirty) {
++            bus_set_gba_slot2_aria_bonus(options.dos.gba_slot2_aria);
++            if (imgui_settings_dirty_at == 0) {
++                imgui_settings_dirty_at = SDL_GetPerformanceCounter();
++            }
 +        }
 +        if (imgui_settings_dirty && imgui_settings_dirty_at != 0 &&
 +            (SDL_GetPerformanceCounter() - imgui_settings_dirty_at) >= (frequency * 2u) / 5u) {
@@ -18114,7 +18275,7 @@ index 7ff4316..295ebe1 100644
  
          // ── Gamepad dual-stick poll (once per shown frame) ───────────────
          mph_pad_frame_x = 0;
-@@ -3889,45 +6323,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3889,45 +6332,50 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
              const float ly = SDL_GameControllerGetAxis(
                  controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
@@ -18196,7 +18357,7 @@ index 7ff4316..295ebe1 100644
                  }
              } else {
                  runtime_stick_held = false;
-@@ -3935,7 +6374,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -3935,7 +6383,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                  auto stick_dir = [&](float value, uint16_t bit, bool positive) {
                      const float v = positive ? value : -value;
                      const bool held = (stick_pressed & bit) != 0;
@@ -18205,7 +18366,7 @@ index 7ff4316..295ebe1 100644
                      if (next != held) {
                          if (next) stick_pressed |= bit;
                          else stick_pressed &= static_cast<uint16_t>(~bit);
-@@ -4171,6 +6610,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4171,6 +6619,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // Button events handle digital bindings; poll signed axes here.
              // Each row has one source, so clearing an axis row cannot release
              // a different row's button. Keep host pointer/menu ownership.
@@ -18215,7 +18376,7 @@ index 7ff4316..295ebe1 100644
              uint16_t axis_rows = 0, axis_pressed = 0;
              for (size_t row = 0; row < options.gamepad_bindings.size(); ++row) {
                  const int binding = options.gamepad_bindings[row];
-@@ -4180,7 +6622,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4180,7 +6631,7 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                      mph_prime_controls_available) continue;
                  const int value = SDL_GameControllerGetAxis(controller,
                      static_cast<decltype(SDL_CONTROLLER_AXIS_LEFTX)>((binding - 100) / 2));
@@ -18224,7 +18385,7 @@ index 7ff4316..295ebe1 100644
                      axis_pressed |= kNdsButtonMasks[row];
              }
              const uint16_t next = (controller_pressed & ~axis_rows) | axis_pressed;
-@@ -4194,7 +6636,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4194,7 +6645,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // Quit/control requests are resolved while the producer is joined.
          // Never start another guest transaction after SDL_QUIT/window close.
          if (!running) break;
@@ -18235,7 +18396,7 @@ index 7ff4316..295ebe1 100644
              // SDL events (including F-slot load/save) and the TCP pump remain
              // active. Re-present the joined current image so resize/expose and
              // state loads work while both guest CPUs/device clocks are frozen.
-@@ -4213,16 +6657,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4213,16 +6666,28 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              {
                  for (unsigned screen = 0; screen < 2; ++screen) {
                      pixels[screen] = nds_gpu2d_framebuffer(screen);
@@ -18267,7 +18428,7 @@ index 7ff4316..295ebe1 100644
              if (!ticks.ok) { compute_failed = true; break; }
              SDL_Delay(16);
              continue;
-@@ -4393,7 +6849,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4393,7 +6858,9 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              if (((options.adaptive_screens & NDS_ADAPTIVE_TOP) || native_hd) && !direct_present)
                  top_pixels=nds_gpu2d_adaptive_framebuffer(0,&top_width);
              else if (direct_present) top_width=nds_gpu3d_output_width();
@@ -18278,7 +18439,7 @@ index 7ff4316..295ebe1 100644
                  bottom_pixels=nds_gpu2d_adaptive_framebuffer(1,&bottom_width);
              phase_adaptive_ticks+=SDL_GetPerformanceCounter()-adaptive_start;
              observe_top_black_bands(native_top,shown_frames);
-@@ -4417,12 +6875,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4417,12 +6884,18 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
                         blend_cache.blended[1].data(),
                         blend_cache.previous[1].size());
              const PresentationTicks synthetic_ticks = present_screens(
@@ -18299,7 +18460,7 @@ index 7ff4316..295ebe1 100644
              if (!synthetic_ticks.ok) {
                  compute_failed = true;
                  running = false;
-@@ -4440,18 +6904,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4440,18 +6913,32 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
              // extra present.
              SDL_PumpEvents();
          }
@@ -18334,7 +18495,7 @@ index 7ff4316..295ebe1 100644
  #if defined(NDS_HAVE_COMPUTE_RENDERER)
          if (cpu_handoff) {
              if (producer_pending) {
-@@ -4532,23 +7010,82 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4532,23 +7019,82 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          // fixed step per frame from the prebuffer level down to the steady
          // 63 ms target, shedding the extra startup latency over a couple of
          // seconds without ever forcing the queue down during a slow stretch.
@@ -18421,7 +18582,7 @@ index 7ff4316..295ebe1 100644
          }
          const uint64_t frame_drain_ticks =
              SDL_GetPerformanceCounter() - phase2;
-@@ -4620,17 +7157,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4620,17 +7166,54 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
          g_live_stats.now_ticks = counter;
          g_live_stats.freq = frequency;
          nds_diagnostics_maybe_write_performance_sample(g_live_stats);
@@ -18479,7 +18640,7 @@ index 7ff4316..295ebe1 100644
              SDL_SetWindowTitle(presentation.windows[0],
                                 top_title.c_str());
              if (presentation.separate) {
-@@ -4690,12 +7264,23 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
+@@ -4690,12 +7273,23 @@ int nds_run_interactive_frontend(const NdsFrontendOptions& initial_options) {
      nds_gpu2d_set_direct_present(false);
      nds_compute_host_stop();
  #endif
@@ -18503,7 +18664,7 @@ index 7ff4316..295ebe1 100644
      destroy_presentation(presentation);
      SDL_Quit();
      std::fprintf(stderr, "[sdl] closed after %llu presented frames\n",
-@@ -5053,3 +7638,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
+@@ -5053,3 +7647,38 @@ uint32_t nds_frontend_frame_digests(uint64_t from, uint32_t max,
      if (after - from > kFrameDigestRing) return 0;
      return copied;
  }
@@ -19247,7 +19408,7 @@ index 7c9f618..ac6a74d 100644
  
  bool nds_io_flush_cartridge_save() {
 diff --git a/runner/src/main.cpp b/runner/src/main.cpp
-index afa9e18..7233f1e 100644
+index afa9e18..67bf3e2 100644
 --- a/runner/src/main.cpp
 +++ b/runner/src/main.cpp
 @@ -55,6 +55,11 @@
@@ -19660,7 +19821,15 @@ index afa9e18..7233f1e 100644
          }
  #ifndef NDS_BOOTSTRAP_FIRMWARE
          nds_register_dispatch(NDS_ARM9, g_dispatch_fw_arm9_early,
-@@ -2449,9 +2729,123 @@ int main(int argc, char** argv) {
+@@ -2366,6 +2646,7 @@ int main(int argc, char** argv) {
+         nds_gpu3d_set_threaded(gpu3d_threaded);
+         nds_gpu2d_set_threaded(gpu2d_threaded, gpu2d_workers);
+         nds_gpu2d_set_adaptive_workers(gpu2d_adaptive_workers);
++        bus_set_gba_slot2_aria_bonus(frontend_options.dos.gba_slot2_aria);
+     };
+     boot();
+     auto reset_machine = [&]() {
+@@ -2449,9 +2730,123 @@ int main(int argc, char** argv) {
          // via debug_pump(). Execution stays frontend-owned (run_to_* are
          // rejected); queries, rings, and touch/keys injection are live.
          debug_set_reset_fn(reset_machine);
@@ -19979,6 +20148,19 @@ index e411b57..48133c0 100644
      } else {
          p.width = std::max(top_width, bottom_width);
          p.height = layout == NdsScreenLayout::Separate ? 192 : 384;
+diff --git a/runner/src/state.h b/runner/src/state.h
+index ada4dd1..af2214c 100644
+--- a/runner/src/state.h
++++ b/runner/src/state.h
+@@ -123,6 +123,8 @@ void bus_init();
+ void bus_debug_history_reset();
+ void bus_load_arm9_bios(const uint8_t* p, uint32_t n);
+ void bus_load_arm7_bios(const uint8_t* p, uint32_t n);
++void bus_set_gba_slot2_aria_bonus(bool enabled);
++bool bus_gba_slot2_aria_bonus();
+ void bus_dump_access_ring(uint32_t max_entries);
+ 
+ struct BusRegion {
 diff --git a/runner/src/title_patches.cpp b/runner/src/title_patches.cpp
 index fa8d947..41581b4 100644
 --- a/runner/src/title_patches.cpp
@@ -20262,10 +20444,10 @@ index 1fa4362..8ea2229 100644
  void nds_title_patches_start_frame();
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..a7676fc
+index 0000000..3b5d4f1
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,1405 @@
+@@ -0,0 +1,1406 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -21566,6 +21748,7 @@ index 0000000..a7676fc
 +    s_in.true_widescreen = true;
 +    s_in.pip_size_pct = 18;
 +    s_in.pip_opacity_pct = 80;
++    s_in.gba_slot2_aria = true;
 +    assert(dos_save_settings_ini(ini_path, NdsScreenLayout::MinimapHud,
 +                                 NdsPipCorner::TopRight, NdsPipMainScreen::Bottom,
 +                                 1, kNdsDefaultKeys, kNdsDefaultPad, false, 1, 1, s_in));
@@ -21574,7 +21757,7 @@ index 0000000..a7676fc
 +    assert(dos_load_settings_ini(ini_path, &out_layout, nullptr, nullptr, nullptr,
 +                                 nullptr, nullptr, nullptr, nullptr, nullptr, &s_out));
 +    assert(out_layout == NdsScreenLayout::MinimapHud);
-+    assert(s_out.pip_size_pct == 18 && s_out.pip_opacity_pct == 80);
++    assert(s_out.pip_size_pct == 18 && s_out.pip_opacity_pct == 80 && s_out.gba_slot2_aria);
 +
 +    // Verify file:// URI builder produces an absolute URI with no backslashes or spaces
 +    const std::string prof_uri = dos_mod_ensure_profiles_file_uri((tmp_dir / "mods with space").string());
