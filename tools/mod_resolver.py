@@ -150,7 +150,7 @@ class ModRegistry:
             if p.name.lower() in registered_files:
                 continue
             cid = slugify_profile_stem(p.stem)
-            if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns:
+            if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns or cid in self.character_packs:
                 continue
             ext_lc = p.suffix.lower()
             if cid.startswith("dsvrandom-") and len(cid) > len("dsvrandom-"):
@@ -206,6 +206,14 @@ class ModRegistry:
         prof_dir = self.data_mods_dir / "profiles"
         if entry_id and prof_dir.is_dir():
             ext_priority = {".dospatch": 0, ".xdelta": 1, ".vcdiff": 2, ".xdelta3": 3, ".ips": 4}
+            exact_matches = [
+                p
+                for p in prof_dir.iterdir()
+                if p.is_file() and p.suffix.lower() in ext_priority and p.stem.lower() == entry_id
+            ]
+            if exact_matches:
+                exact_matches.sort(key=lambda p: (ext_priority[p.suffix.lower()], p.name.lower()))
+                return True, exact_matches[0]
             matches = [
                 p
                 for p in prof_dir.iterdir()

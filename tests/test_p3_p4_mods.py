@@ -108,6 +108,30 @@ class TestFoundation16A(unittest.TestCase):
                 )
                 self.assertEqual(dec_slot.state, "unverified")
                 self.assertTrue(dec_slot.allowed)
+            # Targeted canonical slug (<id>.xdelta) must beat both profile_file (cdos_1.1.xdelta) and fuzzy spaces ("Eternity of Sorrow.xdelta")
+            (data_mods / "profiles" / "cdos-ptbr-v1-1.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
+            (data_mods / "profiles" / "eternity-of-sorrow.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
+            reg.rescan_local_profiles()
+            self.assertEqual(
+                Path(
+                    reg.resolve(
+                        mr.SelectionRequest(campaign_id="cdos-ptbr-v1-1", baseline_id="original", allow_unverified=True)
+                    ).patch_file
+                    or ""
+                ).name,
+                "cdos-ptbr-v1-1.xdelta",
+            )
+            self.assertEqual(
+                Path(
+                    reg.resolve(
+                        mr.SelectionRequest(
+                            campaign_id="eternity-of-sorrow", baseline_id="original", allow_unverified=True
+                        )
+                    ).patch_file
+                    or ""
+                ).name,
+                "eternity-of-sorrow.xdelta",
+            )
             self.assertIn("sample-local-mod", reg.campaigns)
             self.assertIn("dos-definitive-v2-0", reg.campaigns)
             self.assertIn("no-required-touch-v1-1", reg.campaigns)

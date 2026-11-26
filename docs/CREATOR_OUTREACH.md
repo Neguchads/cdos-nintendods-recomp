@@ -35,10 +35,10 @@ Gostaríamos de pedir formalmente a autorização de vocês para:
 Parabéns pelo trabalho incrível na revisão v1.1!
 ```
 
-### 2. Masked Dedede, DevAnj, Thirteen 1355, ShadowOne333, LagoLunatic — Definitive Edition / Definitive Edition+
+### 2. Masked Dedede, DevAnj, Thirteen 1355, ShadowOne333, acediez, LagoLunatic — Definitive Edition / Definitive Edition+
 
 ```markdown
-Hello Masked Dedede, DevAnj, Thirteen 1355, ShadowOne333, and LagoLunatic!
+Hello Masked Dedede, DevAnj, Thirteen 1355, ShadowOne333, acediez, and LagoLunatic!
 
 We maintain the non-commercial, open-source PC static recompilation **Castlevania: Dawn of Sorrow: Recompiled** (https://github.com/Neguchads/cdos-nintendods-recomp).
 
