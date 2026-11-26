@@ -8,7 +8,7 @@
 
 ## English
 
-### Current Technical State (Post-`v1.2.2` — Fatia 2: Modular Stackable Patch Composition & Homepage Refresh)
+### Current Technical State (`v1.3.0` Release — Modular Stackable Patch Composition & Homepage Refresh)
 - **Latest Feature (Fatia 2 — Modular Stackable Add-Ons & README Refresh):**
   - Split `mods/registry.json` into stackable `"addons"` (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) and exclusive `"campaigns"`.
   - Implemented 3-way byte-diff overlay merger in memory against clean USA `base_rom` + NDS header CRC-16/MODBUS recomputation (`0x15E..0x15F`) in `dos_mod_registry.cpp`, checkboxes in `F1 -> Mods & Campaigns`, `dos_active_addons` INI persistence, isolated saves per stack (`modular-stack`), and full parity in `tools/mod_resolver.py` + C++/Python tests.
@@ -78,7 +78,7 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (Pós-`v1.2.2` — Fatia 2: Composição Modular Empilhável de Patches & Refresh da Homepage)
+### Estado Técnico Atual (`v1.3.0` Release — Composição Modular Empilhável de Patches & Refresh da Homepage)
 - **Última fatia (Fatia 2 — Add-Ons Modulares Combináveis & Refresh do README):**
   - `mods/registry.json` separado em `"addons"` empilháveis (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) e `"campaigns"` exclusivas.
   - Implementado merger 3-way byte-diff em memória sobre a `base_rom` USA limpa + recálculo do CRC-16/MODBUS do cabeçalho NDS (`0x15E..0x15F`) em `dos_mod_registry.cpp`, checkboxes em `F1 -> Mods & Campanhas`, persistência `dos_active_addons` em INI, saves isolados por combinação (`modular-stack`) e paridade completa em `tools/mod_resolver.py` + testes C++/Python.
