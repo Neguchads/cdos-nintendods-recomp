@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.1 (2026-11-26)
 
 ### Added
 - **Per-Mod Quick `Patch...` & `Official Page` Buttons in `F1 -> Mods`, PT-BR v1.1 Slots & Full Creator Credits:** added targeted 1-click **`Patch...`** (`Aplicar Patch...`) and **`Official Page`** (`Site Oficial`) buttons next to every non-builtin mod slot in `F1 -> Mods & Campaigns`, plus clean-room `manual_import: true` compatibility slots (zero files bundled or downloaded) for **Tradução PT-BR v1.1 (Vanilla & Definitive Edition)** (full credits to **Hyllian, Solid One/`@leomontenegro6`, Neko Belmont, Mysterioso, denim, djmatheusito, victoriemini**, official GitHub release & **João13 Traduções**), **Definitive Edition+**, **Eternity of Sorrow** (`@Wet-Band-Aid`, authorized #44), **Alucard's Requiem (SOTN & CV3)**, and **Dracula's Curse (Trevor Mode)**, alongside [`docs/CREATOR_OUTREACH.md`](docs/CREATOR_OUTREACH.md).

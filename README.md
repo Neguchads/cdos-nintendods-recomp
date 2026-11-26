@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://recomplauncher.com/game/cdos-nintendods-recomp"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
-  <a href="https://github.com/Neguchads/cdos-nintendods-recomp/releases/tag/v1.2.0"><img alt="Release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-8b2c43?style=for-the-badge"></a>
+  <a href="https://github.com/Neguchads/cdos-nintendods-recomp/releases/tag/v1.2.1"><img alt="Release v1.2.1" src="https://img.shields.io/badge/release-v1.2.1-8b2c43?style=for-the-badge"></a>
   <a href="https://github.com/Neguchads/cdos-nintendods-recomp/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Neguchads/cdos-nintendods-recomp/actions/workflows/ci.yml/badge.svg"></a>
 </p>
 
