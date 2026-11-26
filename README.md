@@ -162,6 +162,15 @@ python tools/build.py smoke
 python tools/prepare_media_assets.py --check-only
 ```
 
+### Special Thanks & Authorized Community Modders
+
+Thank you to the creators who explicitly authorized compatibility slots and helped shape the mod architecture of this project (zero third-party patches are bundled — download directly from each creator's official page):
+
+- **[@Wet-Band-Aid](https://github.com/Wet-Band-Aid)** — creator of **[Castlevania: Eternity of Sorrow](https://github.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow)**, who authorized the `Eternity of Sorrow` slot and inspired the in-game **Mod Info & Preview Card** ([Issue #44](https://github.com/Neguchads/cdos-nintendods-recomp/issues/44)).
+- **[@leomontenegro6](https://github.com/leomontenegro6) (Solid One)** & the **Tradução PT-BR v1.1 Team** (**Hyllian, Solid One, Neko Belmont, Mysterioso, denim, djmatheusito, victoriemini** — **[cdos-traducao-ptbr](https://github.com/leomontenegro6/cdos-traducao-ptbr)**, **[cdos-patcher-tool](https://github.com/leomontenegro6/cdos-patcher-tool)**, [João13 Traduções](https://joao13traducoes.com/2018/02/nds-castlevania-dawn-of-sorrow-varios-autores/)) — who authorized the PT-BR v1.1 slot and inspired our **modular stackable patch composition** ([cdos-traducao-ptbr#1](https://github.com/leomontenegro6/cdos-traducao-ptbr/issues/1)).
+
+For full open-source library attributions and all community mod authors, see [`docs/CREDITS.md`](docs/CREDITS.md).
+
 ### Documentation
 
 [`CHANGELOG.md`](CHANGELOG.md) | [`docs/CREDITS.md`](docs/CREDITS.md) | [`docs/RECOMPLAUNCHER.md`](docs/RECOMPLAUNCHER.md) | [`docs/RBS.md`](docs/RBS.md) | [`docs/CI_AUTOMATION.md`](docs/CI_AUTOMATION.md) | [`docs/BUILD_CACHE.md`](docs/BUILD_CACHE.md) | [`docs/MULTIPLATFORM.md`](docs/MULTIPLATFORM.md) | [`docs/DECISIONS.md`](docs/DECISIONS.md) | [`docs/rom-analysis.md`](docs/rom-analysis.md) | [`ROADMAP.md`](ROADMAP.md) | [`HANDOFF.md`](HANDOFF.md) | [`NOTAS.md`](NOTAS.md)
@@ -312,6 +321,15 @@ python -m unittest discover -s tests -v
 python tools/build.py smoke
 python tools/prepare_media_assets.py --check-only
 ```
+
+### Agradecimentos & Modders Autorizados
+
+Nosso agradecimento aos criadores que autorizaram explicitamente os slots de compatibilidade e ajudaram a moldar a arquitetura de mods deste projeto (zero patches de terceiros são embutidos — baixe diretamente na página oficial de cada autor):
+
+- **[@Wet-Band-Aid](https://github.com/Wet-Band-Aid)** — criador de **[Castlevania: Eternity of Sorrow](https://github.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow)**, que autorizou o slot de *Eternity of Sorrow* e inspirou o painel de **Detalhes e Prévia de Mods** dentro do `F1` ([Issue #44](https://github.com/Neguchads/cdos-nintendods-recomp/issues/44)).
+- **[@leomontenegro6](https://github.com/leomontenegro6) (Solid One)** & equipe da **Tradução PT-BR v1.1** (**Hyllian, Solid One, Neko Belmont, Mysterioso, denim, djmatheusito, victoriemini** — **[cdos-traducao-ptbr](https://github.com/leomontenegro6/cdos-traducao-ptbr)**, **[cdos-patcher-tool](https://github.com/leomontenegro6/cdos-patcher-tool)**, [João13 Traduções](https://joao13traducoes.com/2018/02/nds-castlevania-dawn-of-sorrow-varios-autores/)) — que autorizou o slot da tradução PT-BR v1.1 e inspirou a **composição modular empilhável de patches** ([cdos-traducao-ptbr#1](https://github.com/leomontenegro6/cdos-traducao-ptbr/issues/1)).
+
+Para os créditos completos das bibliotecas open source e demais autores da comunidade, veja [`docs/CREDITS.md`](docs/CREDITS.md).
 
 ### Documentação
 
