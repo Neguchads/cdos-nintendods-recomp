@@ -25,6 +25,15 @@ Native PC port of *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, game code `AC
 
 > **Legal & creator-respect notice:** this repository contains **no ROMs, no commercial BIOS, no copyrighted game data, and no bundled third-party mods or translations**. You must provide your own legally dumped copy of `Castlevania - Dawn of Sorrow (USA).nds`: 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`. Community patches and translations obtained directly from their authors are loaded locally in memory via `F1 -> Mods` (`{data}/mods/profiles/`) without ever modifying your ROM.
 
+
+### Development progress / Status dashboard
+
+[![Feature assurance dashboard](assets/dashboard/project-status.svg)](docs/FEATURE_STATUS.md)
+
+[Full feature audit](docs/FEATURE_STATUS.md) · [Quality methodology and platform matrix](docs/FEATURE_ASSURANCE.md) · [Machine-readable metrics](quality/progress.json)
+
+Percentages are catalog-based implementation and historical documented verification, not overall release readiness or newly executed tests.
+
 ### Key Features at a Glance
 
 - **Modular Stackable Mods & Authorized PT-BR v1.1 (`F1 -> Mods`):** freely combine **Tradução PT-BR v1.1** (authorized by `@leomontenegro6` in `cdos-traducao-ptbr#1`) with **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, and **Voice Restore Project** via checkboxes using our **3-way in-memory byte-diff merger** + automatic NDS header CRC-16 recomputation (inspired by `cdos-patcher-tool`). Includes per-mod **`Patch...`**, **`Official Page`**, and **`Info`** preview cards, bundled **`xdelta3.exe`** (Apache-2.0) for DJW/LZMA `.xdelta` patches out of the box, isolated saves per stack, and zero bundled third-party files.
@@ -184,6 +193,15 @@ For full open-source library attributions and all community mod authors, see [`d
 Port nativo para PC de *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, código `ACVE`) baseado em [`RetroPortingToolKit/ndsrecomp`](https://github.com/RetroPortingToolKit/ndsrecomp): o código ARM9/ARM7 é recompilado estaticamente para C/C++ (sem JIT, sem Dynarmic). Traz shaders HD-2D para **Direct3D 12 (`DXIL ps_6_0`)** e **Vulkan 1.1 (`SPIR-V`)**, menu bilíngue **Dear ImGui (`F1`)**, **suporte modular e combinável a mods locais em memória** (combine **Tradução PT-BR v1.1** com **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore** ou qualquer `.xdelta` / `.ips` / `.dospatch`), **Minimap HUD (Samus Returns 16:9)**, **VSync Exato 60 Hz sem alterar o tom**, **Bônus Slot-2 GBA *Aria of Sorrow***, **Música Customizada** e suporte completo ao **[RecompLauncher](https://recomplauncher.com/game/cdos-nintendods-recomp)**.
 
 > **Aviso legal e de respeito aos criadores:** este repositório **não contém ROMs, BIOS comerciais, dados protegidos do jogo nem mods/traduções de terceiros embutidos**. Use a sua própria cópia legal de `Castlevania - Dawn of Sorrow (USA).nds`: 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`. Patches e traduções da comunidade obtidos diretamente com seus autores são carregados localmente em memória pelo menu `F1 -> Mods` (`{data}/mods/profiles/`) sem nunca alterar sua ROM.
+
+
+### Progresso de desenvolvimento / Dashboard
+
+[![Painel de progresso e auditoria](assets/dashboard/project-status.svg)](docs/FEATURE_STATUS.md)
+
+[Auditoria completa](docs/FEATURE_STATUS.md) · [Metodologia e matriz de plataformas](docs/FEATURE_ASSURANCE.md) · [Métricas JSON](quality/progress.json)
+
+Percentuais calculados a partir dos requisitos catalogados; verificação documental não equivale a novos testes em execução nem à prontidão de release.
 
 ### Principais Recursos em Destaque
 

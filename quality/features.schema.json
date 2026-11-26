@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "baseline_commit",
+    "baseline_release",
+    "method",
+    "groups"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "baseline_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "baseline_release": {
+      "type": "string"
+    },
+    "method": {
+      "type": "string"
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "features"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "status",
+                "source",
+                "issue",
+                "acceptance",
+                "runtime_evidence"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "documented_verified",
+                    "implemented",
+                    "beta",
+                    "partial",
+                    "planned",
+                    "unverified",
+                    "in_progress",
+                    "blocked",
+                    "regression"
+                  ]
+                },
+                "source": {
+                  "type": "string"
+                },
+                "issue": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "acceptance": {
+                  "type": "string"
+                },
+                "runtime_evidence": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

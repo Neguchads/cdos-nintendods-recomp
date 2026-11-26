@@ -1,0 +1,1241 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "98cc5b1f4cffb44850701c01e2e4942394b878fb",
+  "baseline_release": "v1.3.0",
+  "method": "Documentary inventory; no new runtime or CI test results claimed. Equal weight per registered requirement, not estimated effort.",
+  "groups": [
+    {
+      "id": "CORE",
+      "name": "Recompilation Core",
+      "features": [
+        {
+          "id": "CORE-001",
+          "name": "Static ARM9 and ARM7 AOT execution",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Static ARM9 and ARM7 AOT execution with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "CORE-002",
+          "name": "Promoted banks and live-byte fallback",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Promoted banks and live-byte fallback with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "CORE-003",
+          "name": "USA ACVE ROM validation",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate USA ACVE ROM validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "CORE-004",
+          "name": "Full-campaign regression coverage",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Full-campaign regression coverage with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "RENDER",
+      "name": "Rendering Engine",
+      "features": [
+        {
+          "id": "RENDER-001",
+          "name": "Direct3D 12 renderer",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Direct3D 12 renderer with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "RENDER-002",
+          "name": "Vulkan 1.1 renderer",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Vulkan 1.1 renderer with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "RENDER-003",
+          "name": "GPU shader pipeline",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate GPU shader pipeline with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "RENDER-004",
+          "name": "Cross-platform rendering parity",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Cross-platform rendering parity with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "GRAPHICS",
+      "name": "Graphics & HD-2D",
+      "features": [
+        {
+          "id": "GRAPHICS-001",
+          "name": "Pixel-AA and Pixellate",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Pixel-AA and Pixellate with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "GRAPHICS-002",
+          "name": "ScaleFX and GPU upscalers",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate ScaleFX and GPU upscalers with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "GRAPHICS-003",
+          "name": "GDAPT anti-dither",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate GDAPT anti-dither with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "GRAPHICS-004",
+          "name": "Dual Kawase bloom",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Dual Kawase bloom with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "GRAPHICS-005",
+          "name": "Visual profiles",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Visual profiles with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "GRAPHICS-006",
+          "name": "Display color controls",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Display color controls with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "DISPLAY",
+      "name": "Display & Widescreen",
+      "features": [
+        {
+          "id": "DISPLAY-001",
+          "name": "Widescreen Theatre and Smart Crop",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Widescreen Theatre and Smart Crop with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DISPLAY-002",
+          "name": "16:10 and ultrawide layouts",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate 16:10 and ultrawide layouts with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DISPLAY-003",
+          "name": "Minimap HUD",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Minimap HUD with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DISPLAY-004",
+          "name": "True 2D widescreen 342x192",
+          "status": "beta",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate True 2D widescreen 342x192 with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DISPLAY-005",
+          "name": "Complete widescreen campaign audit",
+          "status": "planned",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Complete widescreen campaign audit with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "AUDIO",
+      "name": "Audio Engine",
+      "features": [
+        {
+          "id": "AUDIO-001",
+          "name": "Original sound effects and voices",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Original sound effects and voices with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "AUDIO-002",
+          "name": "Exact 60 Hz pitch-preserving sync",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Exact 60 Hz pitch-preserving sync with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "AUDIO-003",
+          "name": "Independent audio volumes",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Independent audio volumes with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "AUDIO-004",
+          "name": "Full audio regression suite",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Full audio regression suite with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "MUSIC",
+      "name": "Custom Music Manager",
+      "features": [
+        {
+          "id": "MUSIC-001",
+          "name": "WAV decoding",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate WAV decoding with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-002",
+          "name": "MP3 decoding",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate MP3 decoding with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-003",
+          "name": "OGG decoding",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate OGG decoding with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-004",
+          "name": "Original voice preservation",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Original voice preservation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-005",
+          "name": "Original SFX preservation",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Original SFX preservation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-006",
+          "name": "Independent volume",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Independent volume with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-007",
+          "name": "30 BGM mappings",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate 30 BGM mappings with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-008",
+          "name": "Global Jukebox",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Global Jukebox with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-009",
+          "name": "Shuffle",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Shuffle with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-010",
+          "name": "Previous and next",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Previous and next with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-011",
+          "name": "Multiple file import",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Multiple file import with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-012",
+          "name": "Configuration persistence",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Configuration persistence with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-013",
+          "name": "Custom loop points",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Custom loop points with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-014",
+          "name": "Boss BGM mappings",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Boss BGM mappings with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-015",
+          "name": "Ending and credits BGM mappings",
+          "status": "documented_verified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Ending and credits BGM mappings with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-016",
+          "name": "Special event mappings",
+          "status": "partial",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Special event mappings with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-017",
+          "name": "Audio file validation",
+          "status": "partial",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Audio file validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-018",
+          "name": "Import wizard in F1",
+          "status": "partial",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Import wizard in F1 with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-019",
+          "name": "Room-specific mappings",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Room-specific mappings with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-020",
+          "name": "Independent soundtrack packs",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Independent soundtrack packs with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-021",
+          "name": "Multiple soundtrack profiles",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Multiple soundtrack profiles with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-022",
+          "name": "Multiple saved playlists",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Multiple saved playlists with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-023",
+          "name": "Configurable fades",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Configurable fades with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-024",
+          "name": "Crossfade",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Crossfade with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-025",
+          "name": "Track preview",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Track preview with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-026",
+          "name": "Library search",
+          "status": "unverified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Library search with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-027",
+          "name": "Metadata and artwork",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Metadata and artwork with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-028",
+          "name": "Advanced event-aware transitions",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Advanced event-aware transitions with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-029",
+          "name": "Pack ZIP import and export",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Pack ZIP import and export with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-030",
+          "name": "Legacy config migration and regression tests",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Legacy config migration and regression tests with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-031",
+          "name": "Automatic original BGM fallback validation",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Automatic original BGM fallback validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-032",
+          "name": "Track loudness normalization",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Track loudness normalization with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-033",
+          "name": "Streaming memory optimization",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Streaming memory optimization with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-034",
+          "name": "Visual loop editor",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Visual loop editor with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-035",
+          "name": "FLAC support evaluation",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate FLAC support evaluation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-036",
+          "name": "ID3 metadata",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate ID3 metadata with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-037",
+          "name": "Multiple tracks per area",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Multiple tracks per area with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-038",
+          "name": "Shuffle without immediate repeats",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Shuffle without immediate repeats with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-039",
+          "name": "Campaign and mod compatibility tests",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Campaign and mod compatibility tests with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-040",
+          "name": "Resume exploration after scripted events",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Resume exploration after scripted events with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-041",
+          "name": "Pack manifest validation",
+          "status": "planned",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Pack manifest validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MUSIC-042",
+          "name": "Linux and Android music parity",
+          "status": "unverified",
+          "source": "mods/music/README.md",
+          "issue": 38,
+          "acceptance": "Demonstrate Linux and Android music parity with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "MODS",
+      "name": "Mod Manager",
+      "features": [
+        {
+          "id": "MODS-001",
+          "name": "IPS and XDelta local import",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate IPS and XDelta local import with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MODS-002",
+          "name": "Modular stackable add-ons",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Modular stackable add-ons with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MODS-003",
+          "name": "Three-way byte merge",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Three-way byte merge with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MODS-004",
+          "name": "Isolated mod saves",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Isolated mod saves with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MODS-005",
+          "name": "Manual-import community mod slots",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Manual-import community mod slots with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MODS-006",
+          "name": "Native offline seed mutator",
+          "status": "beta",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Native offline seed mutator with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "MODS-007",
+          "name": "Full campaign compatibility for every mod",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Full campaign compatibility for every mod with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "TEXTURE",
+      "name": "HD Texture Manager",
+      "features": [
+        {
+          "id": "TEXTURE-001",
+          "name": "Texture dumping",
+          "status": "planned",
+          "source": "ROADMAP.md",
+          "issue": 36,
+          "acceptance": "Demonstrate Texture dumping with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "TEXTURE-002",
+          "name": "Replacement packs",
+          "status": "planned",
+          "source": "ROADMAP.md",
+          "issue": 36,
+          "acceptance": "Demonstrate Replacement packs with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "TEXTURE-003",
+          "name": "Texture cache and validation",
+          "status": "planned",
+          "source": "ROADMAP.md",
+          "issue": 36,
+          "acceptance": "Demonstrate Texture cache and validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "INPUT",
+      "name": "Input System",
+      "features": [
+        {
+          "id": "INPUT-001",
+          "name": "Keyboard and mouse mapping",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Keyboard and mouse mapping with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "INPUT-002",
+          "name": "Gamepad mapping",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Gamepad mapping with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "INPUT-003",
+          "name": "Touch input and magic seals",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Touch input and magic seals with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "INPUT-004",
+          "name": "Remap and restore defaults",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Remap and restore defaults with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "CHEAT",
+      "name": "Cheat Manager",
+      "features": [
+        {
+          "id": "CHEAT-001",
+          "name": "Cheat catalog and format validation",
+          "status": "planned",
+          "source": "ROADMAP.md",
+          "issue": 37,
+          "acceptance": "Demonstrate Cheat catalog and format validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "CHEAT-002",
+          "name": "Enable and disable cheats",
+          "status": "planned",
+          "source": "ROADMAP.md",
+          "issue": 37,
+          "acceptance": "Demonstrate Enable and disable cheats with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "CHEAT-003",
+          "name": "Persistence and safe gameplay tests",
+          "status": "planned",
+          "source": "ROADMAP.md",
+          "issue": 37,
+          "acceptance": "Demonstrate Persistence and safe gameplay tests with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "SAVE",
+      "name": "Save System",
+      "features": [
+        {
+          "id": "SAVE-001",
+          "name": "Native saves",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Native saves with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SAVE-002",
+          "name": "Savestate slots",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Savestate slots with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SAVE-003",
+          "name": "Save backups",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Save backups with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SAVE-004",
+          "name": "Mod-stack isolation",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Mod-stack isolation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SAVE-005",
+          "name": "Save migration regression coverage",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Save migration regression coverage with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "LANG",
+      "name": "Localization",
+      "features": [
+        {
+          "id": "LANG-001",
+          "name": "English interface",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate English interface with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LANG-002",
+          "name": "PT-BR interface",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate PT-BR interface with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LANG-003",
+          "name": "Authorized PT-BR patch loading",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Authorized PT-BR patch loading with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LANG-004",
+          "name": "European multi-language support",
+          "status": "planned",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate European multi-language support with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "PERF",
+      "name": "Performance",
+      "features": [
+        {
+          "id": "PERF-001",
+          "name": "Documented Windows near-60 FPS benchmark",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Documented Windows near-60 FPS benchmark with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "PERF-002",
+          "name": "GPU upscaling performance",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate GPU upscaling performance with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "PERF-003",
+          "name": "Repeatable full-campaign performance baseline",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Repeatable full-campaign performance baseline with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "WIN",
+      "name": "Windows Platform",
+      "features": [
+        {
+          "id": "WIN-001",
+          "name": "Standalone Windows launcher",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Standalone Windows launcher with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "WIN-002",
+          "name": "ROM verification and installation",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate ROM verification and installation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "WIN-003",
+          "name": "Portable Windows package",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Portable Windows package with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "LINUX",
+      "name": "Linux & Steam Deck",
+      "features": [
+        {
+          "id": "LINUX-001",
+          "name": "Linux build script",
+          "status": "implemented",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": null,
+          "acceptance": "Demonstrate Linux build script with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LINUX-002",
+          "name": "Native Linux runtime validation",
+          "status": "unverified",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": null,
+          "acceptance": "Demonstrate Native Linux runtime validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LINUX-003",
+          "name": "Steam Deck validation",
+          "status": "unverified",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": null,
+          "acceptance": "Demonstrate Steam Deck validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "ANDROID",
+      "name": "Android Platform",
+      "features": [
+        {
+          "id": "ANDROID-001",
+          "name": "ARM64 Gradle and NDK skeleton",
+          "status": "implemented",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": 52,
+          "acceptance": "Demonstrate ARM64 Gradle and NDK skeleton with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "ANDROID-002",
+          "name": "Native Android build and boot",
+          "status": "planned",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": 52,
+          "acceptance": "Demonstrate Native Android build and boot with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "ANDROID-003",
+          "name": "Touch and lifecycle validation",
+          "status": "planned",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": 52,
+          "acceptance": "Demonstrate Touch and lifecycle validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "ANDROID-004",
+          "name": "Dual-screen device support",
+          "status": "planned",
+          "source": "docs/MULTIPLATFORM.md",
+          "issue": 52,
+          "acceptance": "Demonstrate Dual-screen device support with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "LAUNCH",
+      "name": "RecompLauncher",
+      "features": [
+        {
+          "id": "LAUNCH-001",
+          "name": "Manifest and dump verification",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Manifest and dump verification with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LAUNCH-002",
+          "name": "Portable data directory",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Portable data directory with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "LAUNCH-003",
+          "name": "Media and catalog integration",
+          "status": "documented_verified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Media and catalog integration with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "BUILD",
+      "name": "Build System",
+      "features": [
+        {
+          "id": "BUILD-001",
+          "name": "Incremental RBS build",
+          "status": "implemented",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Incremental RBS build with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "BUILD-002",
+          "name": "Artifact validation and SHA256",
+          "status": "implemented",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Artifact validation and SHA256 with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "BUILD-003",
+          "name": "Dependency setup scripts",
+          "status": "implemented",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Dependency setup scripts with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "BUILD-004",
+          "name": "Native multi-platform build matrix",
+          "status": "unverified",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Native multi-platform build matrix with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "SEC",
+      "name": "Security",
+      "features": [
+        {
+          "id": "SEC-001",
+          "name": "Clean-room and package allowlist",
+          "status": "implemented",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Clean-room and package allowlist with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SEC-002",
+          "name": "Dependency update configuration",
+          "status": "implemented",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Dependency update configuration with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SEC-003",
+          "name": "Current vulnerability remediation audit",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Current vulnerability remediation audit with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "SEC-004",
+          "name": "Release supply-chain verification",
+          "status": "unverified",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Release supply-chain verification with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "QA",
+      "name": "Quality Assurance",
+      "features": [
+        {
+          "id": "QA-001",
+          "name": "Automated Python test suite",
+          "status": "implemented",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Automated Python test suite with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "QA-002",
+          "name": "Manifest validation",
+          "status": "implemented",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Manifest validation with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "QA-003",
+          "name": "Current CI result audit",
+          "status": "unverified",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Current CI result audit with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "QA-004",
+          "name": "Full runtime acceptance across platforms",
+          "status": "unverified",
+          "source": "ROADMAP.md",
+          "issue": null,
+          "acceptance": "Demonstrate Full runtime acceptance across platforms with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "DOC",
+      "name": "Documentation",
+      "features": [
+        {
+          "id": "DOC-001",
+          "name": "Bilingual README",
+          "status": "implemented",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Bilingual README with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DOC-002",
+          "name": "Roadmap and changelog",
+          "status": "implemented",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Roadmap and changelog with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DOC-003",
+          "name": "Mod credits and creator policy",
+          "status": "implemented",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Mod credits and creator policy with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        },
+        {
+          "id": "DOC-004",
+          "name": "Feature assurance registry",
+          "status": "implemented",
+          "source": "README.md",
+          "issue": null,
+          "acceptance": "Demonstrate Feature assurance registry with a reproducible test or review appropriate to the subsystem.",
+          "runtime_evidence": []
+        }
+      ]
+    }
+  ]
+}

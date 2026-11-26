@@ -8,6 +8,8 @@
 
 ## English
 
+[Live feature inventory and progress dashboard](docs/FEATURE_STATUS.md) · [Quality methodology](docs/FEATURE_ASSURANCE.md). The catalog does not replace the roadmap or close pending issues.
+
 ### Done (Vertical Slice 1 — Bring-Up)
 - Inspection and verification of the original USA ROM (`Castlevania - Dawn of Sorrow (USA).nds`, 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`).
 - Project pipeline structured with `game.toml`, `tools/setup_toolchains.py`, `tools/prepare_rom.py`, `tools/build.py`, and `play.bat`.
@@ -77,6 +79,8 @@
 <a id="português-br"></a>
 
 ## Português (BR)
+
+[Inventário de funcionalidades e painel de progresso](docs/FEATURE_STATUS.md) · [Metodologia](docs/FEATURE_ASSURANCE.md). O catálogo não substitui o roadmap.
 
 ### Feito (Fatia Vertical 1 — Bring-Up)
 - Inspeção e validação da ROM USA original (`Castlevania - Dawn of Sorrow (USA).nds`, 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`).
