@@ -1,18 +1,19 @@
-# Notas de Sessão (Widescreen 2D Nativo Sem Cortes & Upscalers Curados — ADR-017)
+# Notas de Sessão (Escaladores 2D Modernos & Pipeline Multi-Passe HD-2D — ADR-018)
 
 ## Feito
-- **Widescreen 2D Nativo `342×192` perfeito (sem faixas pretas nem emendas):**
-  - Diagnóstico ao vivo em RAM/VRAM na Ponte (`0x022DD9F8`) e Praça (`0x022DFCF8`) da Lost Village revelou dois cortes distintos: (1) fundo paralaxe `k=2` (`1×2`, `flags=0x01A0`) é `BG2` 2D em hardware cujo screenblock 1 (`x=256..511`) ficava zerado -> adicionado wrap módulo 256 em `gpu2d.{h,cpp}` ativado por `title_patches.cpp`; (2) quad 3D atmosférico sem textura `sub=1` (`x=0..271, y=0..192, alpha=10`) era rasterizado via `native_3d_raster.cpp` -> adicionada expansão limpa para `RenderWidth` (`342`) em `native_3d_raster.cpp` (e fallback `GPU3D.cpp`) alocando vértices próprios sem alterar vértices compartilhados.
-  - Validado visualmente em `v4_plaza_fixed.png` e `v4_bridge_fixed.png`: `delta(271-270) = (0, 0, 0)`, céu/lua/castelo/névoa contínuos de `x = 0` até `x = 341`.
-- **Upscalers Pixel-Art Curados em Luz Linear & Menu `F1` Enxuto:**
-  - `dos_postprocess.frag.hlsl` recompilado para DXIL `ps_6_0` (`20.940 B`) e Vulkan 1.1 SPIR-V (`38.284 B`): novos **`Pixellate`** (área analítica exata 1.0 px em sRGB linear IEC 61966-2-1, **novo padrão**), **`Pixel-AA`** (smoothstep cúbico 1.5 px) e **`Bandlimited Pixel`** aprimorado (integral de cosseno TheMaister em sRGB linear); `Sharpen` corrigido para centros `±1` texel (padrão `Off`); `Scanlines`/`CRT`/`LCD` em ondas cosseno analíticas sem moiré atenuadas por `fwidth` pré-clamp.
-  - Dropdown curado para os 5 filtros sem artefatos (`Pixellate`, `Pixel-AA`, `Bandlimited Pixel`, `Nearest`, `Bilinear`) em `dos_imgui_menu.cpp`, `game.toml` e `recomplauncher.json`, mantendo retrocompatibilidade de INI (`xbr2x`/`scale2x`/`sharp-bilinear`), seção *Calibração Avançada* recolhível, curvatura CRT condicional e PiP preservando filtros nítidos.
-- **Verificação:** `ctest` `3/3` PASS (`dos_enhancements_test` + `frontend_config_test` + `screen_layout_test`), RTX 3060 ao vivo PASS em `dx12-gpu` (`DXIL ps_6_0`) e `vulkan-gpu` (`SPIR-V Vulkan`), `unittest` `55/55` PASS, `package_recomplauncher.py --validate-only` OK, `prepare_media_assets.py --check-only` OK, `patches/ndsrecomp-local.patch` sincronizado (`1.500.312 B < 2 MiB`, `apply --check --reverse` OK) e `runtime/nds_runner.exe` atualizado.
+- **Partes 1 + 2 entregues em pipeline multi-passe SDL3 GPU (`dos_gpu_shader.{h,cpp}`, `dos_postprocess.frag.hlsl`):**
+  - **MMPX 2× (NVIDIA, 2021):** passe offscreen `2×` fiel a detalhes de 1 px (olhos, contornos, paleta intacta) seguido de `Pixellate` em sRGB linear (`0,6 ms` na GPU).
+  - **OmniScale (SameBoy):** suavização perceptual de diagonais e cantos em 1 passe em sRGB linear (`0,6 ms` na GPU).
+  - **ScaleFX-Hybrid 3×:** reconstrução vetorial de silhuetas `3×` + reverse-AA sutil no interior, seguido de `Pixel-AA` em sRGB linear (`0,8 ms` na GPU).
+  - **Anti-Dither Seletivo (GDAPT, `dos_anti_dither`):** pré-passe opcional em sRGB linear que suaviza padrões xadrez/listras de 1 px sem borrar contornos nem texto.
+  - **Bloom HD-2D Dual Kawase (5 passes reais):** pirâmide `1/2 -> 1/4 -> 1/8 -> 1/4 -> 1/2` + composição aditiva (`pass_mode = 9`, `SDL_BLENDMODE_ADD`) alinhada à curvatura CRT, bezel e vinheta (`0,8 ms` total).
+  - **Menu `F1 -> Gráficos HD` & `recomplauncher.json`:** 8 filtros curados (`Pixellate` continua padrão), toggle `Anti-Dither Seletivo`, e 2 novos Perfis Visuais de 1 clique (**Remaster HD-2D (Bloom)** e **Vetor HD (ScaleFX)**).
+- **Compactação do Ubershader & Patch:** headers DXIL (`56.272 B`) e SPIR-V `-Os` (`91.884 B`) gravados em `uint32_t` little-endian, mantendo `patches/ndsrecomp-local.patch` em **`1.620.341 B` (`1,55 MiB < 2,00 MiB`)** com `git apply --check --reverse` limpo.
+- **Verificação:** `ctest` `3/3` PASS (0 warnings), 5 testes ao vivo na RTX 3060 PASS em `dx12-gpu` e `vulkan-gpu` (incluindo todos os 9 passes simultâneos), inspeção visual real de capturas DX12 (`hd2d_title.png`, `scalefx_title.png`, `mmpx_title.png`), `unittest` `55/55` PASS, `package_recomplauncher.py --validate-only` OK, `prepare_media_assets.py --check-only` OK, e `runtime/nds_runner.exe` atualizado.
 
 ## Falta / Próximos passos
-- Se o jogador já tinha `dos_hd_filter=xbr2x` salvo no `dos-settings.ini` local, escolher **Pixellate** (ou clicar **HD Moderno Nítido**) em `F1 -> Gráficos HD`.
-- Decidir publicação de nova release (`v1.2.0`) após validação visual do usuário.
-- Corrigir movimento invertido no *Albus Mode* ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
+- Validar visualmente no jogo os perfis **Remaster HD-2D** e **Vetor HD (ScaleFX)** e decidir empacotamento/publicação da release **`v1.2.0`** no GitHub.
+- Opcional futuro: carregador de pacotes de texturas HD por hash na `GPU3D` (estilo *Ship of Harkinian* / *Mesen HD*) e correção do *Albus Mode* (Issue #19).
 
 ## Decisões
-- **ADR-017:** Priorizar qualidade visual real em vez de quantidade de filtros: `Pixellate` em sRGB linear como padrão universal, remoção de `xBR 2x`/`Scale2x` do dropdown principal (mantendo leitura legada de INI) e correção na raiz tanto do wrap 2D `BG2` quanto da expansão de quads atmosféricos no pipeline `native_3d_raster.cpp`.
+- **ADR-018:** Ubershader único compacto (`num_samplers = 1`, `DosShaderParams` mantido em 80 bytes reaproveitando `_pad[3]`) + pool de 20 `SDL_GPURenderState*` (zero colisão de uniform buffers entre passes) + `grid_div` mantendo Scanlines/CRT/LCD travados nas 192 linhas do DS mesmo após `MMPX 2×` / `ScaleFX 3×`.

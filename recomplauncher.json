@@ -131,6 +131,7 @@
         "dos_render_driver": "direct3d12",
         "dos_vsync": "off",
         "dos_hd_filter": "pixellate",
+        "dos_anti_dither": "false",
         "dos_color_mode": "vivid",
         "dos_sharpen": "off",
         "dos_post_fx": "off",
@@ -728,6 +729,24 @@
           }
         },
         {
+          "label": "MMPX 2x (NVIDIA Detail-Preserving)",
+          "set": {
+            "dos_hd_filter": "mmpx"
+          }
+        },
+        {
+          "label": "OmniScale (Modern Smooth Edges)",
+          "set": {
+            "dos_hd_filter": "omniscale"
+          }
+        },
+        {
+          "label": "ScaleFX-Hybrid 3x (Vector Remaster)",
+          "set": {
+            "dos_hd_filter": "scalefx-hybrid"
+          }
+        },
+        {
           "label": "Nearest (Raw Pixel)",
           "set": {
             "dos_hd_filter": "nearest"
@@ -742,6 +761,29 @@
       ],
       "defaults": {
         "dos_hd_filter": "pixellate"
+      }
+    },
+    {
+      "id": "anti_dither",
+      "label": "Selective Anti-Dither (Smooth Checkerboard Fog)",
+      "group": "Graphics",
+      "help": "Blends 1px checkerboard/stripe dithering in linear light without blurring outlines or text.",
+      "choices": [
+        {
+          "label": "Off",
+          "set": {
+            "dos_anti_dither": "false"
+          }
+        },
+        {
+          "label": "On (Linear Optical Blend)",
+          "set": {
+            "dos_anti_dither": "true"
+          }
+        }
+      ],
+      "defaults": {
+        "dos_anti_dither": "false"
       }
     },
     {
