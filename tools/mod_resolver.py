@@ -15,6 +15,7 @@ CompatState = Literal["verified", "unverified", "incompatible"]
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}$")
 SAFE_VERSION_RE = re.compile(r"^[a-zA-Z0-9._-]{1,24}$")
 SAFE_SEED_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
+RESERVED_PROFILE_IDS = frozenset({"original", "definitive", "default", "dawn-of-sorrow"})
 
 
 def sanitize_safe_id(value: str, *, fallback: str = "") -> str:
@@ -80,7 +81,7 @@ def profile_save_namespace(profile_id: str, version: str, modset_hash: str) -> s
 class SelectionRequest:
     campaign_id: str = "dawn-of-sorrow"
     character_pack_id: str = "default"
-    baseline_id: str = "definitive"
+    baseline_id: str = "original"
     language: str = "en"
     allow_unverified: bool = False
     base_rom_sha1: str = "47530ff87e608f88105a314fdf36dc385f8dec94"
@@ -112,37 +113,68 @@ class ModRegistry:
         self.verified_combinations = list(data.get("verified_combinations", []))  # type: ignore[arg-type]
         self.rescan_external_randomizers()
 
-    def rescan_external_randomizers(self) -> None:
-        """Descobre automaticamente seeds dsvrandom-*.dospatch em {data}/mods/profiles/."""
-        for cid in [k for k, v in self.campaigns.items() if v.get("validation_level") == "external_randomizer"]:
+    def rescan_local_profiles(self) -> None:
+        """Descobre automaticamente patches *.dospatch colocados pelo usuario em {data}/mods/profiles/."""
+        for cid in [
+            k
+            for k, v in self.campaigns.items()
+            if v.get("validation_level") in ("external_randomizer", "local_user_mod")
+        ]:
             self.campaigns.pop(cid, None)
         if self.data_mods_dir is None:
             return
         prof_dir = self.data_mods_dir / "profiles"
         if not prof_dir.is_dir():
             return
-        for p in sorted(prof_dir.glob("dsvrandom-*.dospatch")):
+        registered_files = {
+            str(entry.get("profile_file", "")).lower()
+            for group in (self.baselines, self.campaigns, self.character_packs)
+            for entry in group.values()
+            if entry.get("profile_file")
+        }
+        for p in sorted(prof_dir.glob("*.dospatch")):
             if not p.is_file():
                 continue
-            cid = sanitize_safe_id(p.stem)
-            if not cid or cid in self.campaigns:
+            if p.name.lower() in registered_files:
                 continue
-            seed_lbl = cid[len("dsvrandom-") :] if cid.startswith("dsvrandom-") else cid
-            self.campaigns[cid] = {
-                "id": cid,
-                "name": f"DSVania Randomizer ({seed_lbl})",
-                "version": "1.0",
-                "builtin": False,
-                "manual_import": True,
-                "state": "unverified",
-                "validation_level": "external_randomizer",
-                "profile_file": p.name,
-                "supports_ptbr": False,
-                "definitive_compatible": False,
-                "allowed_character_packs": ["default"],
-                "source_url": "https://github.com/LagoLunatic/dsvrandom",
-                "author": "LagoLunatic (DSVania Randomizer external output)",
-            }
+            cid = sanitize_safe_id(p.stem)
+            if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns:
+                continue
+            if cid.startswith("dsvrandom-") and len(cid) > len("dsvrandom-"):
+                seed_lbl = cid[len("dsvrandom-") :]
+                self.campaigns[cid] = {
+                    "id": cid,
+                    "name": f"DSVania Randomizer ({seed_lbl})",
+                    "version": "1.0",
+                    "builtin": False,
+                    "manual_import": True,
+                    "state": "unverified",
+                    "validation_level": "external_randomizer",
+                    "profile_file": p.name,
+                    "supports_ptbr": False,
+                    "definitive_compatible": False,
+                    "allowed_character_packs": ["default"],
+                    "author": "Local randomizer output",
+                }
+            else:
+                self.campaigns[cid] = {
+                    "id": cid,
+                    "name": f"Local Mod: {p.stem}",
+                    "version": "1.0",
+                    "builtin": False,
+                    "manual_import": True,
+                    "state": "unverified",
+                    "validation_level": "local_user_mod",
+                    "profile_file": p.name,
+                    "supports_ptbr": False,
+                    "definitive_compatible": False,
+                    "allowed_character_packs": ["default"],
+                    "author": "User local patch",
+                }
+
+    def rescan_external_randomizers(self) -> None:
+        """Alias retrocompativel para rescan_local_profiles()."""
+        self.rescan_local_profiles()
 
     @classmethod
     def load(cls, registry_path: Path, *, data_mods_dir: Path | None = None) -> "ModRegistry":
@@ -292,7 +324,7 @@ class ModRegistry:
                 allowed=False,
                 reason=(
                     f"Mod '{active_entry['name']}' ainda nao esta instalado em "
-                    "{data}/mods/profiles/ (use import_mod_bundle.py ou fetch_community_mods.py)."
+                    "{data}/mods/profiles/ (use tools/import_local_mod.py)."
                 ),
                 active_profile_id=str(active_entry["id"]),
                 active_version=str(active_entry.get("version", "1.0")),

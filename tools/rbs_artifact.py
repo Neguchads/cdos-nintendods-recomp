@@ -10,13 +10,11 @@ import zipfile
 
 REQUIRED = {"CastlevaniaDawnOfSorrow.exe", "runtime/nds_runner.exe", "runtime/SDL3.dll",
             "runtime/libc++.dll", "runtime/libunwind.dll", "game.toml", "recomplauncher.json",
-            "mods/ptbr/dos-ptbr.dospatch", "SHA256SUMS.txt"}
+            "mods/registry.json", "SHA256SUMS.txt"}
 EXACT = REQUIRED | {
     "README.md",
     "play.bat",
     "LICENSE",
-    "mods/catalog.json",
-    "mods/registry.json",
     "mods/music/README.md",
     "mods/music/configurar_musica.py",
     "mods/music/Configurar_Musica.bat",
@@ -27,8 +25,7 @@ def allowed(name):
     p = PurePosixPath(name)
     return (name in EXACT or
             (p.parent.as_posix() == "docs" and p.suffix == ".md") or
-            (p.parent.as_posix() == "assets/recomplauncher" and p.suffix in {".png",".jpg",".ico",".json"}) or
-            (len(p.parts) == 3 and p.parts[0] == "mods" and p.suffix == ".dospatch"))
+            (p.parent.as_posix() == "assets/recomplauncher" and p.suffix in {".png",".jpg",".ico",".json"}))
 
 
 def validate(path):

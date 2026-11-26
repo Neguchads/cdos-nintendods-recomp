@@ -74,7 +74,8 @@ class TestRecompLauncher(unittest.TestCase):
             pr.stage_release_tree(ROOT, out_dir=stage, make_zip=False)
             self.assertTrue((stage / "recomplauncher.json").is_file())
             self.assertTrue((stage / "CastlevaniaDawnOfSorrow.exe").is_file())
-            self.assertTrue((stage / "mods" / "ptbr" / "dos-ptbr.dospatch").is_file())
+            self.assertTrue((stage / "mods" / "registry.json").is_file())
+            self.assertEqual(list(stage.rglob("*.dospatch")), [])
             self.assertTrue((stage / "runtime" / "nds_runner.exe").is_file())
             self.assertTrue((stage / "assets" / "recomplauncher" / "icon.png").is_file())
             self.assertTrue((stage / "SHA256SUMS.txt").is_file())
@@ -153,23 +154,20 @@ class TestRecompLauncher(unittest.TestCase):
 
         self.assertEqual(args[0], "{data}/run/bios")
         self.assertEqual(args[args.index("--config") + 1], "{install}/game.toml")
-        self.assertEqual(args[args.index("--ptbr-patch") + 1], "{install}/mods/ptbr/dos-ptbr.dospatch")
+        self.assertEqual(args[args.index("--ptbr-patch") + 1], "{data}/mods/ptbr/dos-ptbr.dospatch")
         self.assertEqual(
             args[args.index("--definitive-en-patch") + 1],
-            "{install}/mods/definitive/dos-definitive-en.dospatch",
+            "{data}/mods/definitive/dos-definitive-en.dospatch",
         )
         self.assertEqual(
             args[args.index("--definitive-ptbr-patch") + 1],
-            "{install}/mods/definitive/dos-definitive-ptbr.dospatch",
+            "{data}/mods/definitive/dos-definitive-ptbr.dospatch",
         )
-        self.assertEqual(args[args.index("--intro-video") + 1], "{install}/mods/intro/opening.mp4")
+        self.assertEqual(args[args.index("--intro-video") + 1], "{data}/mods/intro/opening.mp4")
 
-        optional_local_assets = {"mods/intro/opening.mp4"}
         for arg in args:
             if arg.startswith("{install}/"):
                 rel = arg.removeprefix("{install}/")
-                if rel in optional_local_assets:
-                    continue
                 self.assertTrue((ROOT / rel).is_file(), f"Arquivo ausente para placeholder {arg}: {rel}")
 
     def test_validate_manifest_rejects_bare_relative_start_args(self) -> None:
@@ -224,9 +222,6 @@ class TestRecompLauncher(unittest.TestCase):
                 "game.toml",
                 "play.bat",
                 "README.md",
-                "mods/ptbr/dos-ptbr.dospatch",
-                "mods/definitive/dos-definitive-en.dospatch",
-                "mods/definitive/dos-definitive-ptbr.dospatch",
                 "mods/registry.json",
                 "docs/RECOMPLAUNCHER.md",
             ):

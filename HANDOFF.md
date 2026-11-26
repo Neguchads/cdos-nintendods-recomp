@@ -8,8 +8,12 @@
 
 ## English
 
-### Current Technical State (`v1.2.0` on `main` — Modern 2D Upscalers, Multi-Pass HD-2D Bloom & Seamless True 2D Widescreen `342×192`)
-- **Latest Feature (Modern 2D Upscalers & Multi-Pass HD-2D Pipeline — `ADR-018`):**
+### Current Technical State (`main` post-`v1.2.0` — Generic Local Mod Support, Creator-Permission Cleanup & PR #35)
+- **Latest Refactor (Generic Local Mod Support & Creator Respect — Issues #43, #44):**
+  - Removed all bundled third-party `.dospatch` files (`mods/ptbr/`, `mods/definitive/`), `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py`, and every third-party community mod entry from `mods/registry.json`.
+  - Generalized `ndsrecomp/runner/src/dos_mod_registry.cpp` and `tools/mod_resolver.py` to auto-discover **any** user-supplied `*.dospatch` placed in `{data}/mods/profiles/` with isolated saves (`saves/profiles/<id>-v<ver>-<hash8>/dos.sav`), added offline [`tools/import_local_mod.py`](tools/import_local_mod.py) (zero network/URLs), switched default baseline to `Original USA`, moved optional user patch args in `recomplauncher.json` to `{data}/mods/...`, and hardened `tools/package_recomplauncher.py` + `tools/rbs_artifact.py` to forbid `.dospatch`/`.xdelta`/`.ips`/`.bps` in release ZIPs.
+  - Merged PR #35 (`@Xarishark`: backup `{data}/saves/definitive` & `{data}/saves/profiles`, Windows-only `system`, direct RecompLauncher game page badge) and closed Issue #7 (Widescreen, delivered in `v1.2.0`).
+- **Latest Graphics Feature (Modern 2D Upscalers & Multi-Pass HD-2D Pipeline — `ADR-018`):**
   - Implemented multi-pass SDL3 GPU pipeline (`DosGpuShaderState::render_multipass` in `dos_gpu_shader.{h,cpp}`, 20-slot `SDL_GPURenderState*` pool + per-screen cached `SDL_TEXTUREACCESS_TARGET` textures) driven by a single compact ubershader (`dos_postprocess.frag.hlsl` -> `uint32_t` DXIL `ps_6_0` `56,272 B` + SPIR-V `-Os` `91,884 B`, keeping `patches/ndsrecomp-local.patch` at `1.55 MiB < 2.00 MiB`).
   - Added **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Selective Anti-Dither (GDAPT, `dos_anti_dither`)**, **5-Pass Dual Kawase HD-2D Bloom** with CRT-aligned additive composite, and **HD-2D Remaster** / **Vector HD (ScaleFX)** one-click Visual Profiles in `F1 -> HD Graphics` & `recomplauncher.json`, verified live at `0.6..0.8 ms` GPU time on RTX 3060 under both `dx12-gpu` and `vulkan-gpu`.
 - **Previous Feature (Seamless True 2D Widescreen & Curated Linear-Light Upscalers — `ADR-017`, PR #34):**
@@ -45,9 +49,9 @@ python tools/prepare_media_assets.py --check-only
 ```
 
 ### Next Steps
-1. Fix *Albus Mode* inverted movement bug ([Issue #19](https://github.com/Neguchads/cdos-nintendods-recomp/issues/19)).
-2. Complete full playthroughs for *Eternity of Sorrow 1.2*, *Model ZX*, and *Model Omega* to promote them to `verified`.
-3. Evaluate native Linux / Steam Deck and Android builds with prebuilt SDL3.
+1. Publish patch release (`v1.2.1` or updated clean-room ZIP) containing zero bundled third-party mods and the updated `nds_runner.exe` + `recomplauncher.json` from PR #35.
+2. Implement 60 Hz exact vertical sync with smooth audio rate control (Issue #39).
+3. Evaluate roadmap feature requests (Issue #36 HD Texture Packs, #37 Cheat Manager, #38 Music Manager, #40 EUR multi-language, #30 optional local patch conversion) and native Linux/Steam Deck / Android builds.
 
 ---
 
@@ -55,8 +59,12 @@ python tools/prepare_media_assets.py --check-only
 
 ## Português (BR)
 
-### Estado Técnico Atual (`v1.2.0` na `main` — Escaladores 2D Modernos, Bloom HD-2D Multi-Passe & Widescreen 2D Nativo Sem Cortes)
-- **Última fatia (Escaladores 2D Modernos & Pipeline Multi-Passe HD-2D — `ADR-018`):**
+### Estado Técnico Atual (`main` pós-`v1.2.0` — Suporte Genérico a Mods Locais, Limpeza de Permissões & PR #35)
+- **Última fatia (Suporte Genérico a Mods Locais & Respeito aos Criadores — Issues #43, #44):**
+  - Removidos todos os `.dospatch` de terceiros embutidos (`mods/ptbr/`, `mods/definitive/`), `mods/catalog.json`, `mods/reports/definitive-*.json`, `tools/fetch_community_mods.py` e todas as entradas de mods de terceiros em `mods/registry.json`.
+  - Generalizada a auto-descoberta em `ndsrecomp/runner/src/dos_mod_registry.cpp` e `tools/mod_resolver.py` para carregar qualquer `*.dospatch` colocado pelo próprio jogador em `{data}/mods/profiles/` com saves isolados (`saves/profiles/<id>-v<ver>-<hash8>/dos.sav`), adicionado importador offline [`tools/import_local_mod.py`](tools/import_local_mod.py) (zero URLs/downloads), alterado padrão para `Original USA`, movidos os argumentos opcionais de patches em `recomplauncher.json` para `{data}/mods/...` e travados `tools/package_recomplauncher.py` + `tools/rbs_artifact.py` contra `.dospatch`/`.xdelta`/`.ips`/`.bps` no ZIP.
+  - PR #35 (`@Xarishark`) mergeado na `main` (`43d81e1`) e Issue #7 (Widescreen) fechada como concluída na `v1.2.0`.
+- **Última fatia gráfica (Escaladores 2D Modernos & Pipeline Multi-Passe HD-2D — `ADR-018`):**
   - Implementado pipeline multi-passe SDL3 GPU (`DosGpuShaderState::render_multipass` em `dos_gpu_shader.{h,cpp}`, pool de 20 `SDL_GPURenderState*` + render targets em cache por tela) via ubershader único compacto (`dos_postprocess.frag.hlsl` -> `uint32_t` DXIL `ps_6_0` `56.272 B` + SPIR-V `-Os` `91.884 B`, mantendo `patches/ndsrecomp-local.patch` em `1,55 MiB < 2,00 MiB`).
   - Adicionados **MMPX 2×** (NVIDIA), **OmniScale**, **ScaleFX-Hybrid 3×**, **Anti-Dither Seletivo (GDAPT, `dos_anti_dither`)**, **Bloom HD-2D Dual Kawase (5 passes)** com composição aditiva alinhada à curvatura CRT, e perfis **Remaster HD-2D** / **Vetor HD (ScaleFX)** no `F1 -> Gráficos HD` e `recomplauncher.json`, validados ao vivo em `0,6..0,8 ms` na RTX 3060 em `dx12-gpu` e `vulkan-gpu`.
 - **Fatia anterior (Widescreen 2D Nativo Sem Cortes & Upscalers Curados — `ADR-017`, PR #34):**

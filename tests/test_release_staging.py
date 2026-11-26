@@ -17,8 +17,7 @@ class ReleaseStagingTests(unittest.TestCase):
         source = {"recomplauncher.json": (ROOT / "recomplauncher.json").read_bytes(),
                   "README.md": b"synthetic", "play.bat": b"synthetic",
                   "docs/RECOMPLAUNCHER.md": b"synthetic",
-                  "mods/registry.json": b"{}", "mods/definitive/dos-definitive-en.dospatch": b"synthetic",
-                  "mods/definitive/dos-definitive-ptbr.dospatch": b"synthetic"}
+                  "mods/registry.json": b"{}"}
         for name in REQUIRED - {"SHA256SUMS.txt", "recomplauncher.json"}:
             source[name] = b"MZsynthetic" if name.endswith((".exe", ".dll")) else b"synthetic"
         for name in package.MEDIA_FILES:
