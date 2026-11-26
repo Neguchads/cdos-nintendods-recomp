@@ -6,6 +6,10 @@
 
 All help, ideas, pull requests, code reviews, testing, community support and improvements are welcome. You do not need to be a programmer to contribute.
 
+### Before opening an issue
+
+**Before opening an issue:** please search both open and closed issues and existing pull requests, check the [feature status and audit](docs/FEATURE_STATUS.md), [roadmap](ROADMAP.md), [release notes](https://github.com/Neguchads/cdos-nintendods-recomp/releases) and current game settings (F1). Confirm whether the feature or idea already exists, is planned, or has been reported. If a matching issue exists, add useful information there instead of creating a duplicate. If the existing feature is incomplete or broken, explain the missing behavior and include the version you tested. New ideas and genuine regressions are always welcome.
+
 ### Getting involved
 
 - Use [Issues](https://github.com/Neguchads/cdos-nintendods-recomp/issues) for reproducible bugs and feature proposals; check existing issues first.
@@ -20,6 +24,10 @@ Contributions of any size are appreciated; proposals are reviewed for correctnes
 ## Português
 
 Toda ajuda, ideias, pull requests, revisão de código, testes, suporte à comunidade e melhorias são bem-vindos. Você não precisa ser programador para contribuir.
+
+### Antes de abrir uma issue
+
+**Antes de abrir uma issue:** pesquise as issues abertas e fechadas e os pull requests existentes, consulte a [auditoria de funcionalidades](docs/FEATURE_STATUS.md), o [roadmap](ROADMAP.md), as [notas das versões](https://github.com/Neguchads/cdos-nintendods-recomp/releases) e as configurações atuais do jogo (F1). Verifique se a funcionalidade ou ideia já existe, está planejada ou foi relatada. Se houver uma issue correspondente, acrescente informações úteis nela em vez de criar uma duplicata. Se a funcionalidade existente estiver incompleta ou apresentar falhas, explique o que falta e informe a versão testada. Novas ideias e regressões reais são sempre bem-vindas.
 
 ### Como participar
 

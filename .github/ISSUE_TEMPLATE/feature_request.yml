@@ -1,0 +1,40 @@
+name: "Feature request / Sugerir funcionalidade"
+description: "Propose a new feature or improvement / Proponha uma melhoria"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please review the [feature audit](https://github.com/Neguchads/cdos-nintendods-recomp/blob/main/docs/FEATURE_STATUS.md), [roadmap](https://github.com/Neguchads/cdos-nintendods-recomp/blob/main/ROADMAP.md), [releases](https://github.com/Neguchads/cdos-nintendods-recomp/releases), existing open/closed issues and pull requests. Check F1 settings where applicable. / Consulte a auditoria, o roadmap, as versões, as issues abertas/fechadas, os PRs e as configurações do jogo antes de enviar.
+        If a matching issue exists, comment there. / Se houver uma issue equivalente, comente nela.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before submitting / Antes de enviar
+      options:
+        - label: I searched open and closed issues and existing PRs. / Pesquisei issues abertas e fechadas e PRs existentes.
+          required: true
+        - label: I reviewed the feature audit, roadmap and release notes, and checked current settings where applicable. / Consultei a auditoria, roadmap, versões e configurações quando aplicável.
+          required: true
+        - label: This report adds new information or identifies a missing or broken behavior. / Este relato acrescenta informações novas ou identifica uma falha ou comportamento ausente.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit / Versão ou commit
+      placeholder: e.g. v1.3.0
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Proposal and motivation / Proposta e motivação
+      description: Explain what is missing, why it matters, and how it differs from existing functionality. / Explique o que falta, sua importância e a diferença em relação ao recurso existente.
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues, PRs or features / Issues, PRs ou funcionalidades relacionadas
+      description: Add relevant links or explain what you checked. / Inclua links relevantes ou explique o que verificou.
+    validations:
+      required: false

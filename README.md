@@ -69,6 +69,8 @@ This is a community-driven open-source project. **All help is welcome!** Whether
 
 You can [open an issue](https://github.com/Neguchads/cdos-nintendods-recomp/issues), [submit a pull request](https://github.com/Neguchads/cdos-nintendods-recomp/pulls), [start a discussion](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) or join our [Discord community](https://discord.gg/s7CWbpZJ). Contributions of any size are appreciated. Please keep submissions respectful, reproducible and consistent with the project's clean-room and creator-permission policies.
 
+**Before opening an issue:** please search both open and closed issues and existing pull requests, check the [feature status and audit](docs/FEATURE_STATUS.md), [roadmap](ROADMAP.md), [release notes](https://github.com/Neguchads/cdos-nintendods-recomp/releases) and current game settings (F1). Confirm whether the feature or idea already exists, is planned, or has been reported. If a matching issue exists, add useful information there instead of creating a duplicate. If the existing feature is incomplete or broken, explain the missing behavior and include the version you tested. New ideas and genuine regressions are always welcome.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for practical guidelines.
 
 ### How to play
@@ -266,6 +268,8 @@ Este é um projeto de código aberto que valoriza a participação da comunidade
 - Novas funcionalidades, ideias, documentação, traduções e melhorias de acessibilidade.
 
 Você pode [abrir uma issue](https://github.com/Neguchads/cdos-nintendods-recomp/issues), [enviar um pull request](https://github.com/Neguchads/cdos-nintendods-recomp/pulls), [iniciar uma discussão](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) ou participar da [comunidade no Discord](https://discord.gg/s7CWbpZJ). Contribuições de qualquer tamanho são valorizadas. Respeite as pessoas, forneça informações reproduzíveis e siga as políticas de clean-room e de autorização dos criadores.
+
+**Antes de abrir uma issue:** pesquise as issues abertas e fechadas e os pull requests existentes, consulte a [auditoria de funcionalidades](docs/FEATURE_STATUS.md), o [roadmap](ROADMAP.md), as [notas das versões](https://github.com/Neguchads/cdos-nintendods-recomp/releases) e as configurações atuais do jogo (F1). Verifique se a funcionalidade ou ideia já existe, está planejada ou foi relatada. Se houver uma issue correspondente, acrescente informações úteis nela em vez de criar uma duplicata. Se a funcionalidade existente estiver incompleta ou apresentar falhas, explique o que falta e informe a versão testada. Novas ideias e regressões reais são sempre bem-vindas.
 
 Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para orientações práticas.
 
