@@ -64,14 +64,18 @@ class TestFoundation16A(unittest.TestCase):
             data_mods = Path(tmp) / "mods"
             (data_mods / "profiles").mkdir(parents=True)
             (data_mods / "profiles" / "sample-local-mod.dospatch").write_bytes(b"DOSPATCH")
+            (data_mods / "profiles" / "original.dospatch").write_bytes(b"DOSPATCH")
+            (data_mods / "profiles" / "definitive.dospatch").write_bytes(b"DOSPATCH")
 
             reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
 
-            # Repo registry must ship zero third-party mods; only clean Original USA baseline
-            self.assertEqual(set(reg.baselines), {"original"})
+            # Repo registry must ship zero third-party mods; reserved IDs never auto-register as campaigns
+            self.assertEqual(set(reg.baselines), {"original", "definitive"})
             self.assertEqual(set(reg.character_packs), {"default"})
             self.assertIn("dawn-of-sorrow", reg.campaigns)
             self.assertIn("sample-local-mod", reg.campaigns)
+            self.assertNotIn("original", reg.campaigns)
+            self.assertNotIn("definitive", reg.campaigns)
 
             # Verified: Dawn of Sorrow + Original USA + EN
             dec = reg.resolve(mr.SelectionRequest(baseline_id="original", language="en"))
@@ -184,6 +188,8 @@ class TestGenericLocalModImport(unittest.TestCase):
             orig_sha1 = ilm.USA_SHA1
             try:
                 ilm.USA_SHA1 = hashlib.sha1(usa_rom).hexdigest()
+                with self.assertRaises(ValueError):
+                    ilm.import_local_patch_file(ips_file, "original", bytes(usa_rom), data_mods_dir=data_mods)
                 rep = ilm.import_local_patch_file(ips_file, "my-ips-mod", bytes(usa_rom), data_mods_dir=data_mods)
                 self.assertEqual(rep["profile_id"], "my-ips-mod")
                 self.assertTrue((data_mods / "profiles" / "my-ips-mod.dospatch").is_file())

@@ -138,8 +138,8 @@ Valida o manifesto (inclusive se todos os arquivos de mídia existem) e gera `di
 
 No RecompLauncher, abra Settings, Developers, ligue Developer tools, use **Add a build** na pasta do projeto e leia a aba Developer.
 
-### Créditos de mods e tradução
+### Créditos e política de mods
 
-Todos os autores pesquisados (Definitive Edition, Dawn of Dignity, No Required Touch Screen, Fixed Luck, AI Intro Video e tradução PT-BR T1.0) estão creditados em [`docs/CREDITS.md`](CREDITS.md).
+Créditos do motor e bibliotecas open source, além da nossa política de permissão de criadores (nenhum mod de terceiros embutido), estão documentados em [`docs/CREDITS.md`](CREDITS.md).
 
 [Voltar ao topo / Back to top](#recomplauncher-integration--integração-com-o-recomplauncher)

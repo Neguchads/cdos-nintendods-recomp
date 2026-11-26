@@ -14,6 +14,17 @@
       "supports_ptbr": true,
       "author": "Konami (Retail USA ACVE)",
       "summary": "Clean USA retail baseline. Place optional user-supplied local mod patches (*.dospatch) in {data}/mods/profiles/ to discover them automatically."
+    },
+    {
+      "id": "definitive",
+      "name": "Optional Local Baseline Patch",
+      "version": "1.0",
+      "builtin": true,
+      "state": "verified",
+      "validation_level": "full",
+      "supports_ptbr": true,
+      "author": "User local patch",
+      "summary": "Optional user-supplied baseline patch slot ({data}/mods/definitive/); remains inactive unless you provide your own local patch files."
     }
   ],
   "campaigns": [
@@ -52,6 +63,27 @@
       "character_pack": "default",
       "baseline": "original",
       "language": "en",
+      "validation_level": "full"
+    },
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "original",
+      "language": "ptbr",
+      "validation_level": "full"
+    },
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "definitive",
+      "language": "en",
+      "validation_level": "full"
+    },
+    {
+      "campaign": "dawn-of-sorrow",
+      "character_pack": "default",
+      "baseline": "definitive",
+      "language": "ptbr",
       "validation_level": "full"
     }
   ]

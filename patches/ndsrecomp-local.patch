@@ -10852,10 +10852,10 @@ index 0000000..b5a0dc8
 +std::string dos_profile_save_path(const std::string& base_save_path, DosContentProfile profile);
 diff --git a/runner/src/dos_mod_registry.cpp b/runner/src/dos_mod_registry.cpp
 new file mode 100644
-index 0000000..ada7e4e
+index 0000000..edf983b
 --- /dev/null
 +++ b/runner/src/dos_mod_registry.cpp
-@@ -0,0 +1,824 @@
+@@ -0,0 +1,842 @@
 +#include "dos_mod_registry.h"
 +
 +#include <algorithm>
@@ -11080,6 +11080,10 @@ index 0000000..ada7e4e
 +        return false;
 +    }
 +    return true;
++}
++
++bool is_reserved_profile_id(const std::string& id) {
++    return id == "original" || id == "definitive" || id == "default" || id == "dawn-of-sorrow";
 +}
 +
 +const DosModEntry* find_entry(const std::vector<DosModEntry>& list, const std::string& id) {
@@ -11334,7 +11338,8 @@ index 0000000..ada7e4e
 +            std::vector<fs::path> found;
 +            for (const auto& entry : fs::directory_iterator(prof_dir, ec)) {
 +                if (ec) break;
-+                if (!entry.is_regular_file(ec)) continue;
++                std::error_code file_ec;
++                if (!entry.is_regular_file(file_ec) || file_ec) continue;
 +                const std::string fname = entry.path().filename().string();
 +                const std::string lc = lower_ascii(fname);
 +                if (lc.size() > 9 && lc.compare(lc.size() - 9, 9, ".dospatch") == 0) {
@@ -11347,7 +11352,10 @@ index 0000000..ada7e4e
 +                if (file_already_registered(fname)) continue;
 +                const std::string stem = p.stem().string();
 +                const std::string safe_id = dos_mod_sanitize_id(stem);
-+                if (safe_id.empty() || find_entry(reg->campaigns, safe_id) != nullptr) continue;
++                if (safe_id.empty() || is_reserved_profile_id(safe_id) ||
++                    find_entry(reg->campaigns, safe_id) != nullptr) {
++                    continue;
++                }
 +
 +                const bool is_dsvrandom = (safe_id.rfind("dsvrandom-", 0) == 0 && safe_id.size() > 10);
 +                DosModEntry e{};
@@ -11517,8 +11525,18 @@ index 0000000..ada7e4e
 +        if (active->id == "definitive" && !builtin_patches.has_definitive()) {
 +            dec.state = DosCompatState::Incompatible;
 +            dec.allowed = false;
-+            dec.reason = "Definitive Edition delta patch is not loaded.";
++            dec.reason = "Optional local baseline patch is not loaded ({data}/mods/definitive/).";
 +            return dec;
++        }
++        if (sel.language == DosLanguage::PtBr) {
++            const DosContentProfile req_prof =
++                (active->id == "definitive") ? DosContentProfile::Definitive : DosContentProfile::Original;
++            if (!builtin_patches.has_ptbr_for(req_prof)) {
++                dec.state = DosCompatState::Incompatible;
++                dec.allowed = false;
++                dec.reason = "Optional local translation patch is not loaded ({data}/mods/ptbr/).";
++                return dec;
++            }
 +        }
 +    } else {
 +        if (!active->installed || active->resolved_patch_path.empty()) {
@@ -18690,10 +18708,10 @@ index 1fa4362..8ea2229 100644
  void nds_title_patches_start_frame();
 diff --git a/runner/tests/dos_enhancements_test.cpp b/runner/tests/dos_enhancements_test.cpp
 new file mode 100644
-index 0000000..3357695
+index 0000000..8d8b83c
 --- /dev/null
 +++ b/runner/tests/dos_enhancements_test.cpp
-@@ -0,0 +1,1091 @@
+@@ -0,0 +1,1104 @@
 +#undef NDEBUG
 +#include "dos_custom_music.h"
 +#include "dos_enhancements.h"
@@ -19454,7 +19472,10 @@ index 0000000..3357695
 +    s_dsv.baseline_id = "definitive";
 +    assert(dos_mod_resolve_conflict(reg, s_dsv, sha, builtin).state == DosCompatState::Incompatible);
 +
-+    // 5b. Generic user-supplied local mod auto-discovery
++    // 5b. Generic user-supplied local mod auto-discovery & reserved-ID save-isolation guard
++    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "original.dospatch").string(), "DOSPATCH"));
++    assert(dos_write_text_atomic((tmp_dir / "data" / "profiles" / "definitive.dospatch").string(), "DOSPATCH"));
++    dos_mod_registry_rescan_installed(&reg);
 +    DosModSelection s_local{};
 +    s_local.campaign_id = "my-local-mod";
 +    s_local.baseline_id = "original";
@@ -19466,6 +19487,16 @@ index 0000000..3357695
 +    dec = dos_mod_resolve_conflict(reg, s_local, sha, builtin);
 +    assert(dec.state == DosCompatState::Unverified && dec.allowed);
 +    assert(dec.patch_path.find("my-local-mod.dospatch") != std::string::npos);
++    // Reserved IDs must never auto-register as campaigns (protects retail saves/dos.sav)
++    DosModSelection s_reserved{};
++    s_reserved.campaign_id = "original";
++    s_reserved.baseline_id = "original";
++    s_reserved.allow_unverified = true;
++    assert(dos_mod_resolve_conflict(reg, s_reserved, sha, builtin).state == DosCompatState::Incompatible);
++    // PT-BR without user-supplied translation patch must report Incompatible
++    DosModSelection s_no_ptbr{};
++    s_no_ptbr.language = DosLanguage::PtBr;
++    assert(dos_mod_resolve_conflict(reg, s_no_ptbr, sha, builtin).state == DosCompatState::Incompatible);
 +
 +    // 6. Seed Mutator binary safety: reject wrong game code and altered table signature
 +    std::vector<uint8_t> fake_rom(kDosEnemyDnaTableRomOffset + kDosEnemyDnaTableBytes + 64, 0);

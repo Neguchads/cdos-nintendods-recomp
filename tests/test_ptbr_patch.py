@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import sys
 import unittest
-import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

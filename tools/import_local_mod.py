@@ -219,8 +219,8 @@ def import_local_patch_file(
     if not source_path.is_file():
         raise FileNotFoundError(f"Arquivo de patch nao encontrado: {source_path}")
     clean_id = mr.sanitize_safe_id(profile_id)
-    if not clean_id:
-        raise ValueError(f"ID de perfil invalido: {profile_id!r}")
+    if not clean_id or clean_id in mr.RESERVED_PROFILE_IDS:
+        raise ValueError(f"ID de perfil invalido ou reservado: {profile_id!r}")
     raw_bytes = source_path.read_bytes()
     inner_name, fmt, patch_bytes = extract_first_compatible_patch(
         source_path.name, raw_bytes, inner_match=inner_match

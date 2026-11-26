@@ -15,6 +15,7 @@ CompatState = Literal["verified", "unverified", "incompatible"]
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}$")
 SAFE_VERSION_RE = re.compile(r"^[a-zA-Z0-9._-]{1,24}$")
 SAFE_SEED_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
+RESERVED_PROFILE_IDS = frozenset({"original", "definitive", "default", "dawn-of-sorrow"})
 
 
 def sanitize_safe_id(value: str, *, fallback: str = "") -> str:
@@ -137,7 +138,7 @@ class ModRegistry:
             if p.name.lower() in registered_files:
                 continue
             cid = sanitize_safe_id(p.stem)
-            if not cid or cid in self.campaigns:
+            if not cid or cid in RESERVED_PROFILE_IDS or cid in self.campaigns:
                 continue
             if cid.startswith("dsvrandom-") and len(cid) > len("dsvrandom-"):
                 seed_lbl = cid[len("dsvrandom-") :]
