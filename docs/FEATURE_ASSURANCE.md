@@ -31,3 +31,7 @@ See [MULTIPLATFORM.md](MULTIPLATFORM.md) for constraints. Future improvements: p
 - Run the existing repository tests and the dashboard consistency check.
 - Keep the original roadmap, changelog and release notes as historical records; link the generated inventory instead of manually duplicating percentages.
 - Record game/runtime test evidence separately; review regressions and platform-specific limits before release.
+
+## Dashboard presentation
+
+The dashboard uses neutral, ChatGPT-inspired metric cards and subtle progress bars, with separate light and dark SVG assets selected via GitHub-supported `picture` markup. The README shows the summary and a collapsible subsystem grid; the full audit shows both. These are static generated images, not interactive widgets; the registry remains the source of truth.

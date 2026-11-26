@@ -4,7 +4,17 @@ Generated from [quality/features.json](../quality/features.json). Do not edit th
 
 Baseline: `v1.3.0` / `98cc5b1f4cffb44850701c01e2e4942394b878fb`. Documentary inventory; no new runtime or CI test results claimed. Equal weight per registered requirement, not estimated effort.
 
-![Project development status](../assets/dashboard/project-status.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/dashboard/project-status-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/dashboard/project-status.svg">
+  <img alt="Project development status" src="../assets/dashboard/project-status.svg" width="880">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/dashboard/subsystems-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/dashboard/subsystems.svg">
+  <img alt="Subsystem progress" src="../assets/dashboard/subsystems.svg" width="880">
+</picture>
 
 **Implementation coverage: 59% · Documented verification: 46% · Newly registered evidence: 0% · 123 requirements.**
 

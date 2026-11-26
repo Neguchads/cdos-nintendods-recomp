@@ -28,7 +28,24 @@ Native PC port of *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, game code `AC
 
 ### Development progress / Status dashboard
 
-[![Feature assurance dashboard](assets/dashboard/project-status.svg)](docs/FEATURE_STATUS.md)
+<a href="docs/FEATURE_STATUS.md">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard/project-status-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/dashboard/project-status.svg">
+  <img alt="Feature assurance dashboard" src="assets/dashboard/project-status.svg" width="880">
+</picture>
+</a>
+
+<details>
+<summary>View progress cards for all 21 subsystems</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard/subsystems-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/dashboard/subsystems.svg">
+  <img alt="Subsystem progress" src="assets/dashboard/subsystems.svg" width="880">
+</picture>
+
+</details>
 
 [Full feature audit](docs/FEATURE_STATUS.md) · [Quality methodology and platform matrix](docs/FEATURE_ASSURANCE.md) · [Machine-readable metrics](quality/progress.json)
 
@@ -197,7 +214,24 @@ Port nativo para PC de *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, código 
 
 ### Progresso de desenvolvimento / Dashboard
 
-[![Painel de progresso e auditoria](assets/dashboard/project-status.svg)](docs/FEATURE_STATUS.md)
+<a href="docs/FEATURE_STATUS.md">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard/project-status-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/dashboard/project-status.svg">
+  <img alt="Painel de progresso e auditoria" src="assets/dashboard/project-status.svg" width="880">
+</picture>
+</a>
+
+<details>
+<summary>Ver cards dos 21 subsistemas</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard/subsystems-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/dashboard/subsystems.svg">
+  <img alt="Progresso por subsistema" src="assets/dashboard/subsystems.svg" width="880">
+</picture>
+
+</details>
 
 [Auditoria completa](docs/FEATURE_STATUS.md) · [Metodologia e matriz de plataformas](docs/FEATURE_ASSURANCE.md) · [Métricas JSON](quality/progress.json)
 
