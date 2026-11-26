@@ -5,9 +5,12 @@
 </p>
 
 <p align="center">
+  <a href="https://recomplauncher.com/game/cdos-nintendods-recomp"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" alt="Get it on RecompLauncher" height="48"></picture></a>
+  <a href="https://recompstore.com/dev/neguchads"><img src="https://recompstore.com/assets/press/verified-dark.svg" alt="Verified developer on RecompStore" height="48"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/Neguchads/cdos-nintendods-recomp/releases/latest"><img src="https://img.shields.io/github/v/release/Neguchads/cdos-nintendods-recomp?style=for-the-badge&label=Download&color=8b2c43" alt="Download latest release"></a>
-  <a href="https://recomplauncher.com/game/cdos-nintendods-recomp"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" alt="RecompLauncher" height="28"></picture></a>
-  <a href="https://recompstore.com/dev/neguchads"><img alt="Verified developer on RecompStore" src="https://recompstore.com/assets/press/verified-dark.svg" height="28"></a>
   <a href="https://discord.gg/s7CWbpZJ"><img src="https://img.shields.io/badge/Discord-Community-5865F2?style=for-the-badge" alt="Discord community"></a>
   <a href="README.pt-BR.md"><img src="assets/readme/language-ptbr.svg" alt="Read in Brazilian Portuguese" height="28"></a>
 </p>
