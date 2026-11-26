@@ -78,7 +78,9 @@
   "saves": [
     "{data}/saves/dos.sav",
     "{data}/saves/dos-settings.ini",
-    "{data}/run/savestates"
+    "{data}/run/savestates",
+    "{data}/saves/definitive",
+    "{data}/saves/profiles"
   ],
   "folders": {
     "saves": [
@@ -1353,12 +1355,6 @@
         "d3d12": "12.0",
         "vulkan": "1.1",
         "d3d11": "11.0",
-        "opengl": "4.3"
-      }
-    },
-    "linux": {
-      "graphics": {
-        "vulkan": "1.1",
         "opengl": "4.3"
       }
     }

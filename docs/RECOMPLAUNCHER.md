@@ -29,7 +29,8 @@ Notes:
 - The release has no `recompdata/` folder. The launcher creates `{data}` (`recompdata/`) and passes it as `RECOMPLAUNCHER_DATA`.
 - RecompLauncher starts `runtime/nds_runner.exe` with working directory `{install}/runtime`. Because of that, every path in `start.args` uses `{install}/...` (for `game.toml`, `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch`, and optional `mods/intro/opening.mp4`) or `{data}/...` (for `run/bios`, saves, savestates, and `firmware_state.bin`) instead of bare relative paths.
 - `looks` can read the API from `dos_render_driver` only when its value contains `vulkan`, `d3d12`, `d3d11` or `opengl`. The default `direct3d12` does not contain `d3d12`, so for it the launcher falls back to detecting the API from the executable.
-- Only Windows is built and tested; `system.linux` documents the Vulkan / OpenGL need of the (unverified) Linux build.
+- Only Windows is built and tested, so `system` lists Windows only. Add a `linux` part once a Linux build is released and tested.
+- `saves` also lists `{data}/saves/definitive` and `{data}/saves/profiles`: the default Definitive profile saves to `saves/definitive/dos.sav`, and mod profiles to `saves/profiles/...`, not to the `--save-path` file itself.
 
 ### Media kit
 
@@ -99,7 +100,8 @@ Notas:
 - A release não tem pasta `recompdata/`. O launcher cria `{data}` (`recompdata/`) e a repassa como `RECOMPLAUNCHER_DATA`.
 - O RecompLauncher executa `runtime/nds_runner.exe` com o diretório de trabalho em `{install}/runtime`. Por isso, todo caminho em `start.args` usa `{install}/...` (para `game.toml`, `mods/ptbr/dos-ptbr.dospatch`, `mods/definitive/dos-definitive-{en,ptbr}.dospatch` e o opcional `mods/intro/opening.mp4`) ou `{data}/...` (para `run/bios`, saves, savestates e `firmware_state.bin`), nunca caminhos relativos puros.
 - O `looks` só lê a API de `dos_render_driver` quando o valor contém `vulkan`, `d3d12`, `d3d11` ou `opengl`. O padrão `direct3d12` não contém `d3d12`, então nesse caso o launcher detecta a API pelo executável.
-- Só o Windows é compilado e testado; `system.linux` documenta a necessidade de Vulkan / OpenGL do build Linux (não verificado).
+- Só o Windows é compilado e testado, então `system` lista só o Windows. Adicione uma parte `linux` quando um build Linux for publicado e testado.
+- `saves` também lista `{data}/saves/definitive` e `{data}/saves/profiles`: o perfil padrão Definitive salva em `saves/definitive/dos.sav`, e os perfis de mod em `saves/profiles/...`, não no próprio arquivo de `--save-path`.
 
 ### Kit de mídia
 
