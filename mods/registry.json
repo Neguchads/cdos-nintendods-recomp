@@ -13,7 +13,7 @@
       "validation_level": "full",
       "supports_ptbr": true,
       "author": "Konami (Retail USA ACVE)",
-      "summary": "Clean USA retail baseline. Place optional user-supplied local mod patches (*.dospatch) in {data}/mods/profiles/ to discover them automatically."
+      "summary": "Clean USA retail baseline. Import any community mod or translation locally via F1 -> Mods without modifying your ROM."
     },
     {
       "id": "definitive",
@@ -42,8 +42,56 @@
       "summary": "Standard Dawn of Sorrow campaign. Additional local mods (.xdelta / .ips / .dospatch) imported via F1 -> Mods or placed in {data}/mods/profiles/ are discovered automatically without modifying your ROM."
     },
     {
+      "id": "cdos-ptbr-v1-1",
+      "name": "Tradução PT-BR (Vanilla)",
+      "version": "1.1",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_manual_slot",
+      "profile_file": "cdos_1.1.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "Hyllian, Solid One, Neko Belmont, Mysterioso, denim, djmatheusito, victoriemini",
+      "source_url": "https://github.com/leomontenegro6/cdos-traducao-ptbr/releases",
+      "summary": "Brazilian Portuguese v1.1 translation (Vanilla) — manual import only (zero patch files bundled). Download official cdos_1.1.xdelta from the authors' GitHub release or João13 Traduções and click 'Patch...'."
+    },
+    {
+      "id": "cdos-ptbr-de-v1-1",
+      "name": "Tradução PT-BR (Definitive Edition)",
+      "version": "1.1",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_manual_slot",
+      "profile_file": "cdos_de_1.1.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "Hyllian, Solid One, Neko Belmont, Mysterioso, denim, djmatheusito, victoriemini",
+      "source_url": "https://github.com/leomontenegro6/cdos-traducao-ptbr/releases",
+      "summary": "Brazilian Portuguese v1.1 translation + Definitive Edition (Dawn of Dignity, No Magic Seals, Fixed Luck) — manual import only (zero files bundled). Download cdos_de_1.1.xdelta from the authors' release and click 'Patch...'."
+    },
+    {
+      "id": "definitive-plus",
+      "name": "Definitive Edition+",
+      "version": "2.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_manual_slot",
+      "profile_file": "definitive-plus.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "Masked Dedede, DevAnj, Thirteen 1355, ShadowOne333, acediez, LagoLunatic",
+      "source_url": "https://www.romhacking.net/hacks/5610/",
+      "summary": "Community QoL & visual overhaul (Dawn of Dignity portraits, Fixed Luck, No Required Touch, Definitive Mode) — manual import only (zero files bundled). Download directly from Romhacking.net and click 'Patch...'."
+    },
+    {
       "id": "eternity-of-sorrow",
-      "name": "Eternity of Sorrow (Manual Import)",
+      "name": "Eternity of Sorrow",
       "version": "1.2",
       "builtin": false,
       "manual_import": true,
@@ -54,8 +102,56 @@
       "definitive_compatible": false,
       "allowed_character_packs": ["default"],
       "author": "Wet-Band-Aid",
-      "source_url": "https://github.com/Neguchads/cdos-nintendods-recomp/issues/44",
-      "summary": "Compatibility slot authorized by @Wet-Band-Aid (Issue #44). No mod files are bundled or downloaded; import your own official .xdelta/.dospatch file via F1 -> Mods."
+      "source_url": "https://github.com/Wet-Band-Aid/Castlevania---Eternity-of-Sorrow",
+      "summary": "Full-game sequel campaign authorized by @Wet-Band-Aid (Issue #44). No mod files are bundled or downloaded; download the official .xdelta from the creator and click 'Patch...'."
+    },
+    {
+      "id": "alucards-requiem-sotn",
+      "name": "Alucard's Requiem (SOTN Variant)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_manual_slot",
+      "profile_file": "alucards-requiem-sotn.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "DarkPrinceAlucard, Drameloch",
+      "source_url": "https://castlevaniamodding.boards.net/thread/1001/castlevania-alucards-requiem",
+      "summary": "Alucard campaign overhaul (Symphony of the Night appearance) — manual import only (zero files bundled). Download directly from the creator's release thread and click 'Patch...'."
+    },
+    {
+      "id": "alucards-requiem-cv3",
+      "name": "Alucard's Requiem (CV3 Variant)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_manual_slot",
+      "profile_file": "alucards-requiem-cv3.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "DarkPrinceAlucard, I am Me",
+      "source_url": "https://castlevaniamodding.boards.net/thread/1001/castlevania-alucards-requiem",
+      "summary": "Alucard campaign overhaul (Castlevania III appearance) — manual import only (zero files bundled). Download directly from the creator's release thread and click 'Patch...'."
+    },
+    {
+      "id": "draculas-curse",
+      "name": "Dracula's Curse (Trevor Mode)",
+      "version": "1.0",
+      "builtin": false,
+      "manual_import": true,
+      "state": "unverified",
+      "validation_level": "community_manual_slot",
+      "profile_file": "draculas-curse.xdelta",
+      "supports_ptbr": false,
+      "definitive_compatible": false,
+      "allowed_character_packs": ["default"],
+      "author": "Fat T-800 (Albert Edvard)",
+      "source_url": "https://www.romhacking.net/hacks/7884/",
+      "summary": "Julius Mode overhaul starring Trevor Belmont, Sypha Belnades, Grant Danasty, and Alucard — manual import only (zero files bundled). Download from Romhacking.net and click 'Patch...'."
     }
   ],
   "character_packs": [
@@ -67,7 +163,16 @@
       "state": "verified",
       "validation_level": "full",
       "exclusive_group": "julius-pack",
-      "compatible_campaigns": ["dawn-of-sorrow"],
+      "compatible_campaigns": [
+        "dawn-of-sorrow",
+        "cdos-ptbr-v1-1",
+        "cdos-ptbr-de-v1-1",
+        "definitive-plus",
+        "eternity-of-sorrow",
+        "alucards-requiem-sotn",
+        "alucards-requiem-cv3",
+        "draculas-curse"
+      ],
       "supports_ptbr": true,
       "author": "Native",
       "summary": "Uses the active campaign's native playable characters."
