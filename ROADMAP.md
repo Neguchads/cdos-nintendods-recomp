@@ -72,6 +72,16 @@
 - Seek collaborators and open-source tooling for independent ports of the DS trilogy (Dominus Collection context) and the GBA trilogy (Circle of the Moon, Harmony of Dissonance, Aria of Sorrow). Assess feasibility, legal provenance, shared infrastructure and existing work first. See the [community invitation](README.md#help-us-expand-the-castlevania-recompilation-ecosystem). These are not current release milestones or verified features.
 
 ### Planned (Future)
+
+#### Security Hardening & Supply Chain Assurance (deferred)
+
+- Create a responsible disclosure policy (`SECURITY.md`) and evaluate private vulnerability reporting.
+- Triage current Code Scanning, Dependabot and secret-scanning alerts individually; fix confirmed findings, document false positives and rerun checks.
+- Review branch rulesets, required PR checks, deletion/force-push protections and secret push protection before enabling them.
+- Audit C/C++, Python, Gradle and pinned dependencies; evaluate OpenSSF Scorecard, Gitleaks, OSV-Scanner, Cppcheck, Clang-Tidy, Bandit and SBOM-based scanners without redundant checks.
+- Verify release hashes, provenance, SBOMs, binary integrity, licensing and false-positive handling; add security evidence and regression tests to CHAD Feature Assurance.
+- Extract reusable practices into Chad Recomp when validated. Existing security workflows remain in place; no settings changed in this deferred phase.
+
 - Full start-to-credits playthrough validation for *True 2D Widescreen `342×192`* (promote from Beta to Verified).
 - Community feature requests: HD Texture Dumping/Replacement ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Cheat Manager ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Advanced Custom Music Manager ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)), and European multi-language support ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
 - Native compilation on a Linux/Steam Deck runner and Android NDK environment with prebuilt SDL3 libraries.
@@ -147,6 +157,16 @@
 - Buscar colaboradores e ferramentas open source para ports independentes da trilogia DS (contexto Dominus Collection) e da trilogia GBA (Circle of the Moon, Harmony of Dissonance, Aria of Sorrow). Avaliar viabilidade, procedência legal, infraestrutura compartilhada e trabalhos existentes. Consulte o [convite à comunidade](README.pt-BR.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Não são metas de release atuais nem funcionalidades verificadas.
 
 ### Planejado (Futuro)
+
+#### Segurança e integridade da cadeia de fornecimento (adiado)
+
+- Criar política de divulgação responsável (`SECURITY.md`) e avaliar relatos privados de vulnerabilidades.
+- Revisar individualmente alertas de Code Scanning, Dependabot e Secret Scanning; corrigir problemas confirmados, documentar falsos positivos e reexecutar verificações.
+- Avaliar rulesets, checks obrigatórios de PR, proteção contra exclusão/force push e push protection antes de ativar.
+- Auditar dependências C/C++, Python, Gradle e versões fixadas; avaliar OpenSSF Scorecard, Gitleaks, OSV-Scanner, Cppcheck, Clang-Tidy, Bandit e scanners de SBOM sem redundância.
+- Verificar hashes, proveniência, SBOM, integridade dos binários, licenciamento e falsos positivos; integrar evidências e regressões ao CHAD Feature Assurance.
+- Reutilizar práticas no Chad Recomp após validação. Os workflows existentes permanecem ativos; nenhuma configuração de segurança é alterada nesta fase adiada.
+
 - Validação completa de campanha (do início aos créditos) para promover *Widescreen 2D Nativo `342×192`* de Beta para Verificado.
 - Pedidos da comunidade: Dump/Substituição de Texturas HD ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Gerenciador de Cheats ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Gerenciador Avançado de Música ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)) e suporte multi-idioma Europeu ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.
