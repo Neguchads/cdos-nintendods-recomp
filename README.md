@@ -59,6 +59,18 @@ Percentages are catalog-based implementation and historical documented verificat
 - **GBA Slot-2 *Aria of Sorrow* Bonus & Custom Music:** toggleable clean-room 192-byte GBA Slot-2 header (`A2CE`) unlocking **Rare Ring** + **Mina's Doll** without a GBA ROM, plus native **`.wav` / `.mp3` / `.ogg` Custom Music** with Per-Stage Mapper & Global Jukebox while keeping 100% of original DS sound effects and voices.
 - **Community & Support:** join our **[Discord Server](https://discord.gg/s7CWbpZJ)** for setup help, testing, and mod compatibility discussion.
 
+### Community contributions welcome
+
+This is a community-driven open-source project. **All help is welcome!** Whether you are a developer, tester, player, modder or simply interested in the project, your contributions matter.
+
+- Pull requests, code reviews, bug fixes, performance improvements and refactoring.
+- Testing, reproducible bug reports, compatibility feedback and technical support for other users.
+- New features, ideas, documentation, translations and accessibility improvements.
+
+You can [open an issue](https://github.com/Neguchads/cdos-nintendods-recomp/issues), [submit a pull request](https://github.com/Neguchads/cdos-nintendods-recomp/pulls), [start a discussion](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) or join our [Discord community](https://discord.gg/s7CWbpZJ). Contributions of any size are appreciated. Please keep submissions respectful, reproducible and consistent with the project's clean-room and creator-permission policies.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for practical guidelines.
+
 ### How to play
 
 **Option A — RecompLauncher (recommended):**
@@ -244,6 +256,18 @@ Percentuais calculados a partir dos requisitos catalogados; verificação docume
 - **Escaladores HD-2D Multi-Passe & Sincronia Exata `60,0 Hz`:** 8 filtros de GPU curados (`Pixellate`, `Pixel-AA`, `Bandlimited`, `MMPX 2×`, `OmniScale`, `ScaleFX-Hybrid 3×`), Anti-Dither `GDAPT`, Bloom Dual Kawase em 5 passes, 6 Perfis Visuais de 1 clique e **VSync Exato `60,0 Hz` (`sync60`)** com micro-splicer WSOLA (zero engasgos em monitores 60 Hz e zero mudança de tom).
 - **Bônus Slot-2 GBA *Aria of Sorrow* & Música Customizada:** cabeçalho GBA clean-room de 192 bytes (`A2CE`) alternável no `F1 -> Mods` para liberar **Rare Ring** + **Mina's Doll** sem precisar de ROM de GBA, além de **Música Customizada `.wav` / `.mp3` / `.ogg`** com Seletor por Estágio e Jukebox Global mantendo 100% dos efeitos sonoros e vozes originais do DS.
 - **Comunidade & Suporte:** entre no nosso **[Servidor do Discord](https://discord.gg/s7CWbpZJ)** para ajuda na instalação, testes e compatibilidade de mods.
+
+### Contribuições da comunidade são bem-vindas
+
+Este é um projeto de código aberto que valoriza a participação da comunidade. **Toda ajuda é bem-vinda!** Seja você desenvolvedor, testador, jogador, modder ou apenas interessado no projeto, sua contribuição é importante.
+
+- Pull requests, revisão de código, correções, melhorias de desempenho e refatoração.
+- Testes, relatos de bugs reproduzíveis, feedback de compatibilidade e suporte técnico a outros usuários.
+- Novas funcionalidades, ideias, documentação, traduções e melhorias de acessibilidade.
+
+Você pode [abrir uma issue](https://github.com/Neguchads/cdos-nintendods-recomp/issues), [enviar um pull request](https://github.com/Neguchads/cdos-nintendods-recomp/pulls), [iniciar uma discussão](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) ou participar da [comunidade no Discord](https://discord.gg/s7CWbpZJ). Contribuições de qualquer tamanho são valorizadas. Respeite as pessoas, forneça informações reproduzíveis e siga as políticas de clean-room e de autorização dos criadores.
+
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para orientações práticas.
 
 ### Como jogar
 
