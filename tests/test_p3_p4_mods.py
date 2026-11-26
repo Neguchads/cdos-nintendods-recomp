@@ -71,10 +71,27 @@ class TestFoundation16A(unittest.TestCase):
 
             reg = mr.ModRegistry.load(ROOT / "mods" / "registry.json", data_mods_dir=data_mods)
 
-            # Repo registry must ship zero third-party mods; reserved IDs never auto-register as campaigns
+            # Repo registry ships zero bundled files; only Dawn of Sorrow + authorized manual_import slot (Eternity of Sorrow, Issue #44)
             self.assertEqual(set(reg.baselines), {"original", "definitive"})
             self.assertEqual(set(reg.character_packs), {"default"})
             self.assertIn("dawn-of-sorrow", reg.campaigns)
+            self.assertIn("eternity-of-sorrow", reg.campaigns)
+            self.assertTrue(reg.campaigns["eternity-of-sorrow"]["manual_import"])
+            # Without a user-supplied patch file, Eternity of Sorrow resolves as incompatible (not installed)
+            self.assertEqual(
+                reg.resolve(
+                    mr.SelectionRequest(campaign_id="eternity-of-sorrow", baseline_id="original", allow_unverified=True)
+                ).state,
+                "incompatible",
+            )
+            # Dropping user-supplied Eternity of Sorrow .xdelta activates the authorized slot
+            (data_mods / "profiles" / "Eternity of Sorrow.xdelta").write_bytes(b"\xd6\xc3\xc4\x00\x00")
+            reg.rescan_local_profiles()
+            dec_eos = reg.resolve(
+                mr.SelectionRequest(campaign_id="eternity-of-sorrow", baseline_id="original", allow_unverified=True)
+            )
+            self.assertEqual(dec_eos.state, "unverified")
+            self.assertTrue(dec_eos.allowed)
             self.assertIn("sample-local-mod", reg.campaigns)
             self.assertIn("dos-definitive-v2-0", reg.campaigns)
             self.assertIn("no-required-touch-v1-1", reg.campaigns)

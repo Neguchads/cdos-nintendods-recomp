@@ -315,6 +315,12 @@
           }
         },
         {
+          "label": "Minimap HUD (Samus Returns 16:9)",
+          "set": {
+            "dos_layout": "minimap-hud"
+          }
+        },
+        {
           "label": "Widescreen Theatre (16:9 Focus + Sidebar)",
           "set": {
             "dos_layout": "widescreen-theatre"

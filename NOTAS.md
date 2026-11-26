@@ -1,16 +1,18 @@
-# Notas de Sessão (Suporte Nativo `.xdelta`/`.ips` & VSync 60Hz Sem Mudar Tom)
+# Notas de Sessão (Importador In-Game de Patches & Minimap HUD Samus Returns 16:9)
 
 ## Feito
-- **Suporte nativo `.xdelta` / `.vcdiff` e `.ips` direto no `nds_runner.exe` (`dos_rom_patch.cpp`, `dos_mod_registry.cpp`, `tools/mod_resolver.py`):**
-  - Decodificadores C++ puros RFC 3284 VCDIFF (COPY/ADD/RUN + Adler32, com fallback automático para `xdelta3.exe` via `CreateProcessW` quando usa compressor secundário DJW/LZMA) e IPS (Hunk + RLE + truncation), além de diagnóstico claro para XDELTA1 legado (`%XDZ00x%`).
-  - Auto-descoberta em `{data}/mods/profiles/` para `.dospatch`, `.xdelta`, `.vcdiff`, `.xdelta3` e `.ips` com saves/savestates isolados e proteção de IDs reservados.
-- **Issue `#39` — Modo VSync Exato `60.0 Hz` (`sync60`):**
-  - Novo `DosVsyncMode::Sync60Hz` em `dos_enhancements.{h,cpp}`, `dos_i18n.{h,cpp}`, `dos_imgui_menu.cpp`, `frontend.cpp` e `recomplauncher.json`.
-  - `DosPitchPreservingAudioSync` (WSOLA overlap-add de janela Hann 128 frames): elimina o micro-stutter do clock DS `59.8261 Hz` em LCD 60 Hz com zero crackle e 0.00% alteração de pitch (validado em teste de 600 frames a 440 Hz).
+- **Importador nativo de mods dentro do `F1 -> Mods & Campanhas` (`frontend.cpp`, `dos_imgui_menu.{h,cpp}`, `dos_mod_registry.{h,cpp}`, `dos_i18n.{h,cpp}`):**
+  - Botão **`Importar Patch (.xdelta / .ips / .dospatch)...`** abre o seletor nativo SDL3 (`SDL_ShowOpenFileDialog`), valida assinatura binária (`VCDIFF`, `IPS`, `DOSPATCH`; rejeita `XDELTA1` legado e IDs reservados), copia atomicamente para `{data}/mods/profiles/<slug><ext>`, dispara rescan imediato e exibe toast.
+  - Botão **`Abrir Pasta de Mods`** garante a criação de `{data}/mods/profiles/` e abre no Explorer via `SDL_OpenURL` (URI `file:///` com percent-encoding UTF-8).
+  - Slot de compatibilidade `manual_import: true` para **Eternity of Sorrow** (`@Wet-Band-Aid`, autorização explícita na Issue `#44`, zero arquivos embutidos ou baixados) + créditos em `docs/CREDITS.md` + casamento automático por slug em C++ (`dos_mod_registry.cpp`) e Python (`tools/mod_resolver.py`).
+- **Layout `Minimap HUD (Samus Returns 16:9)` & Preset 1-Clique (`screen_layout.h`, `dos_enhancements.cpp`, `frontend_config.cpp`, `frontend.cpp`, `dos_imgui_menu.cpp`, `recomplauncher.json`):**
+  - Novo `NdsScreenLayout::MinimapHud` (`minimap-hud`, aliases `minimap`/`samus`/`metroidvania`): tela principal `342×192` + minimapa compacto de `24%` no canto (margem `4 px`, escala configurável `16..50%`), incluído no ciclo `F2` e no manifesto do RecompLauncher.
+  - Botão **1 Clique: HUD Metroidvania 16:9** ativa `True 2D Widescreen` + `Minimap HUD` + `Top-Right` + `80%` opacidade + `Edge-Anchored` HUD.
 
 ## Falta / Próximos passos
-- Abrir PR, passar revisão + CI e mergear `feat/xdelta-ips-and-60hz-vsync`, respondendo/fechando `#39` e respondendo `#30` com instruções de uso do `.xdelta` local.
-- Atacar próximas fatias das issues abertas: `#37` (Cheat Manager), `#38` (Advanced Custom Music Manager), `#36` (Texture Dumping/HD Packs) e análise/resposta técnica de `#40` (Multi-idioma EUR), além da patch release clean-room `v1.2.1`.
+- Compilar `dos_enhancements_test` + `nds_runner`, rodar `ctest` + `unittest` + validadores de manifesto/mídia, sincronizar `patches/ndsrecomp-local.patch`, abrir PR, rodar revisão de diff por subagente + CI e fazer squash-merge na `main`.
+- Gerar e publicar a release patch clean-room `v1.2.1` substituindo o ZIP antigo da `v1.2.0` (que ainda continha `.dospatch` de terceiros).
 
 ## Decisões
-- WSOLA de janela Hann (128 samples, busca de fase correlacionada em `[96..256]`) escolhido em vez de `SDL_SetAudioStreamFrequencyRatio` para cumprir literalmente o requisito de **0.00% alteração de tom** na Issue `#39`.
+- Fila estática protegida por `std::mutex` + `std::atomic<bool>` para o callback assíncrono do `SDL_ShowOpenFileDialog`, evitando ponteiro pendente caso a janela feche antes do diálogo nativo do Windows.
+- `SDL_OpenURL` com URI `file:///` percent-encoded em vez de incluir `<windows.h>` no `frontend.cpp` (evita conflitos de macros Win32 e mantém portabilidade Linux/Windows).
