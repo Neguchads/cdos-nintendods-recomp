@@ -9,3 +9,7 @@
 ## Falta / Próximos passos
 - Próximos épicos de roadmap: `#36` (HD Texture Packs), `#37` (Cheat Manager), `#38` (Advanced Music Manager) e `#40` (EUR Multi-language).
 - Auditoria completa de campanha para *Widescreen 2D Nativo `342×192`* (Beta -> Verificado).
+
+## Feature Assurance (auditoria documental)
+- Catálogo de requisitos, métricas, dashboard SVG e auditoria gerada: [FEATURE_STATUS](docs/FEATURE_STATUS.md).
+- Política de evidências e manutenção: [FEATURE_ASSURANCE](docs/FEATURE_ASSURANCE.md). Nenhum novo teste de gameplay foi realizado nesta auditoria.

@@ -1,0 +1,421 @@
+{
+  "baseline": "98cc5b1f4cffb44850701c01e2e4942394b878fb",
+  "overall": {
+    "total": 123,
+    "counts": [
+      57,
+      13,
+      2,
+      3,
+      33,
+      15,
+      0,
+      0,
+      0
+    ],
+    "implemented": 59,
+    "documented": 46,
+    "evidenced": 0
+  },
+  "subsystems": [
+    {
+      "id": "CORE",
+      "name": "Recompilation Core",
+      "total": 4,
+      "counts": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 75,
+      "documented": 75,
+      "evidenced": 0
+    },
+    {
+      "id": "RENDER",
+      "name": "Rendering Engine",
+      "total": 4,
+      "counts": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 75,
+      "documented": 75,
+      "evidenced": 0
+    },
+    {
+      "id": "GRAPHICS",
+      "name": "Graphics & HD-2D",
+      "total": 6,
+      "counts": [
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 100,
+      "documented": 100,
+      "evidenced": 0
+    },
+    {
+      "id": "DISPLAY",
+      "name": "Display & Widescreen",
+      "total": 5,
+      "counts": [
+        3,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 80,
+      "documented": 60,
+      "evidenced": 0
+    },
+    {
+      "id": "AUDIO",
+      "name": "Audio Engine",
+      "total": 4,
+      "counts": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 75,
+      "documented": 75,
+      "evidenced": 0
+    },
+    {
+      "id": "MUSIC",
+      "name": "Custom Music Manager",
+      "total": 42,
+      "counts": [
+        15,
+        0,
+        0,
+        3,
+        22,
+        2,
+        0,
+        0,
+        0
+      ],
+      "implemented": 36,
+      "documented": 36,
+      "evidenced": 0
+    },
+    {
+      "id": "MODS",
+      "name": "Mod Manager",
+      "total": 7,
+      "counts": [
+        5,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 86,
+      "documented": 71,
+      "evidenced": 0
+    },
+    {
+      "id": "TEXTURE",
+      "name": "HD Texture Manager",
+      "total": 3,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 0,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "INPUT",
+      "name": "Input System",
+      "total": 4,
+      "counts": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 100,
+      "documented": 100,
+      "evidenced": 0
+    },
+    {
+      "id": "CHEAT",
+      "name": "Cheat Manager",
+      "total": 3,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 0,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "SAVE",
+      "name": "Save System",
+      "total": 5,
+      "counts": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 80,
+      "documented": 80,
+      "evidenced": 0
+    },
+    {
+      "id": "LANG",
+      "name": "Localization",
+      "total": 4,
+      "counts": [
+        3,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 75,
+      "documented": 75,
+      "evidenced": 0
+    },
+    {
+      "id": "PERF",
+      "name": "Performance",
+      "total": 3,
+      "counts": [
+        2,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 67,
+      "documented": 67,
+      "evidenced": 0
+    },
+    {
+      "id": "WIN",
+      "name": "Windows Platform",
+      "total": 3,
+      "counts": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 100,
+      "documented": 100,
+      "evidenced": 0
+    },
+    {
+      "id": "LINUX",
+      "name": "Linux & Steam Deck",
+      "total": 3,
+      "counts": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "implemented": 33,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "ANDROID",
+      "name": "Android Platform",
+      "total": 4,
+      "counts": [
+        0,
+        1,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 25,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "LAUNCH",
+      "name": "RecompLauncher",
+      "total": 3,
+      "counts": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 100,
+      "documented": 100,
+      "evidenced": 0
+    },
+    {
+      "id": "BUILD",
+      "name": "Build System",
+      "total": 4,
+      "counts": [
+        0,
+        3,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "implemented": 75,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "SEC",
+      "name": "Security",
+      "total": 4,
+      "counts": [
+        0,
+        2,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "implemented": 50,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "QA",
+      "name": "Quality Assurance",
+      "total": 4,
+      "counts": [
+        0,
+        2,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "implemented": 50,
+      "documented": 0,
+      "evidenced": 0
+    },
+    {
+      "id": "DOC",
+      "name": "Documentation",
+      "total": 4,
+      "counts": [
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "implemented": 100,
+      "documented": 0,
+      "evidenced": 0
+    }
+  ]
+}

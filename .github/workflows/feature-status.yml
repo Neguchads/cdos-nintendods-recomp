@@ -1,0 +1,16 @@
+name: Feature Status
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # same pin as CI
+      - name: Validate generated feature inventory
+        run: node tools/quality/generate-dashboard.mjs --check
