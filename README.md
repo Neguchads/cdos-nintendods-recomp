@@ -73,6 +73,17 @@ You can [open an issue](https://github.com/Neguchads/cdos-nintendods-recomp/issu
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for practical guidelines.
 
+### Help us expand the Castlevania recompilation ecosystem
+
+We are looking for community support, technical ideas and collaborators to explore future Castlevania recompilation projects beyond Dawn of Sorrow:
+
+- **Dominus Collection / Nintendo DS trilogy:** explore independent native ports and shared technology for Dawn of Sorrow, Portrait of Ruin and Order of Ecclesia, as well as possible compatibility with legally obtained Dominus Collection assets where technically and legally feasible.
+- **Game Boy Advance trilogy:** explore native recompilation of Circle of the Moon, Harmony of Dissonance and Aria of Sorrow from legally dumped original ROMs.
+
+Developers, reverse engineers, tooling maintainers, testers, modders and players are invited to share research, open-source tools, technical proposals, code reviews and pull requests. We welcome ideas for reusable recompilation pipelines, rendering, audio, controls, modding and cross-platform support.
+
+These are exploratory community goals, not announced releases or commitments. Please share ideas in [Discussions](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) or [Discord](https://discord.gg/s7CWbpZJ) and review existing work before opening new issues. This is an unofficial, independent effort; do not submit commercial ROMs, BIOS, proprietary game assets or unauthorized third-party content. Dawn of Sorrow remains the current repository's primary focus.
+
 ### How to play
 
 **Option A — RecompLauncher (recommended):**
@@ -272,6 +283,17 @@ Você pode [abrir uma issue](https://github.com/Neguchads/cdos-nintendods-recomp
 **Antes de abrir uma issue:** pesquise as issues abertas e fechadas e os pull requests existentes, consulte a [auditoria de funcionalidades](docs/FEATURE_STATUS.md), o [roadmap](ROADMAP.md), as [notas das versões](https://github.com/Neguchads/cdos-nintendods-recomp/releases) e as configurações atuais do jogo (F1). Verifique se a funcionalidade ou ideia já existe, está planejada ou foi relatada. Se houver uma issue correspondente, acrescente informações úteis nela em vez de criar uma duplicata. Se a funcionalidade existente estiver incompleta ou apresentar falhas, explique o que falta e informe a versão testada. Novas ideias e regressões reais são sempre bem-vindas.
 
 Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para orientações práticas.
+
+### Ajude-nos a expandir o ecossistema de recompilação de Castlevania
+
+Buscamos apoio da comunidade, ideias técnicas e colaboradores para explorar futuros projetos de recompilação de Castlevania além de Dawn of Sorrow:
+
+- **Dominus Collection / trilogia Nintendo DS:** explorar ports nativos independentes e tecnologias compartilhadas para Dawn of Sorrow, Portrait of Ruin e Order of Ecclesia, além de possível compatibilidade com recursos da Dominus Collection obtidos legalmente, quando técnica e juridicamente viável.
+- **Trilogia Game Boy Advance:** explorar recompilações nativas de Circle of the Moon, Harmony of Dissonance e Aria of Sorrow a partir de ROMs originais extraídas legalmente.
+
+Convidamos desenvolvedores, especialistas em engenharia reversa, mantenedores de ferramentas, testadores, modders e jogadores a compartilhar pesquisas, ferramentas open source, propostas técnicas, revisões de código e pull requests. São bem-vindas ideias para pipelines reutilizáveis, renderização, áudio, controles, modding e suporte multiplataforma.
+
+São objetivos exploratórios da comunidade, não lançamentos anunciados ou compromissos de entrega. Compartilhe ideias nas [Discussões](https://github.com/Neguchads/cdos-nintendods-recomp/discussions) ou no [Discord](https://discord.gg/s7CWbpZJ) e verifique os trabalhos existentes antes de abrir novas issues. Esta é uma iniciativa independente e não oficial; não envie ROMs comerciais, BIOS, recursos proprietários dos jogos ou conteúdo de terceiros sem autorização. Dawn of Sorrow permanece o foco principal deste repositório.
 
 ### Como jogar
 

@@ -6,6 +6,10 @@
 
 All help, ideas, pull requests, code reviews, testing, community support and improvements are welcome. You do not need to be a programmer to contribute.
 
+### Future Castlevania research
+
+We welcome research, ideas and contributions for the Dominus Collection / Nintendo DS trilogy and the three original GBA Castlevania games. See the [community expansion invitation](README.md#help-us-expand-the-castlevania-recompilation-ecosystem). Discuss feasibility and existing open-source efforts before proposing implementation; keep commercial ROMs and proprietary assets out of contributions.
+
 ### Before opening an issue
 
 **Before opening an issue:** please search both open and closed issues and existing pull requests, check the [feature status and audit](docs/FEATURE_STATUS.md), [roadmap](ROADMAP.md), [release notes](https://github.com/Neguchads/cdos-nintendods-recomp/releases) and current game settings (F1). Confirm whether the feature or idea already exists, is planned, or has been reported. If a matching issue exists, add useful information there instead of creating a duplicate. If the existing feature is incomplete or broken, explain the missing behavior and include the version you tested. New ideas and genuine regressions are always welcome.
@@ -24,6 +28,10 @@ Contributions of any size are appreciated; proposals are reviewed for correctnes
 ## Português
 
 Toda ajuda, ideias, pull requests, revisão de código, testes, suporte à comunidade e melhorias são bem-vindos. Você não precisa ser programador para contribuir.
+
+### Pesquisa futura de Castlevania
+
+São bem-vindas pesquisas, ideias e contribuições para a Dominus Collection / trilogia Nintendo DS e os três Castlevania originais de GBA. Consulte o [convite à comunidade](README.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Discuta a viabilidade e os projetos open source existentes antes de propor uma implementação; não inclua ROMs comerciais nem recursos proprietários nas contribuições.
 
 ### Antes de abrir uma issue
 

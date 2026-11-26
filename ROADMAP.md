@@ -67,6 +67,10 @@
 - **Modular Stackable Add-Ons (inspired by `cdos-patcher-tool` & `@leomontenegro6`):** Separated `mods/registry.json` into stackable `"addons"` (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) and exclusive `"campaigns"`. Added checkboxes in `F1 -> Mods & Campaigns`, 3-way byte-diff overlay merger against clean USA `base_rom` + NDS header CRC-16/MODBUS recomputation (`0x15E..0x15F`), persistent `dos_active_addons` INI key, isolated saves per stack (`modular-stack`), and full C++/Python parity.
 - **Project Homepage (`README.md`) Refresh:** Reorganized EN and PT-BR sections with a scannable feature overview and up-to-date Feature Status tables.
 
+### Exploratory community research (not committed)
+
+- Seek collaborators and open-source tooling for independent ports of the DS trilogy (Dominus Collection context) and the GBA trilogy (Circle of the Moon, Harmony of Dissonance, Aria of Sorrow). Assess feasibility, legal provenance, shared infrastructure and existing work first. See the [community invitation](README.md#help-us-expand-the-castlevania-recompilation-ecosystem). These are not current release milestones or verified features.
+
 ### Planned (Future)
 - Full start-to-credits playthrough validation for *True 2D Widescreen `342×192`* (promote from Beta to Verified).
 - Community feature requests: HD Texture Dumping/Replacement ([Issue #36](https://github.com/Neguchads/cdos-nintendods-recomp/issues/36)), Cheat Manager ([Issue #37](https://github.com/Neguchads/cdos-nintendods-recomp/issues/37)), Advanced Custom Music Manager ([Issue #38](https://github.com/Neguchads/cdos-nintendods-recomp/issues/38)), and European multi-language support ([Issue #40](https://github.com/Neguchads/cdos-nintendods-recomp/issues/40)).
@@ -137,6 +141,10 @@
 ### Feito (Pós-`v1.2.2` — Fatia 2: Composição Modular Empilhável de Patches & Refresh da Homepage)
 - **Add-Ons Modulares Combináveis (inspirado no `cdos-patcher-tool` & `@leomontenegro6`):** `mods/registry.json` separado em `"addons"` empilháveis (**Tradução PT-BR v1.1**, **Dawn of Dignity**, **No Magic Seals**, **Fixed Luck**, **Voice Restore Project**) e `"campaigns"` exclusivas. Adicionados checkboxes em `F1 -> Mods & Campanhas`, merger 3-way byte-diff em memória sobre a `base_rom` USA limpa + recálculo do CRC-16/MODBUS do cabeçalho NDS (`0x15E..0x15F`), chave INI `dos_active_addons`, saves isolados por combinação (`modular-stack`) e paridade C++/Python.
 - **Refresh da Homepage (`README.md`):** Seções EN e PT-BR reorganizadas com resumo visual de destaques e tabelas de status atualizadas.
+
+### Pesquisa comunitária exploratória (sem compromisso de entrega)
+
+- Buscar colaboradores e ferramentas open source para ports independentes da trilogia DS (contexto Dominus Collection) e da trilogia GBA (Circle of the Moon, Harmony of Dissonance, Aria of Sorrow). Avaliar viabilidade, procedência legal, infraestrutura compartilhada e trabalhos existentes. Consulte o [convite à comunidade](README.md#ajude-nos-a-expandir-o-ecossistema-de-recompilação-de-castlevania). Não são metas de release atuais nem funcionalidades verificadas.
 
 ### Planejado (Futuro)
 - Validação completa de campanha (do início aos créditos) para promover *Widescreen 2D Nativo `342×192`* de Beta para Verificado.
