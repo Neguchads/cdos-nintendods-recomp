@@ -47,3 +47,13 @@ São bem-vindas pesquisas, ideias e contribuições para a Dominus Collection / 
 - Preserve a política clean-room: não inclua ROMs comerciais, BIOS, dados do jogo ou mods de terceiros sem autorização. Respeite a [revisão de licenciamento](docs/LICENSE_REVIEW.md), a [política de criadores](docs/CREDITS.md) e os demais colaboradores.
 
 Contribuições de qualquer tamanho são valorizadas; propostas serão avaliadas por correção, escopo, compatibilidade e facilidade de manutenção.
+
+## Writing a release announcement / Como anunciar uma versão
+
+Write English first, then Brazilian Portuguese. Include the GitHub release link and use these three sections.
+
+Escreva primeiro em inglês e depois em português do Brasil. Inclua o link da versão no GitHub e use estas três seções.
+
+- **What changed / O que mudou** — List user-facing changes and known limits. / Liste mudanças para quem joga e limites conhecidos.
+- **What to test / O que testar** — Give a short checklist for the published build, including any required platform or game revision. / Passe uma lista curta de testes para a build publicada, com a plataforma ou edição do jogo exigida.
+- **Where to report / Onde responder** — Link the game's Discord thread. Ask for the version, system, result, and reproduction steps. / Aponte para o tópico do jogo no Discord. Peça versão, sistema, resultado e passos para reproduzir.

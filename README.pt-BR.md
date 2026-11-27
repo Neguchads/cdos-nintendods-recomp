@@ -31,6 +31,12 @@ Port nativo para PC de *Castlevania: Dawn of Sorrow* (Nintendo DS, USA, código 
 > **Aviso legal e de respeito aos criadores:** este repositório **não contém ROMs, BIOS comerciais, dados protegidos do jogo nem mods/traduções de terceiros embutidos**. Use a sua própria cópia legal de `Castlevania - Dawn of Sorrow (USA).nds`: 64 MiB, CRC32 `135737f6`, SHA-1 `47530ff87e608f88105a314fdf36dc385f8dec94`. Patches e traduções da comunidade obtidos diretamente com seus autores são carregados localmente em memória pelo menu `F1 -> Mods` (`{data}/mods/profiles/`) sem nunca alterar sua ROM.
 
 
+**Jogar** · [Instalar e abrir a versão Windows](#como-jogar)
+
+**Compilar ou contribuir** · [Ferramentas e build no Windows](#clone-e-dependências) · [Guia de contribuição](CONTRIBUTING.md)
+
+**Suporte e testes** · [Teste da v1.3.0 e modelo de resposta](https://discord.com/channels/1563251955030171658/1575608242313363466/1575694018283577484)
+
 ### Progresso de desenvolvimento / Dashboard
 
 <a href="docs/FEATURE_STATUS.md">
