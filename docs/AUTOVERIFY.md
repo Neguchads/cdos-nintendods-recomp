@@ -65,3 +65,20 @@ This integration has no paid-service fallback.
 Core pin: c6037185830f24770f856d4cd69791c686095bc5, pending latest CI and independent review.
 [Core PR #36](https://github.com/Neguchads/navi-core/pull/36).
 [API conditions](https://docs.virustotal.com/reference/public-vs-premium-api).
+
+## CDOS local draft gate
+
+For a reviewed final stable package, the existing draft creator accepts two
+optional flags together (VT_API_KEY must already be set in the environment):
+
+```powershell
+python tools/rbs_publish.py PATH_TO_FINAL_PACKAGE --confirm-draft --autoverify-core PATH_TO_NAVI_CORE --confirm-public-noncommercial
+```
+
+The existing receipt, clean source, version, checksum and draft checks still
+apply. The verifier must match the pinned Core Git revision and script bytes
+(ignoring Windows CRLF differences). It saves a separate JSON report beside
+the package. Unknown, suspicious, mismatched or failed results stop draft
+creation. No flags means the existing local draft flow stays unchanged;
+no API call is made. Do not enable the post-publication external lookup for
+that same already-checked package. No automatic publication is added.
