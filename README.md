@@ -24,6 +24,12 @@ An independent, unofficial native PC port of **Castlevania: Dawn of Sorrow** (Ni
 
 [Features](#features) · [How to play](#how-to-play) · [Development status](#development-status) · [Future projects](#help-us-expand-the-castlevania-recompilation-ecosystem) · [Contribute](#community-contributions-welcome) · [Credits](#credits-and-acknowledgments) · [License](#license-and-legal-notice)
 
+**Play** · [Install and run the Windows release](#how-to-play) · [Read in Brazilian Portuguese](README.pt-BR.md#como-jogar)
+
+**Build or contribute** · [Tools and Windows build](README.en.md#clone-and-dependencies) · [Contribution guide](CONTRIBUTING.md)
+
+**Support and playtesting** · [v1.3.0 playtest and report template](https://discord.com/channels/1563251955030171658/1575608242313363466/1575694018283577484)
+
 ## Features
 
 | Area | Highlights |
