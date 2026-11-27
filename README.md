@@ -127,3 +127,7 @@ Third-party mods and translations are not bundled; obtain them directly from the
 This is an independent fan recompilation and preservation project, not affiliated with or endorsed by Konami. Original games, characters, marks and proprietary assets remain the property of their respective owners.
 
 The repository has **no blanket MIT or other project-wide license grant**. Components retain their applicable terms; the limited MIT license covers only the two original synthetic CI scripts identified in the [licensing and provenance review](docs/LICENSE_REVIEW.md). That review documents mixed upstream terms, including GPL and PolyForm Noncommercial boundaries, and distribution obligations. See [full licensing review](docs/LICENSE_REVIEW.md), [limited CI license](.github/advanced/LICENSE), and [credits and creator policy](docs/CREDITS.md). Do not distribute commercial ROMs, proprietary BIOS, or unauthorized assets. This documentation does not certify binary redistribution compliance.
+
+### Optional release verification (pilot)
+
+See [AutoVerify](docs/AUTOVERIFY.md) for the manual release hash check and optional public non-commercial VirusTotal lookup. No runtime safety certification is implied.
