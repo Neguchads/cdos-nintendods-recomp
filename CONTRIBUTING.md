@@ -57,3 +57,8 @@ Escreva primeiro em inglês e depois em português do Brasil. Inclua o link da v
 - **What changed / O que mudou** — List user-facing changes and known limits. / Liste mudanças para quem joga e limites conhecidos.
 - **What to test / O que testar** — Give a short checklist for the published build, including any required platform or game revision. / Passe uma lista curta de testes para a build publicada, com a plataforma ou edição do jogo exigida.
 - **Where to report / Onde responder** — Link the game's Discord thread. Ask for the version, system, result, and reproduction steps. / Aponte para o tópico do jogo no Discord. Peça versão, sistema, resultado e passos para reproduzir.
+
+
+## Native UI proposals / Propostas de interface nativa
+
+Follow the [shared UI design system proposal](docs/UI_DESIGN_SYSTEM.md) for new interface components. Include the affected setting, platform scope, expected behavior, acceptance checklist and test evidence. Use the existing feature registry for status; do not mark proposals as implemented. / Siga a [proposta de sistema visual compartilhado](docs/UI_DESIGN_SYSTEM.md), indique configurações afetadas, plataformas, comportamento esperado, critérios de aceitação e evidências. Use o catálogo existente para registrar o estado das funcionalidades.

@@ -172,3 +172,9 @@
 - Compilação nativa em runner Linux/Steam Deck e Android NDK em máquina ou workflow com bibliotecas SDL3 pré-compiladas.
 
 [Voltar ao topo / Back to top](#roadmap--castlevania-dawn-of-sorrow-recompiled-acve)
+
+
+## Shared native UI design system / Sistema visual nativo compartilhado
+
+- [ ] [#65 — Windows-first native cards, settings controls and adaptive navigation](https://github.com/Neguchads/cdos-nintendods-recomp/issues/65): see [design proposal](docs/UI_DESIGN_SYSTEM.md). Planned; runtime integration and verification pending. / Planejado; integração e verificação do runtime pendentes.
+- [ ] Reuse shared UI in separate [Android #52](https://github.com/Neguchads/cdos-nintendods-recomp/issues/52) and [Linux #63](https://github.com/Neguchads/cdos-nintendods-recomp/issues/63) ports after platform-specific validation. / Reutilizar componentes após validação de cada plataforma.
